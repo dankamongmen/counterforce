@@ -32,6 +32,8 @@ separated into three panes:
   * 4 temperature sensors are mapped arbitrarily to CCD representations
   * show busiest processes on all execution units
 
+![simple 3970x die diagram](https://github.com/dankamongmen/counterforce/blob/master/doc/3970x.jpg?raw=true)
+
 whenever possible, sensor results are displayed atop relevant sensing
 point. think damage/HP in final fantasy iii.
 
