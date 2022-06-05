@@ -7,12 +7,16 @@ capacitive screen having 1920x1080 resolution.
 
 it receives data from a program running on the workstation proper, and
 draws to the AMOLED. it is necessary that it run in some manner of
-attract mode, as the AMOLED is susceptible to burnin.
+attract mode, as the AMOLED is susceptible to burnin. we currently run
+xscreensaver, but ideally we would not.
 
 ## UI
 
 right now only a monitoring screen and a plot screen are available. later,
 there will probably be more screens you can flip through.
+
+at all times, we ought show a green or red indication based on whether we've
+received data in the past 2s; display the time since last receipt at all times.
 
 ### monitoring screen
 
@@ -26,6 +30,8 @@ separated into three panes:
 * rendition of PSU side of machine
   * shows fans, radiators, hard drives
   * temp sensor follows bottom radiator
+  * UPS info (power lost? connection status, battery status)
+  * power consumption as reported by UPS
 * rendition of 3970X and TU104
   * 3970X is a quincunx of 4 CCDs and central I/O die
   * show power draw of both (`nvidia-smi`, `turbostat`)
