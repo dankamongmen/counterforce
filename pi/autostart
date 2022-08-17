@@ -1,0 +1,7 @@
+# goes in $HOME/.config/lxsession/LXDE/autostart for
+# whatever user is automatically logged in
+
+@xscreensaver -no-splash
+@xrandr -o right
+@unclutter -idle 0.5 -root
+chromium-browser --kiosk --disable-gpu http://amoled:3000/d/rYdddlPWk/node-exporter-full?orgId=1\&refresh=1m\&kiosk
