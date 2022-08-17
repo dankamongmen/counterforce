@@ -2,40 +2,37 @@
 
 #include <SPI.h>
 
-#define LOG_PERIOD 15000     //Logging period in milliseconds, recommended value 15000-60000.
-#define MAX_PERIOD 60000    //Maximum logging period
+#define RADPIN 2
 
-unsigned long counts;             //variable for GM Tube events
-unsigned long cpm;                 //variable for CPM
-unsigned int multiplier;             //variable for calculation CPM in this sketch
-unsigned long previousMillis;      //variable for time measurement
+#define LOG_PERIOD 15000  // logging period in milliseconds, recommended value 15000-60000.
+#define MAX_PERIOD 60000  // maximum logging period
 
-void tube_impulse(){               //procedure for capturing events from Geiger Kit
+unsigned long counts;         // variable for GM Tube events
+unsigned long cpm;            // variable for CPM
+unsigned int multiplier;      // variable for calculation CPM in this sketch
+unsigned long previousMillis; // variable for time measurement
+
+void tube_impulse(){
   counts++;
 }
 
-void setup(){                                               //setup procedure
+void setup(){
   counts = 0;
   cpm = 0;
-  multiplier = MAX_PERIOD / LOG_PERIOD;      //calculating multiplier, depend on your log period
-  Serial.begin(9600);                                    // start serial monitor
- // uncommennt if you have time-out problem to connect with Radiation Logger
- //  delay(2000);
- //  Serial.write('0');                                      // sending zero to avoid connection time out with radiation logger
- //  delay(2000);
- //  Serial.write('0');                                     // sending zero to avoid connection time out with radiation logger
-  pinMode(2, INPUT);                                   // set pin INT0 input for capturing GM Tube events
-  digitalWrite(2, HIGH);                                 // turn on internal pullup resistors, solder C-INT on the PCB
-  attachInterrupt(0, tube_impulse, FALLING);  //define external interrupts
+  multiplier = MAX_PERIOD / LOG_PERIOD;      // calculating multiplier, depend on your log period
+  Serial.begin(9600);                        // start serial monitor
+  pinMode(RADPIN, INPUT);                    // set pin INT0 input for capturing GM Tube events
+  digitalWrite(RADPIN, HIGH);                // turn on internal pullup resistors, solder C-INT on the PCB
+  attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
 }
 
-void loop(){                                               //main cycle
+void loop(){
   unsigned long currentMillis = millis();
   if(currentMillis - previousMillis > LOG_PERIOD){
     previousMillis = currentMillis;
     cpm = counts * multiplier;
-        Serial.print(cpm);                              // send cpm data to Radiation Logger
-        Serial.write(' ');                                // send null character to separate next data
+    Serial.print(cpm);
+    Serial.println(" cpm");
     counts = 0;
   }
 }

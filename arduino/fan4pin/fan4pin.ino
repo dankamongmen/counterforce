@@ -1,10 +1,12 @@
 // intended to run on a Mega2560
+#include <RadioHead.h>
 #include <PWM.h>
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
-// we need an interrupt-capable pin. on MEGA, this is
+// we need an interrupt-capable pin. on Mega, this is
 // 2, 3, 18, 19, 20, 21 (last two conflict with i2c)
+// on Uno, only 2 and 3 are available!
 const int RPMPIN = 21; // pin connected to tachometer
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
@@ -12,7 +14,7 @@ const int RPMPIN = 21; // pin connected to tachometer
 //  pin 10, 9 == timer 2
 //  pin 5, 3, 2 == timer 3
 //  pin 8, 7, 6 == timer 4
-const int PWMPIN = 9; // pin connected to PWM
+const int PWMPIN = 10; // pin connected to PWM
 
 static void rpm(){
   if(Pulses < 65535){
@@ -24,11 +26,14 @@ void setup(){
   Serial.begin(115200);
   InitTimersSafe(); // don't blow away timer 0
   if(!SetPinFrequency(PWMPIN, 25000)){
-    Serial.println("Failure initializing PWMPIN");
+    Serial.print("Failure initializing PWMPIN ");
+    Serial.println(PWMPIN);
   }else{
-    Serial.print("Successfully initialized PWMPIN at resolution ");
     pinMode(PWMPIN, OUTPUT);
     float res = GetPinResolution(PWMPIN);
+    Serial.print("Successfully initialized PWMPIN ");
+    Serial.print(PWMPIN);
+    Serial.print("at resolution ");
     Serial.println(res);
     pwmWrite(PWMPIN, 128);
   }
@@ -58,5 +63,4 @@ void loop (){
   Serial.print(" rpm ");
   Serial.print(cur - m, DEC);
   Serial.println("µs");
-  pwmWrite(PWMPIN, 128);
 }
