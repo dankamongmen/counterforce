@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# read the CPM data from an Arduino USB serial link, and update an RRD
+
+set -e
+
+usage() { echo "usage: $(basename 0) device rrdfile" ; }
+
+[ $# -eq 2 ] || { usage >&2 ; return 1 ; }
+
+DEV="$1"
+RRD="$2"
+
+[ -w "$RRD" ] || { echo "can't write to $RRD, exiting" >&2 ; usage >&2 ; return 1 ; }
+
+echo "reading disintegration counts from $DEV..."
+
+# FIXME loop if $DEV doesn't exist, but not busily...
+# can socat handle this for us?
+
+stty -F "$DEV" raw 115200 -echo
+
+stdbuf -oL socat /dev/stdout OPEN:"$DEV",B115200,icanon=1 | \
+while read line ; do
+  echo "handling line [$line]..."
+  CPM="$(echo line | cut -d\  -f1)"
+  echo "CPM: $CPM"
+  #rrdtool update "$RRD" "$CPM"
+done

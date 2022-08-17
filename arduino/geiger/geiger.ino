@@ -20,7 +20,8 @@ void setup(){
   counts = 0;
   cpm = 0;
   multiplier = MAX_PERIOD / LOG_PERIOD;      // calculating multiplier, depend on your log period
-  Serial.begin(9600);                        // start serial monitor
+  Serial.begin(115200);                      // start serial monitor
+  while(!Serial);
   pinMode(RADPIN, INPUT);                    // set pin INT0 input for capturing GM Tube events
   digitalWrite(RADPIN, HIGH);                // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
