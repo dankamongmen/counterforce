@@ -4,14 +4,15 @@
 
 set -e
 
-usage() { echo "usage: $(basename 0) device rrdfile" ; }
+usage() { echo "usage: $(basename $0) device rrdfile" ; }
 
 [ $# -eq 2 ] || { usage >&2 ; return 1 ; }
 
 DEV="$1"
 RRD="$2"
 
-[ -w "$RRD" ] || { echo "can't write to $RRD, exiting" >&2 ; usage >&2 ; return 1 ; }
+rrdtool info "$RRD" > /dev/null || \
+ { echo "$RRD wasn't an RRD, exiting" >&2 ; usage >&2 ; return 1 ; }
 
 echo "reading disintegration counts from $DEV..."
 
@@ -24,10 +25,9 @@ stty -F "$DEV" raw 115200 -echo
 
 socat - OPEN:"$DEV",B115200 | \
 while read line ; do
-  echo "handling line [$line]..."
   CPM="$(echo $line | cut -d\  -f1)"
   echo "CPM: $CPM"
-  rrdtool update "$RRD" "$CPM"
+  rrdupdate "$RRD" N:"$CPM"
   COUNT=$((COUNT + 1))
 done
 
