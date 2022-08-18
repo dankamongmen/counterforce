@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+CPMRRD=cpmrrd
+
+# -O: don't overwrite an existing file; consider it an error
+
+# geiger counter results. sample every 15s, and average those into
+# counts per minute data points. keep two weeks worth of data.
+rrdcreate "$CPMRRD" -O -s 15 DS:geigercounts:GAUGE:30:0:U RRA:AVERAGE:0:4:1229760
+echo "Created RRD $CPMRRD"

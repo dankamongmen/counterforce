@@ -18,12 +18,17 @@ echo "reading disintegration counts from $DEV..."
 # FIXME loop if $DEV doesn't exist, but not busily...
 # can socat handle this for us?
 
+COUNT=0
+
 stty -F "$DEV" raw 115200 -echo
 
-stdbuf -oL socat /dev/stdout OPEN:"$DEV",B115200,icanon=1 | \
+socat - OPEN:"$DEV",B115200 | \
 while read line ; do
   echo "handling line [$line]..."
-  CPM="$(echo line | cut -d\  -f1)"
+  CPM="$(echo $line | cut -d\  -f1)"
   echo "CPM: $CPM"
-  #rrdtool update "$RRD" "$CPM"
+  rrdtool update "$RRD" "$CPM"
+  COUNT=$((COUNT + 1))
 done
+
+echo "processed $COUNT events"
