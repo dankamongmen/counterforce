@@ -1,6 +1,7 @@
 [Unit]
 Description=Mega 2560 disintegration tracker
-After=local-fs.target
+Wants=local-fs.target
+Wants=time-sync.target
 
 [Service]
 Type=simple
