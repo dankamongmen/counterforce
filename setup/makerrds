@@ -2,7 +2,7 @@
 
 set -e
 
-CPMRRD=cpmrrd
+CPMRRD=/usr/local/var/lib/counterforce/cpm.rrd
 
 # -O: don't overwrite an existing file; consider it an error
 
