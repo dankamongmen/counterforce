@@ -24,7 +24,7 @@ COUNT=0
 BAUD=115200
 
 stty -F "$DEV" raw $BAUD -echo
-socat - OPEN:"$DEV",B$BAUD | \
+socat /dev/stdout OPEN:"$DEV",B$BAUD | \
 while read line ; do
   CPM="$(echo $line | cut -d\  -f1)"
   rrdupdate "$RRD" N:"$CPM"

@@ -22,6 +22,7 @@ void setup(){
 }
 
 void loop(){
+  // FIXME need to handle overflow every 50 days
   unsigned long currentMillis = millis();
   if(currentMillis - previousMillis > LOG_PERIOD){
     previousMillis = currentMillis;
