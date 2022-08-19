@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# read the CPM data from an Arduino USB serial link, and update an RRD
+# read the COUNT data from an Arduino USB serial link, and update an RRD
 
 set -e
 
@@ -24,10 +24,11 @@ COUNT=0
 BAUD=115200
 
 stty -F "$DEV" raw $BAUD -echo
-socat /dev/stdout OPEN:"$DEV",B$BAUD | \
+socat -u OPEN:"$DEV",B$BAUD STDOUT | \
 while read line ; do
-  CPM="$(echo $line | cut -d\  -f1)"
-  rrdupdate "$RRD" N:"$CPM"
+  COUNT="$(echo $line | cut -d\  -f1)"
+  #echo "measured $COUNT"
+  rrdupdate "$RRD" N:"$COUNT"
   COUNT=$((COUNT + 1))
 done
 
