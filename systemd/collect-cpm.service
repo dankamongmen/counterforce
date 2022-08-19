@@ -4,7 +4,7 @@ After=local-fs.target
 
 [Service]
 Type=simple
-ExecStart=/home/dank/src/dankamongmen/counterforce/arduino/collect-cpm /dev/ttyACM1 /usr/local/var/lib/counterforce/cpm.rrd
+ExecStart=/home/dank/src/dankamongmen/counterforce/arduino/collect-cpm /dev/tty-Mega2560 /usr/local/var/lib/counterforce/cpm.rrd
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes

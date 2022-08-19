@@ -21,12 +21,12 @@ echo "reading disintegration counts from $DEV..."
 
 COUNT=0
 
-stty -F "$DEV" raw 115200 -echo
+BAUD=115200
 
-socat - OPEN:"$DEV",B115200 | \
+stty -F "$DEV" raw $BAUD -echo
+socat - OPEN:"$DEV",B$BAUD | \
 while read line ; do
   CPM="$(echo $line | cut -d\  -f1)"
-  echo "CPM: $CPM"
   rrdupdate "$RRD" N:"$CPM"
   COUNT=$((COUNT + 1))
 done
