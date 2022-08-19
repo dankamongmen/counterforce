@@ -2,3 +2,6 @@
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", \
  ATTRS{serial}=="95736323832351908012", SYMLINK+="tty-Mega2560"
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", \
+ ATTRS{serial}=="85734323330351D07122", SYMLINK+="tty-dankfan"
