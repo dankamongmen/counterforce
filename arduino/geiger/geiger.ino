@@ -1,8 +1,6 @@
 // read from RHElectronics geiger counter and
 // KY-038 sound level sensor
 
-#include <SPI.h>
-
 #define RADPIN 2
 #define MICPIN A0
 
@@ -24,6 +22,7 @@ void setup(){
   digitalWrite(RADPIN, HIGH); // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
   pinMode(MICPIN, INPUT);
+  previousMillis = 0;
 }
 
 void loop(){

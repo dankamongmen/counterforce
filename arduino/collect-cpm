@@ -24,12 +24,10 @@ COUNT=0
 BAUD=115200
 
 stty -F "$DEV" raw $BAUD -echo
-socat -u OPEN:"$DEV",B$BAUD STDOUT | \
+exec socat -u OPEN:"$DEV",B$BAUD STDOUT | \
 while read line ; do
   COUNT="$(echo $line | cut -d\  -f1)"
   #echo "measured $COUNT"
   rrdupdate "$RRD" N:"$COUNT"
   COUNT=$((COUNT + 1))
 done
-
-echo "processed $COUNT events"
