@@ -2,14 +2,14 @@
 
 #define RADPIN 2
 
-#define LOG_PERIOD 15000  // logging period in milliseconds, recommended value 15000-60000.
+// we want a count per minute
+#define SAMPLEMS 60000
 
 volatile unsigned long count; // GM Tube events
-unsigned int multiplier;      // variable for calculation CPM in this sketch
 unsigned long previousMillis; // variable for time measurement
 
 void tube_impulse(){
-  count++;
+  ++count;
 }
 
 void setup(){
@@ -22,10 +22,11 @@ void setup(){
 }
 
 void loop(){
-  // FIXME need to handle overflow every 50 days
-  unsigned long currentMillis = millis();
-  if(currentMillis - previousMillis > LOG_PERIOD){
-    previousMillis = currentMillis;
+  unsigned long now = millis();
+  // need to keep everything unsigned long so that we properly
+  // handle overflow of millis() at ~50 days
+  if(now - previousMillis > SAMPLEMS){
+    previousMillis = now;
     Serial.print(count);
     Serial.println(" counts");
     count = 0;
