@@ -68,7 +68,7 @@ void setup(){
   // we'll get better thermistor readings if we use the cleaner
   // 3.3V line. connect 3.3V to AREF.
   pinMode(TEMPPIN, INPUT);
-  analogReference(EXTERNAL);
+  //analogReference(EXTERNAL);
 
   ADMUX = 0xc8; // enable internal temperature sensor via ADC
 }
@@ -145,7 +145,7 @@ void loop (){
   }while(cur - m < LOOPUS);
   unsigned p = Pulses;
   Pulses = 0;
-  int temp = readInternalTemp();
+  //int temp = readInternalTemp();
   if(p * 30 > 65535){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
@@ -165,8 +165,9 @@ void loop (){
   Serial.print(therm);
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
-  Serial.print(" Internal temp: ");
-  Serial.println(temp);
+  //Serial.print(" Internal temp: ");
+  //Serial.print(temp);
+  Serial.println();
 
   check_pwm_update();
 }
