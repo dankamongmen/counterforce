@@ -11,9 +11,13 @@ const int RPMPIN = 2; // pin connected to tachometer
 // we need a digital output pin for PWM.
 const int PWMPIN = 9;
 
+// Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
+
+// Arduino Uno has a 16MHz processor.
 const word TCNT1_TOP = 16000000 / (2 * PWM_FREQ_HZ);
-const byte FIXED_PWM = 80; // FIXME yuck
+
+unsigned Pwm;
 
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
@@ -29,12 +33,8 @@ static void rpm(){
 }
 
 void setup(){
+  const byte INITIAL_PWM = 40;
   Serial.begin(115200);
-
-  pinMode(RPMPIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
-  Serial.print("tachometer read on ");
-  Serial.println(RPMPIN);
 
   pinMode(PWMPIN, OUTPUT);
   // Clear Timer1 control and count registers
@@ -53,51 +53,92 @@ void setup(){
   TCCR1A |= (1 << COM1A1) | (1 << WGM11);
   TCCR1B |= (1 << WGM13) | (1 << CS10);
   ICR1 = TCNT1_TOP;
-  Serial.print("pwm write on");
+  Serial.print("pwm write on ");
   Serial.println(PWMPIN);
-  Serial.print("PWM to ");
-  Serial.println(FIXED_PWM);
+  setPWM(INITIAL_PWM);
+
+  Pulses = 0;
+  pinMode(RPMPIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
+  Serial.print("tachometer read on ");
+  Serial.println(RPMPIN);
 
   ADMUX = 0xc8; // enable internal temperature sensor via ADC
 }
 
 void setPWM(byte pwm){
-  OCR1A = (word)(pwm * TCNT1_TOP) / 100;
+  Serial.print("PWM to ");
+  Serial.println(pwm);
+  Pwm = pwm;
+  OCR1A = ((word)pwm * TCNT1_TOP) / 100;
 }
 
 int readTemp(void){
   ADCSRA |= _BV(ADSC);
   while(bit_is_set(ADCSRA, ADSC)){
-    ;
+    Serial.println("reading temperature!");
   }
   return (ADCL | (ADCH << 8)) - 342;
 }
 
+const unsigned long LOOPUS = 1000000;
+
+// read bytes from Serial, using the global state. each byte is interpreted as a PWM
+// level, and ought be between [0..100]. we act on the last byte available.
+void check_pwm_update(){
+  int last = -1;
+  int in;
+  while((in = Serial.read()) != -1){
+    Serial.print("read byte from input: ");
+    Serial.println(in);
+    last = in;
+  }
+  if(last >= 0){
+    if(last > 100){
+      Serial.print("invalid PWM level: ");
+      Serial.println(in);
+    }else{
+      setPWM(last);
+    }
+  }
+}
+
 void loop (){
-  setPWM(FIXED_PWM);
-  Pulses = 0;
   unsigned long m = micros();
   unsigned long cur;
 
-  sei();       // enable interrupts
   do{
     cur = micros();
-    if(cur <= 0){
-      Serial.print("NEGATIVE MICROS!\n"); // did you fuck timer 0?
+    // handle micros() overflow...
+    if(cur < m){
+      if(m + LOOPUS > m){
+        break;
+      }else if(cur > m + LOOPUS){
+        break;
+      }
     }
-  }while(cur - m < 1000000); // FIXME handle overflow
-  cli();       // disable interrupts
-  unsigned c = Pulses * 30;
-  Serial.print(RPMPIN, DEC);
-  Serial.print(" ");
-  Serial.print(Pulses, DEC);
-  Serial.print(" ");
-  Serial.print(c, DEC);
-  Serial.print(" rpm ");
+  }while(cur - m < LOOPUS);
+  unsigned p = Pulses;
+  Pulses = 0;
+  if(p * 30 > 65535){
+    Serial.print("invalid RPM read: ");
+    Serial.print(p);
+  }else{
+    unsigned c = p * 30;
+    Serial.print(RPMPIN, DEC);
+    Serial.print(" ");
+    Serial.print(p, DEC);
+    Serial.print(" ");
+    Serial.print(c, DEC);
+    Serial.print(" rpm ");
+  }
   Serial.print(cur - m, DEC);
   Serial.println("µs");
-
   int temp = readTemp();
-  Serial.print("Internal temp: ");
+  Serial.print("PWM output: ");
+  Serial.print(Pwm);
+  Serial.print(" Internal temp: ");
   Serial.println(temp);
+
+  check_pwm_update();
 }
