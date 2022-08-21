@@ -13,7 +13,7 @@ const int PWMPIN = 9;
 
 const word PWM_FREQ_HZ = 25000;
 const word TCNT1_TOP = 16000000 / (2 * PWM_FREQ_HZ);
-const byte FIXED_PWM = 40; // FIXME yuck
+const byte FIXED_PWM = 80; // FIXME yuck
 
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
@@ -57,10 +57,20 @@ void setup(){
   Serial.println(PWMPIN);
   Serial.print("PWM to ");
   Serial.println(FIXED_PWM);
+
+  ADMUX = 0xc8; // enable internal temperature sensor via ADC
 }
 
 void setPWM(byte pwm){
   OCR1A = (word)(pwm * TCNT1_TOP) / 100;
+}
+
+int readTemp(void){
+  ADCSRA |= _BV(ADSC);
+  while(bit_is_set(ADCSRA, ADSC)){
+    ;
+  }
+  return (ADCL | (ADCH << 8)) - 342;
 }
 
 void loop (){
@@ -86,4 +96,8 @@ void loop (){
   Serial.print(" rpm ");
   Serial.print(cur - m, DEC);
   Serial.println("µs");
+
+  int temp = readTemp();
+  Serial.print("Internal temp: ");
+  Serial.println(temp);
 }
