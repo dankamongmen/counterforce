@@ -1,6 +1,10 @@
+// read from RHElectronics geiger counter and
+// KY-038 sound level sensor
+
 #include <SPI.h>
 
 #define RADPIN 2
+#define MICPIN A0
 
 // we want a count per minute
 #define SAMPLEMS 60000
@@ -19,6 +23,7 @@ void setup(){
   pinMode(RADPIN, INPUT);     // set pin INT0 input for capturing GM Tube events
   digitalWrite(RADPIN, HIGH); // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
+  pinMode(MICPIN, INPUT);
 }
 
 void loop(){
