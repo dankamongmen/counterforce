@@ -11,6 +11,8 @@ const int RPMPIN = 2; // pin connected to tachometer
 // we need a digital output pin for PWM.
 const int PWMPIN = 9;
 
+#define TEMPPIN A0
+
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
@@ -63,6 +65,11 @@ void setup(){
   Serial.print("tachometer read on ");
   Serial.println(RPMPIN);
 
+  // we'll get better thermistor readings if we use the cleaner
+  // 3.3V line. connect 3.3V to AREF.
+  pinMode(TEMPPIN, INPUT);
+  analogReference(EXTERNAL);
+
   ADMUX = 0xc8; // enable internal temperature sensor via ADC
 }
 
@@ -73,7 +80,7 @@ void setPWM(byte pwm){
   OCR1A = ((word)pwm * TCNT1_TOP) / 100;
 }
 
-int readTemp(void){
+int readInternalTemp(void){
   ADCSRA |= _BV(ADSC);
   while(bit_is_set(ADCSRA, ADSC)){
     Serial.println("reading temperature!");
@@ -103,6 +110,24 @@ void check_pwm_update(){
   }
 }
 
+float readThermistor(void){
+  const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
+  const float NOMINAL = 25;
+  const float R1 = 10;
+  const float VREF = 3.3;
+  float v0 = analogRead(TEMPPIN);
+  //Serial.print("read raw voltage: ");
+  //Serial.print(v0);
+  float scaled = v0 * (VREF / 1023.0);
+  //Serial.print(" scaled: ");
+  //Serial.println(scaled);
+  float R = (scaled * R1) / (VREF - scaled);
+  float t = 1.0 / ((1.0 / NOMINAL) + ((log(R / 10)) / BETA));
+  //Serial.print("read raw temp: ");
+  //Serial.println(t);
+  return t;
+}
+
 void loop (){
   unsigned long m = micros();
   unsigned long cur;
@@ -120,6 +145,7 @@ void loop (){
   }while(cur - m < LOOPUS);
   unsigned p = Pulses;
   Pulses = 0;
+  int temp = readInternalTemp();
   if(p * 30 > 65535){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
@@ -134,8 +160,10 @@ void loop (){
   }
   Serial.print(cur - m, DEC);
   Serial.println("µs");
-  int temp = readTemp();
-  Serial.print("PWM output: ");
+  float therm = readThermistor();
+  Serial.print("Thermistor: ");
+  Serial.print(therm);
+  Serial.print(" PWM output: ");
   Serial.print(Pwm);
   Serial.print(" Internal temp: ");
   Serial.println(temp);
