@@ -1,6 +1,6 @@
 // requires an Arduino Uno, possibly rev3, possibly only the authentic one.
 // a Mega2560 does not seem to work (though it was a clone...)
-
+#include "heltec.h"
 volatile unsigned Pulses; // counter for input events, reset each second
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
@@ -15,9 +15,6 @@ const int PWMPIN = 9;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
-
-// Arduino Uno has a 16MHz processor.
-const word TCNT1_TOP = 16000000 / (2 * PWM_FREQ_HZ);
 
 unsigned Pwm;
 
@@ -36,25 +33,12 @@ static void rpm(){
 
 void setup(){
   const byte INITIAL_PWM = 40;
-  Serial.begin(115200);
-
+  Heltec.begin(true /*DisplayEnable Enable*/,
+               false /*LoRa Disable*/,
+               true /*Serial Enable*/);
+  Heltec.display->setFont(ArialMT_Plain_10);
+  
   pinMode(PWMPIN, OUTPUT);
-  // Clear Timer1 control and count registers
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TCNT1  = 0;
-
-  // Set Timer1 configuration
-  // COM1A(1:0) = 0b10   (Output A clear rising/set falling)
-  // COM1B(1:0) = 0b00   (Output B normal operation)
-  // WGM(13:10) = 0b1010 (Phase correct PWM)
-  // ICNC1      = 0b0    (Input capture noise canceler disabled)
-  // ICES1      = 0b0    (Input capture edge select disabled)
-  // CS(12:10)  = 0b001  (Input clock select = clock/1)
-
-  TCCR1A |= (1 << COM1A1) | (1 << WGM11);
-  TCCR1B |= (1 << WGM13) | (1 << CS10);
-  ICR1 = TCNT1_TOP;
   Serial.print("pwm write on ");
   Serial.println(PWMPIN);
   setPWM(INITIAL_PWM);
@@ -70,22 +54,13 @@ void setup(){
   pinMode(TEMPPIN, INPUT);
   //analogReference(EXTERNAL);
 
-  ADMUX = 0xc8; // enable internal temperature sensor via ADC
 }
 
 void setPWM(byte pwm){
   Serial.print("PWM to ");
   Serial.println(pwm);
   Pwm = pwm;
-  OCR1A = ((word)pwm * TCNT1_TOP) / 100;
-}
-
-int readInternalTemp(void){
-  ADCSRA |= _BV(ADSC);
-  while(bit_is_set(ADCSRA, ADSC)){
-    Serial.println("reading temperature!");
-  }
-  return (ADCL | (ADCH << 8)) - 342;
+  // FIXME
 }
 
 const unsigned long LOOPUS = 1000000;
@@ -145,12 +120,13 @@ void loop (){
   }while(cur - m < LOOPUS);
   unsigned p = Pulses;
   Pulses = 0;
-  //int temp = readInternalTemp();
+  unsigned c;
   if(p * 30 > 65535){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
+    c = 65535;
   }else{
-    unsigned c = p * 30;
+    c = p * 30;
     Serial.print(RPMPIN, DEC);
     Serial.print(" ");
     Serial.print(p, DEC);
@@ -165,9 +141,19 @@ void loop (){
   Serial.print(therm);
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
-  //Serial.print(" Internal temp: ");
-  //Serial.print(temp);
   Serial.println();
+
+    Heltec.display->clear();
+    Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
+    Heltec.display->drawString(0, 0, "RPM: ");
+    Heltec.display->drawString(30, 0, String(c));
+    Heltec.display->drawString(0, 11, "PWM: ");
+    Heltec.display->drawString(35, 11, String(Pwm));
+    Heltec.display->drawString(0, 21, "Temp: ");
+    Heltec.display->drawString(40, 21, String(therm));
+    Heltec.display->drawString(0, 31, "Uptime: ");
+    Heltec.display->drawString(40, 31, String(millis() / 1000));
+    Heltec.display->display();
 
   check_pwm_update();
 }
