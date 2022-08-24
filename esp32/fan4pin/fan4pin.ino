@@ -1,5 +1,6 @@
 // intended for use on a Heltec ESP32LoRav2
 #include "heltec.h"
+#include <float.h>
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
@@ -87,15 +88,22 @@ void check_pwm_update(){
   }
 }
 
+// returns FLT_MAX if we couldn't get a valid read. otherwise,
+// returns the approximate temperature in celsius.
 float readThermistor(void){
   const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 25;
   const float R1 = 10;
   const float VREF = 3.3;
+  const float ADCRES = 4095.0; // 12-bit ADC
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw voltage: ");
+  if(v0 == ADCRES){
+    Serial.println("n/a");
+    return FLT_MAX;
+  }
   Serial.println(v0);
-  float scaled = v0 * (VREF / 4095.0);
+  float scaled = v0 * (VREF / ADCRES);
   //Serial.print(" scaled: ");
   //Serial.println(scaled);
   float R = (scaled * R1) / (VREF - scaled);
@@ -141,7 +149,11 @@ void loop (){
   Serial.println("µs");
   float therm = readThermistor();
   Serial.print("Thermistor: ");
-  Serial.print(therm);
+  if(therm == FLT_MAX){
+    Serial.print("n/a");
+  }else{
+    Serial.print(therm);
+  }
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
   Serial.println();
@@ -151,9 +163,13 @@ void loop (){
     Heltec.display->drawString(0, 0, "RPM: ");
     Heltec.display->drawString(30, 0, String(c));
     Heltec.display->drawString(0, 11, "PWM: ");
-    Heltec.display->drawString(35, 11, String(Pwm));
+    Heltec.display->drawString(34, 11, String(Pwm));
     Heltec.display->drawString(0, 21, "Temp: ");
-    Heltec.display->drawString(40, 21, String(therm));
+    if(therm == FLT_MAX){
+      Heltec.display->drawString(36, 21, "n/a");
+    }else{
+      Heltec.display->drawString(36, 21, String(therm));
+    }
     Heltec.display->drawString(0, 31, "Uptime: ");
     Heltec.display->drawString(40, 31, String(millis() / 1000));
     Heltec.display->display();
