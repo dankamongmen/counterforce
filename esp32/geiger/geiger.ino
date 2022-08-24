@@ -12,6 +12,7 @@
 
 volatile unsigned long count; // disintegration events this quantum
 unsigned long previousMillis; // variable for time measurement
+unsigned long totalCount;
 
 void tube_impulse(){
   ++count;
@@ -19,15 +20,16 @@ void tube_impulse(){
 
 void setup(){
   count = 0;
-  Heltec.begin(true /*DisplayEnable Enable*/,
+  Heltec.begin(true  /*DisplayEnable Enable*/,
                false /*LoRa Disable*/,
-               true /*Serial Enable*/);
+               true  /*Serial Enable*/);
   Heltec.display->setFont(ArialMT_Plain_10);
   pinMode(RADPIN, INPUT);     // set pin INT0 input for capturing GM Tube events
   digitalWrite(RADPIN, HIGH); // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
   pinMode(MICPIN, INPUT);
   previousMillis = 0;
+  totalCount = 0;
 }
 
 void loop(){
@@ -36,20 +38,25 @@ void loop(){
   // handle overflow of millis() at ~50 days
   if(now - previousMillis > SAMPLEMS){
     previousMillis = now;
-    //Serial.print("Count: ");
-    //Serial.println(count);
+    unsigned long thiscount = count;
     count = 0;
+    totalCount += thiscount;
+    Serial.print("Count: ");
+    Serial.println(thiscount);
+
     float a = analogRead(MICPIN);
-    //Serial.print("Mic: ");
+    Serial.print("Mic: ");
     Serial.println(a);
     Heltec.display->clear();
     Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
     Heltec.display->drawString(0, 0, "Disintegrations: ");
-    Heltec.display->drawString(77, 0, String(count));
-    Heltec.display->drawString(0, 11, "Noise: ");
-    Heltec.display->drawString(35, 11, String(a));
-    Heltec.display->drawString(0, 21, "Uptime: ");
-    Heltec.display->drawString(40, 21, String(millis() / 1000));
+    Heltec.display->drawString(77, 0, String(thiscount));
+    Heltec.display->drawString(0, 11, "Total: ");
+    Heltec.display->drawString(35, 11, String(totalCount));
+    Heltec.display->drawString(0, 21, "Noise: ");
+    Heltec.display->drawString(35, 21, String(a));
+    Heltec.display->drawString(0, 31, "Uptime: ");
+    Heltec.display->drawString(40, 31, String(millis() / 1000));
     Heltec.display->display();
   }
 }
