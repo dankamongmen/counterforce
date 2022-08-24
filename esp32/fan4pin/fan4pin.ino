@@ -1,22 +1,25 @@
-// requires an Arduino Uno, possibly rev3, possibly only the authentic one.
-// a Mega2560 does not seem to work (though it was a clone...)
+// intended for use on a Heltec ESP32LoRav2
 #include "heltec.h"
+
 volatile unsigned Pulses; // counter for input events, reset each second
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-// on Uno, only 2 and 3 are available!
-const int RPMPIN = 2; // pin connected to tachometer
+// on Uno, only 2 and 3 are available! all ESP32 pins can
+// drive interrupts.
+const int RPMPIN = 39; // pin connected to tachometer
 
-// we need a digital output pin for PWM.
-const int PWMPIN = 9;
-
-#define TEMPPIN A0
+// we'll use PWM channel 14, through digital pin 36
+const int PWMPIN = 36;
+const int PWMCHANNEL = 14;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
-unsigned Pwm;
+int Pwm;
+
+// thermistor analog input pin
+const int TEMPPIN = 37;
 
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
@@ -33,12 +36,14 @@ static void rpm(){
 
 void setup(){
   const byte INITIAL_PWM = 40;
-  Heltec.begin(true /*DisplayEnable Enable*/,
+  Heltec.begin(true  /*DisplayEnable Enable*/,
                false /*LoRa Disable*/,
-               true /*Serial Enable*/);
+               true  /*Serial Enable*/);
   Heltec.display->setFont(ArialMT_Plain_10);
   
   pinMode(PWMPIN, OUTPUT);
+  ledcAttachPin(PWMPIN, PWMCHANNEL);
+  ledcSetup(PWMCHANNEL, PWM_FREQ_HZ, 7);
   Serial.print("pwm write on ");
   Serial.println(PWMPIN);
   setPWM(INITIAL_PWM);
@@ -49,21 +54,18 @@ void setup(){
   Serial.print("tachometer read on ");
   Serial.println(RPMPIN);
 
-  // we'll get better thermistor readings if we use the cleaner
-  // 3.3V line. connect 3.3V to AREF.
+  // on arduino, use the 3.3V level for reading the thermistor,
+  // as it ought be cleaner than 5V. connect 3.3 to AREF, and
+  // use analogReference(EXTERNAL).
   pinMode(TEMPPIN, INPUT);
-  //analogReference(EXTERNAL);
-
 }
 
 void setPWM(byte pwm){
   Serial.print("PWM to ");
   Serial.println(pwm);
   Pwm = pwm;
-  // FIXME
+  ledcWrite(PWMCHANNEL, (Pwm / 100) * 128); // from specified 7-bit resolution
 }
-
-const unsigned long LOOPUS = 1000000;
 
 // read bytes from Serial, using the global state. each byte is interpreted as a PWM
 // level, and ought be between [0..100]. we act on the last byte available.
@@ -91,17 +93,19 @@ float readThermistor(void){
   const float R1 = 10;
   const float VREF = 3.3;
   float v0 = analogRead(TEMPPIN);
-  //Serial.print("read raw voltage: ");
-  //Serial.print(v0);
-  float scaled = v0 * (VREF / 1023.0);
+  Serial.print("read raw voltage: ");
+  Serial.println(v0);
+  float scaled = v0 * (VREF / 4095.0);
   //Serial.print(" scaled: ");
   //Serial.println(scaled);
   float R = (scaled * R1) / (VREF - scaled);
   float t = 1.0 / ((1.0 / NOMINAL) + ((log(R / 10)) / BETA));
-  //Serial.print("read raw temp: ");
-  //Serial.println(t);
+  Serial.print("read raw temp: ");
+  Serial.println(t);
   return t;
 }
+
+const unsigned long LOOPUS = 1000000;
 
 void loop (){
   unsigned long m = micros();
@@ -109,8 +113,7 @@ void loop (){
 
   do{
     cur = micros();
-    // handle micros() overflow...
-    if(cur < m){
+    if(cur < m){     // handle micros() overflow...
       if(m + LOOPUS > m){
         break;
       }else if(cur > m + LOOPUS){
