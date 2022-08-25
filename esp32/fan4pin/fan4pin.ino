@@ -1,6 +1,15 @@
 // intended for use on a Heltec ESP32LoRav2
 #include "heltec.h"
 #include <float.h>
+#include "EspMQTTClient.h"
+
+EspMQTTClient client(
+  #include "EspMQTTConfig.h"
+);
+
+void onConnectionEstablished() {
+  Serial.println("Got an MQTT connection");
+}
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
@@ -41,6 +50,8 @@ void setup(){
                false /*LoRa Disable*/,
                true  /*Serial Enable*/);
   Heltec.display->setFont(ArialMT_Plain_10);
+  client.enableDebuggingMessages();
+  client.enableMQTTPersistence();
   
   pinMode(PWMPIN, OUTPUT);
   ledcAttachPin(PWMPIN, PWMCHANNEL);
@@ -98,7 +109,7 @@ float readThermistor(void){
   const float ADCRES = 4095.0; // 12-bit ADC
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw voltage: ");
-  if(v0 == ADCRES){
+  if(v0 == ADCRES || v0 == 0){
     Serial.println("n/a");
     return FLT_MAX;
   }
@@ -115,7 +126,22 @@ float readThermistor(void){
 
 const unsigned long LOOPUS = 1000000;
 
-void loop (){
+void displayConnectionStatus(int y){
+  const char* connstr;
+  if(!client.isWifiConnected()){
+    connstr = "No WiFi";
+  }else if(!client.isMqttConnected()){
+    connstr = "WiFi, no MQTT";
+  }else{
+    connstr = "Connected";
+  }
+  Heltec.display->drawString(120, y, connstr);
+}
+
+void loop(){
+  // FIXME use the enqueue work version of this, as client.loop() can
+  // block for arbitrary amounts of time
+  client.loop(); // handle any necessary wifi/mqtt
   unsigned long m = micros();
   unsigned long cur;
 
@@ -133,11 +159,16 @@ void loop (){
   Pulses = 0;
   unsigned c;
   if(p * 30 > 65535){
-    Serial.print("invalid RPM read: ");
-    Serial.print(p);
     c = 65535;
   }else{
     c = p * 30;
+  }
+
+  // dump information to serial
+  if(c == 65535){
+    Serial.print("invalid RPM read: ");
+    Serial.print(p);
+  }else{
     Serial.print(RPMPIN, DEC);
     Serial.print(" ");
     Serial.print(p, DEC);
@@ -158,21 +189,31 @@ void loop (){
   Serial.print(Pwm);
   Serial.println();
 
-    Heltec.display->clear();
-    Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
-    Heltec.display->drawString(0, 0, "RPM: ");
-    Heltec.display->drawString(30, 0, String(c));
-    Heltec.display->drawString(0, 11, "PWM: ");
-    Heltec.display->drawString(34, 11, String(Pwm));
-    Heltec.display->drawString(0, 21, "Temp: ");
-    if(therm == FLT_MAX){
-      Heltec.display->drawString(36, 21, "n/a");
-    }else{
-      Heltec.display->drawString(36, 21, String(therm));
-    }
-    Heltec.display->drawString(0, 31, "Uptime: ");
-    Heltec.display->drawString(40, 31, String(millis() / 1000));
-    Heltec.display->display();
+  // dump information to OLED
+  Heltec.display->clear();
+  Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
+  Heltec.display->drawString(0, 0, "RPM: ");
+  Heltec.display->drawString(30, 0, String(c));
+  Heltec.display->drawString(0, 11, "PWM: ");
+  Heltec.display->drawString(34, 11, String(Pwm));
+  Heltec.display->drawString(0, 21, "Temp: ");
+  if(therm == FLT_MAX){
+    Heltec.display->drawString(36, 21, "n/a");
+  }else{
+    Heltec.display->drawString(36, 21, String(therm));
+  }
+  Heltec.display->drawString(0, 31, "Uptime: ");
+  Heltec.display->drawString(40, 31, String(millis() / 1000));
+  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  displayConnectionStatus(51);
+  Heltec.display->display();
+
+  if(c != 65535){
+    client.publish("mora3/rpms", String(c));
+  }
+  if(therm != FLT_MAX){
+    client.publish("mora3/therm", String(therm));
+  }
 
   check_pwm_update();
 }

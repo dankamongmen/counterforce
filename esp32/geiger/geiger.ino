@@ -1,6 +1,15 @@
 // use a Heltect ESP32-LoRAv2 to read from RHElectronics geiger counter and
 // KY-038 sound level sensor. the former needs 5V; the latter can get by with
 // our native 3.3V.
+#include "EspMQTTClient.h"
+
+EspMQTTClient client(
+  #include "EspMQTTConfig.h"
+);
+
+void onConnectionEstablished() {
+  Serial.println("Got an MQTT connection");
+}
 
 #define RADPIN 36
 #define MICPIN 39 // analog input
@@ -32,6 +41,18 @@ void setup(){
   totalCount = 0;
 }
 
+void displayConnectionStatus(int y){
+  const char* connstr;
+  if(!client.isWifiConnected()){
+    connstr = "No WiFi";
+  }else if(!client.isMqttConnected()){
+    connstr = "WiFi, no MQTT";
+  }else{
+    connstr = "Connected";
+  }
+  Heltec.display->drawString(120, y, connstr);
+}
+
 void loop(){
   unsigned long now = millis();
   // need to keep everything unsigned long so that we properly
@@ -57,6 +78,7 @@ void loop(){
     Heltec.display->drawString(35, 21, String(a));
     Heltec.display->drawString(0, 31, "Uptime: ");
     Heltec.display->drawString(40, 31, String(millis() / 1000));
+    displayConnectionStatus(51);
     Heltec.display->display();
   }
 }
