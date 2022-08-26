@@ -20,7 +20,7 @@ volatile unsigned Pulses; // counter for input events, reset each second
 const int RPMPIN = 36; // pin connected to tachometer
 
 // we'll use PWM channel 14, through digital pin 36
-const int PWMPIN = 39;
+const int PWMPIN = 32;
 const int PWMCHANNEL = 14;
 
 // Intel spec for PWM fans demands a 25K frequency.
