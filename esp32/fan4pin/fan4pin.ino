@@ -17,10 +17,10 @@ volatile unsigned Pulses; // counter for input events, reset each second
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
 // on Uno, only 2 and 3 are available! all ESP32 pins can
 // drive interrupts.
-const int RPMPIN = 39; // pin connected to tachometer
+const int RPMPIN = 36; // pin connected to tachometer
 
 // we'll use PWM channel 14, through digital pin 36
-const int PWMPIN = 36;
+const int PWMPIN = 39;
 const int PWMCHANNEL = 14;
 
 // Intel spec for PWM fans demands a 25K frequency.
@@ -39,7 +39,7 @@ const int TEMPPIN = 37;
 //  pin 8, 7, 6 == timer 4
 
 static void rpm(){
-  if(Pulses < 65535){
+  if(Pulses + 1 > Pulses){
     ++Pulses;
   }
 }
@@ -54,8 +54,8 @@ void setup(){
   client.enableMQTTPersistence();
   
   pinMode(PWMPIN, OUTPUT);
+  ledcSetup(PWMCHANNEL, PWM_FREQ_HZ, 8);
   ledcAttachPin(PWMPIN, PWMCHANNEL);
-  ledcSetup(PWMCHANNEL, PWM_FREQ_HZ, 7);
   Serial.print("pwm write on ");
   Serial.println(PWMPIN);
   setPWM(INITIAL_PWM);
@@ -76,7 +76,7 @@ void setPWM(byte pwm){
   Serial.print("PWM to ");
   Serial.println(pwm);
   Pwm = pwm;
-  ledcWrite(PWMCHANNEL, (Pwm / 100) * 128); // from specified 7-bit resolution
+  ledcWrite(PWMCHANNEL, (Pwm / 100) * 255); // from specified 8-bit resolution
 }
 
 // read bytes from Serial, using the global state. each byte is interpreted as a PWM
@@ -165,7 +165,7 @@ void loop(){
   }
 
   // dump information to serial
-  if(c == 65535){
+  if(c >= 8192){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
   }else{
@@ -174,8 +174,9 @@ void loop(){
     Serial.print(p, DEC);
     Serial.print(" ");
     Serial.print(c, DEC);
-    Serial.print(" rpm ");
+    Serial.print(" rpm");
   }
+  Serial.print(' ');
   Serial.print(cur - m, DEC);
   Serial.println("µs");
   float therm = readThermistor();
