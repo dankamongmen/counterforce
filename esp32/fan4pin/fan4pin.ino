@@ -13,30 +13,22 @@ void onConnectionEstablished() {
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
-// tachometer needs an interrupt-capable digital pin. on Mega,
-// this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-// on Uno, only 2 and 3 are available! all ESP32 pins can
-// drive interrupts.
+// tachometer needs an interrupt-capable digital pin.
+// all ESP32 pins can drive interrupts.
 const int RPMPIN = 36; // pin connected to tachometer
 
-// we'll use PWM channel 14, through digital pin 36
+// we'll use PWM channel 14, through digital pin 32
 const int PWMPIN = 32;
 const int PWMCHANNEL = 14;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
-int Pwm;
+float Pwm;
+int Iterations;
 
 // thermistor analog input pin
 const int TEMPPIN = 37;
-
-// on mega:
-//  pin 13, 4 == timer 0 (used for micros())
-//  pin 12, 11 == timer 1
-//  pin 10, 9 == timer 2
-//  pin 5, 3, 2 == timer 3
-//  pin 8, 7, 6 == timer 4
 
 static void rpm(){
   if(Pulses + 1 > Pulses){
@@ -45,7 +37,7 @@ static void rpm(){
 }
 
 void setup(){
-  const byte INITIAL_PWM = 40;
+  const byte INITIAL_PWM = 100;
   Heltec.begin(true  /*DisplayEnable Enable*/,
                false /*LoRa Disable*/,
                true  /*Serial Enable*/);
@@ -70,18 +62,29 @@ void setup(){
   // as it ought be cleaner than 5V. connect 3.3 to AREF, and
   // use analogReference(EXTERNAL).
   pinMode(TEMPPIN, INPUT);
+
+  Iterations = 0;
 }
 
 void setPWM(byte pwm){
   Serial.print("PWM to ");
   Serial.println(pwm);
   Pwm = pwm;
-  ledcWrite(PWMCHANNEL, (Pwm / 100) * 255); // from specified 8-bit resolution
+  float towrite = (Pwm / 100) * 255;
+  Serial.print("Target LEDC: ");
+  Serial.println(towrite);
+  ledcWrite(PWMCHANNEL, towrite); // from specified 8-bit resolution
 }
 
 // read bytes from Serial, using the global state. each byte is interpreted as a PWM
 // level, and ought be between [0..100]. we act on the last byte available.
-void check_pwm_update(){
+void check_pwm_update(int iterations){
+  // FIXME debugging code for when off USB
+  if(iterations % 10 == 0){
+    Serial.print("DEBUG PWM to ");
+    Pwm = random(0, 100);
+    Serial.println(Pwm);
+  }
   int last = -1;
   int in;
   while((in = Serial.read()) != -1){
@@ -209,6 +212,7 @@ void loop(){
   displayConnectionStatus(51);
   Heltec.display->display();
 
+  // FIXME if not connected, retain a buffer of values
   if(c != 65535){
     client.publish("mora3/rpms", String(c));
   }
@@ -216,5 +220,6 @@ void loop(){
     client.publish("mora3/therm", String(therm));
   }
 
-  check_pwm_update();
+  ++Iterations;
+  check_pwm_update(Iterations);
 }
