@@ -1,5 +1,6 @@
 // use an Arduino Mega to read from RHElectronics geiger counter and KY-038
 // sound level sensor. the former needs 5V; the latter can get by with 3.3V.
+#include <float.h>
 
 #define RADPIN 2  // digital input 2 on INT4
 #define MICPIN A0 // analog input 0
@@ -22,14 +23,19 @@ void setup(){
   //digitalWrite(RADPIN, HIGH); // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
   pinMode(MICPIN, INPUT);
-  previousMillis = 0;
+  previousMillis = millis();
   totalCount = 0;
 }
 
 void loop(){
+  static float maxvolquant = FLT_MIN;
   unsigned long now = millis();
   // need to keep everything unsigned long so that we properly
   // handle overflow of millis() at ~50 days
+  float candvol = analogRead(MICPIN);
+  if(candvol > maxvolquant){
+    maxvolquant = candvol;
+  }
   if(now - previousMillis > SAMPLEMS){
     noInterrupts();
     previousMillis = now;
@@ -41,8 +47,8 @@ void loop(){
     Serial.print("Count: ");
     Serial.println(thiscount);
 
-    float a = analogRead(MICPIN);
     Serial.print("Mic: ");
-    Serial.println(a);
+    Serial.println(maxvolquant);
+    maxvolquant = FLT_MIN;
   }
 }
