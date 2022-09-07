@@ -34,7 +34,7 @@ unsigned Pwm;
 //  pin 5, 3, 2 == timer 3
 //  pin 8, 7, 6 == timer 4
 
-static void rpm(){
+static void rpm(void){
   if(Pulses < 65535){
     ++Pulses;
   }
@@ -68,7 +68,7 @@ void setup(){
 
   Pulses = 0;
   pinMode(RPMPIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
   Serial.print("tachometer read on ");
   Serial.println(RPMPIN);
 
