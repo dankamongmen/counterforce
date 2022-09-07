@@ -2,6 +2,7 @@
 // requires an Arduino Uno, possibly rev3, possibly only the authentic one.
 
 const unsigned long SERIALSPEED = 115200;
+const unsigned long UARTSPEED = 9600;
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
@@ -58,7 +59,7 @@ void setup(){
   const byte INITIAL_PWM = 40;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
-  uart.begin(SERIALSPEED);
+  uart.begin(UARTSPEED);
 
   pinMode(PWMPIN, OUTPUT);
   setup_timers();

@@ -5,6 +5,7 @@
 #include <float.h>
 #include "EspMQTTClient.h"
 
+const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 50;
 const int UartTX = 37;
 const int UartRX = 38;
@@ -27,7 +28,7 @@ void setup(){
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  Serial2.begin(115200, SERIAL_8N1, UartRX, UartTX);
+  Serial2.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   setPWM(INITIAL_PWM);
 }
 
@@ -134,9 +135,9 @@ static void updateDisplay(void){
   }else{
     Heltec.display->drawString(35, 21, String(Therm));
   }
-  Heltec.display->drawString(0, 31, "Uptime(s): ");
+  Heltec.display->drawString(0, 31, "Uptime: ");
   if(maketimestr(timestr) == 0){
-    Heltec.display->drawString(51, 31, maketimestr(timestr) ? "a long time" : timestr);
+    Heltec.display->drawString(41, 31, maketimestr(timestr) ? "a long time" : timestr);
   }
   Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   displayConnectionStatus(51);
@@ -157,4 +158,7 @@ void loop(){
     client.publish("mora3/therm", String(Therm));
   }
   check_pwm_update();
+  int w = Serial2.write(Pwm);
+  Serial.print("write: ");
+  Serial.println(w);
 }
