@@ -5,6 +5,13 @@
 #include <float.h>
 #include "EspMQTTClient.h"
 
+const int INITIAL_PWM = 50;
+const int UartTX = 37;
+const int UartRX = 38;
+int Pwm = -1;
+int RPM = INT_MAX;
+float Therm = FLT_MAX;
+
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
@@ -14,13 +21,14 @@ void onConnectionEstablished() {
 }
 
 void setup(){
-  const byte INITIAL_PWM = 100;
   Heltec.begin(true  /*DisplayEnable Enable*/,
                false /*LoRa Disable*/,
                true  /*Serial Enable*/);
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
+  Serial2.begin(115200, SERIAL_8N1, UartRX, UartTX);
+  setPWM(INITIAL_PWM);
 }
 
 // write a PWM value over UART
@@ -42,7 +50,7 @@ static int setPWM(int pwm){
 
 // read bytes from Serial. each byte is interpreted as a PWM level, and
 // ought be between [0..100]. we act on the last byte available.
-void check_pwm_update(int iterations){
+static void check_pwm_update(void){
   int last = -1;
   int in;
   while((in = Serial.read()) != -1){
@@ -55,7 +63,7 @@ void check_pwm_update(int iterations){
   }
 }
 
-void displayConnectionStatus(int y){
+static void displayConnectionStatus(int y){
   const char* connstr;
   if(!client.isWifiConnected()){
     connstr = "No WiFi";
@@ -67,54 +75,86 @@ void displayConnectionStatus(int y){
   Heltec.display->drawString(120, y, connstr);
 }
 
-void loop(){
-  const unsigned long LOOPUS = 1000000;
+// up to 2 digits of years, up to 3 digits of days, up to 2 digits of
+// hours, up to 2 digits of minutes, up to 2 digits of seconds, and up
+// to 5 units, plus null == 17 bytes
+#define MAXTIMELEN 17
 
-  // FIXME use the enqueue work version of this, as client.loop() can
-  // block for arbitrary amounts of time
-  client.loop(); // handle any necessary wifi/mqtt
-  unsigned long m = micros();
-  unsigned long cur;
-
-  do{
-    cur = micros();
-    if(cur < m){     // handle micros() overflow...
-      if(m + LOOPUS > m){
-        break;
-      }else if(cur > m + LOOPUS){
-        break;
-      }
+// timestr needs be MAXTIMELEN bytes or more
+static int maketimestr(char *timestr){
+  unsigned long t = millis() / 1000; // FIXME deal with rollover
+  unsigned long epoch = 365ul * 24 * 60 * 60;
+  int off = 0; // write offset
+  if(t > epoch){
+    word years = t / epoch;
+    if(years > 99){
+      return -1; // whatever bro
     }
-  }while(cur - m < LOOPUS);
-  Serial.print(" PWM output: ");
-  Serial.print(Pwm);
-  Serial.println();
+    off = sprintf(timestr, "%uy", years);
+  }
+  t %= epoch;
+  epoch /= 365;
+  if(t > epoch){
+    word d = t / epoch;
+    off += sprintf(timestr + off, "%ud", d);
+  }
+  t %= epoch;
+  epoch /= 24;
+  if(t > epoch){
+    word h = t / epoch;
+    off += sprintf(timestr + off, "%ud", h);
+  }
+  t %= epoch;
+  epoch /= 60;
+  if(t > epoch){
+    word m = t / epoch;
+    off += sprintf(timestr + off, "%um", m);
+  }
+  t %= epoch;
+  off += sprintf(timestr + off, "%us", t);
+  return 0;
+}
 
+static void updateDisplay(void){
+  char timestr[MAXTIMELEN];
   // dump information to OLED
   Heltec.display->clear();
   Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
   Heltec.display->drawString(0, 0, "RPM: ");
-  Heltec.display->drawString(30, 0, String(c));
-  Heltec.display->drawString(0, 11, "PWM: ");
-  Heltec.display->drawString(34, 11, String(Pwm));
-  Heltec.display->drawString(0, 21, "Temp: ");
-  if(therm == FLT_MAX){
-    Heltec.display->drawString(36, 21, "n/a");
+  if(RPM == INT_MAX){
+    Heltec.display->drawString(31, 0, "n/a");
   }else{
-    Heltec.display->drawString(36, 21, String(therm));
+    Heltec.display->drawString(31, 0, String(RPM));
   }
-  Heltec.display->drawString(0, 31, "Uptime: ");
-  Heltec.display->drawString(40, 31, String(millis() / 1000));
+  Heltec.display->drawString(0, 11, "PWM: ");
+  Heltec.display->drawString(33, 11, String(Pwm));
+  Heltec.display->drawString(0, 21, "Temp: ");
+  if(Therm == FLT_MAX){
+    Heltec.display->drawString(35, 21, "n/a");
+  }else{
+    Heltec.display->drawString(35, 21, String(Therm));
+  }
+  Heltec.display->drawString(0, 31, "Uptime(s): ");
+  if(maketimestr(timestr) == 0){
+    Heltec.display->drawString(51, 31, maketimestr(timestr) ? "a long time" : timestr);
+  }
   Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   displayConnectionStatus(51);
   Heltec.display->display();
+}
 
+void loop(){
+  // FIXME use the enqueue work version of this, as client.loop() can
+  // block for arbitrary amounts of time
+  client.loop(); // handle any necessary wifi/mqtt
+  // FIXME ideally only run if things have changed
+  updateDisplay();
   // FIXME if not connected, retain a buffer of values
-  if(c != 65535){
-    client.publish("mora3/rpms", String(c));
+  if(RPM != INT_MAX){
+    client.publish("mora3/rpms", String(RPM));
   }
-  if(therm != FLT_MAX){
-    client.publish("mora3/therm", String(therm));
+  if(Therm != FLT_MAX){
+    client.publish("mora3/therm", String(Therm));
   }
   check_pwm_update();
 }
