@@ -37,7 +37,7 @@ static void send_pwm(int pwm){
 }
 
 static int setPWM(int pwm){
-  if(pwm < 0 || pwm > 100){
+  if(pwm < 0 || pwm > 255){
     Serial.print("invalid pwm: ");
     Serial.println(pwm);
     return -1;
@@ -50,7 +50,7 @@ static int setPWM(int pwm){
 }
 
 // read bytes from Serial. each byte is interpreted as a PWM level, and
-// ought be between [0..100]. we act on the last byte available.
+// ought be between [0..255]. we act on the last byte available.
 static void check_pwm_update(void){
   int last = -1;
   int in;
