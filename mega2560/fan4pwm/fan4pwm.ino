@@ -11,9 +11,14 @@ volatile unsigned Pulses; // counter for input events, reset each second
 const int RPMPIN = 2; // pin connected to tachometer
 
 // we'll use two pins for UART communication with the ESP32
-const int RXPIN = 6;
-const int TXPIN = 7;
-SoftwareSerial uart(RXPIN, TXPIN);
+const int RXPIN = 19;
+const int TXPIN = 18;
+
+// for control of 12V RGB LEDs. we go through 10Kohm resistors on our way
+// to 3 N-MOSFETs (IRLB8721s), and from there emerge 3x 12V signals.
+const int RRGBPIN = 11;
+const int GRGBPIN = 10;
+const int BRGBPIN = 9;
 
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
@@ -52,7 +57,7 @@ void setup(){
   const byte INITIAL_PWM = 128;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
-  uart.begin(UARTSPEED);
+  Serial1.begin(UARTSPEED);
 
   setup_timers();
   pinMode(PWMPIN, OUTPUT);
@@ -72,6 +77,13 @@ void setup(){
   //analogReference(EXTERNAL);
 
   //ADMUX = 0xc8; // enable internal temperature sensor via ADC
+
+  pinMode(RRGBPIN, OUTPUT);
+  pinMode(GRGBPIN, OUTPUT);
+  pinMode(BRGBPIN, OUTPUT);
+  analogWrite(RRGBPIN, 255);
+  analogWrite(GRGBPIN, 255);
+  analogWrite(BRGBPIN, 255);
 }
 
 void setPWM(byte pwm){
@@ -102,7 +114,7 @@ static void check_pwm_update(void){
   int last = -1;
   int in;
   // only apply the last in a sequence
-  while((in = uart.read()) != -1){
+  while((in = Serial1.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
     last = in;
