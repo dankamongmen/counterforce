@@ -13,7 +13,7 @@ const int RPMPIN = 2; // pin connected to tachometer
 // we'll use two pins for UART communication with the ESP32
 const int RXPIN = 6;
 const int TXPIN = 7;
-//SoftwareSerial uart(RXPIN, TXPIN);
+SoftwareSerial uart(RXPIN, TXPIN);
 
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
@@ -52,7 +52,7 @@ void setup(){
   const byte INITIAL_PWM = 128;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
-  //uart.begin(UARTSPEED);
+  uart.begin(UARTSPEED);
 
   setup_timers();
   pinMode(PWMPIN, OUTPUT);
