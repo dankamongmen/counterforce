@@ -6,8 +6,7 @@ const unsigned long UARTSPEED = 9600;
 
 volatile unsigned Pulses; // counter for input events, reset each second
 
-// tachometer needs an interrupt-capable digital pin. on Mega,
-// this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
+// tachometer needs an interrupt-capable digital pin.
 // on Uno, only 2 and 3 are available!
 const int RPMPIN = 3; // pin connected to tachometer
 
@@ -28,12 +27,6 @@ const word PWM_FREQ_HZ = 25000;
 const unsigned long TCNT1_TOP = 16000000ul / (2 * PWM_FREQ_HZ);
 
 unsigned Pwm;
-// on mega:
-//  pin 13, 4 == timer 0 (used for micros())
-//  pin 12, 11 == timer 1
-//  pin 10, 9 == timer 2
-//  pin 5, 3, 2 == timer 3
-//  pin 8, 7, 6 == timer 4
 
 static void rpm(void){
   if(Pulses < 65535){
