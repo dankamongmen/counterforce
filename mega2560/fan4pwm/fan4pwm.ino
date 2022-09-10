@@ -102,11 +102,11 @@ static void check_pwm_update(void){
   int last = -1;
   int in;
   // only apply the last in a sequence
-  /*while((in = uart.read()) != -1){
+  while((in = uart.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
     last = in;
-  }*/
+  }
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
     Serial.println(in);
