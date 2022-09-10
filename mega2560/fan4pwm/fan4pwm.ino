@@ -8,12 +8,12 @@ volatile unsigned Pulses; // counter for input events, reset each second
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-const int RPMPIN = 3; // pin connected to tachometer
+const int RPMPIN = 2; // pin connected to tachometer
 
 // we'll use two pins for UART communication with the ESP32
 const int RXPIN = 6;
 const int TXPIN = 7;
-SoftwareSerial uart(RXPIN, TXPIN);
+//SoftwareSerial uart(RXPIN, TXPIN);
 
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
@@ -49,10 +49,10 @@ static void setup_timers(void){
 }
 
 void setup(){
-  const byte INITIAL_PWM = 40;
+  const byte INITIAL_PWM = 128;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
-  uart.begin(UARTSPEED);
+  //uart.begin(UARTSPEED);
 
   setup_timers();
   pinMode(PWMPIN, OUTPUT);
@@ -61,7 +61,7 @@ void setup(){
   setPWM(INITIAL_PWM);
 
   Pulses = 0;
-  pinMode(RPMPIN, INPUT);
+  pinMode(RPMPIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
   Serial.print("tachometer read on ");
   Serial.println(RPMPIN);
@@ -102,11 +102,11 @@ static void check_pwm_update(void){
   int last = -1;
   int in;
   // only apply the last in a sequence
-  while((in = uart.read()) != -1){
+  /*while((in = uart.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
     last = in;
-  }
+  }*/
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
     Serial.println(in);
