@@ -1,7 +1,10 @@
-# identify various Arduinos by serial number
+# identify various Arduinos/ESP32s by serial number
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", \
- ATTRS{serial}=="95736323832351908012", SYMLINK+="tty-geiger"
+ ATTRS{serial}=="95736323832351908012", SYMLINK+="tty-dankfan"
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0042", \
- ATTRS{serial}=="85734323330351D07122", SYMLINK+="tty-dankfan"
+ ATTRS{serial}=="85734323330351D07122", SYMLINK+="tty-geiger"
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="ea60", ATTRS{idProduct}=="10c4", \
+ SYMLINK+="tty-fanmgr"
