@@ -10,9 +10,9 @@ volatile unsigned Pulses; // counter for input events, reset each second
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
 const int RPMPIN = 2; // pin connected to tachometer
 
-// we'll use two pins for UART communication with the ESP32
-const int RXPIN = 19;
-const int TXPIN = 18;
+// we'll use two pins for UART communication with the ESP32, based
+// atop a serial pair. Serial2 is RX on 17, TX on 16.
+#define UART Serial2
 
 // for control of 12V RGB LEDs. we go through 10Kohm resistors on our way
 // to 3 N-MOSFETs (IRLB8721s), and from there emerge 3x 12V signals.
@@ -57,7 +57,7 @@ void setup(){
   const byte INITIAL_PWM = 128;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
-  Serial1.begin(UARTSPEED);
+  UART.begin(UARTSPEED);
 
   setup_timers();
   pinMode(PWMPIN, OUTPUT);
@@ -114,7 +114,7 @@ static void check_pwm_update(void){
   int last = -1;
   int in;
   // only apply the last in a sequence
-  while((in = Serial1.read()) != -1){
+  while((in = UART.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
     last = in;
@@ -191,4 +191,11 @@ void loop (){
   //Serial.print(temp);
   Serial.println();
   check_pwm_update();
+
+  UART.print("R");
+  UART.print(p);
+  UART.print("T");
+  UART.print(therm);
+  UART.print("P");
+  UART.print(Pwm);
 }

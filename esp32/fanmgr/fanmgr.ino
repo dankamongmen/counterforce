@@ -34,6 +34,8 @@ void setup(){
 
 // write a PWM value over UART
 static void send_pwm(int pwm){
+  Serial2.println("\x04\x64\xff");
+  Serial.println("WROTE TO UART?");
 }
 
 static int setPWM(int pwm){
@@ -54,6 +56,11 @@ static int setPWM(int pwm){
 static void check_pwm_update(void){
   int last = -1;
   int in;
+  while((in = Serial2.read()) != -1){
+    Serial.print("read byte from UART!!! ");
+    Serial.println(in);
+    //last = in;
+  }
   while((in = Serial.read()) != -1){
     Serial.print("read byte from input: ");
     Serial.println(in);
@@ -158,7 +165,4 @@ void loop(){
     client.publish("mora3/therm", String(Therm));
   }
   check_pwm_update();
-  int w = Serial2.write(Pwm);
-  Serial.print("write: ");
-  Serial.println(w);
 }
