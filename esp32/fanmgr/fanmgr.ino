@@ -8,7 +8,7 @@
 const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 50;
 const int UartTX = 37;
-const int UartRX = 38;
+const int UartRX = 36;
 int Pwm = -1;
 int RPM = INT_MAX;
 float Therm = FLT_MAX;
@@ -22,9 +22,7 @@ void onConnectionEstablished() {
 }
 
 void setup(){
-  Heltec.begin(true  /*DisplayEnable Enable*/,
-               false /*LoRa Disable*/,
-               true  /*Serial Enable*/);
+  Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
@@ -32,10 +30,10 @@ void setup(){
   setPWM(INITIAL_PWM);
 }
 
-// write a PWM value over UART
-static void send_pwm(int pwm){
-  Serial2.println("\x04\x64\xff");
-  Serial.println("WROTE TO UART?");
+// write the desired PWM value over UART
+static void send_pwm(void){
+  Serial.println("sending PWM over UART");
+  Serial2.print(Pwm);
 }
 
 static int setPWM(int pwm){
@@ -47,20 +45,15 @@ static int setPWM(int pwm){
   Serial.print("PWM to ");
   Serial.println(pwm);
   Pwm = pwm;
-  send_pwm(pwm);
   return 0;
 }
 
 // read bytes from Serial. each byte is interpreted as a PWM level, and
-// ought be between [0..255]. we act on the last byte available.
+// ought be between [0..255]. we act on the last byte available. we
 static void check_pwm_update(void){
   int last = -1;
   int in;
-  while((in = Serial2.read()) != -1){
-    Serial.print("read byte from UART!!! ");
-    Serial.println(in);
-    //last = in;
-  }
+  // FIXME also need to check MQTT
   while((in = Serial.read()) != -1){
     Serial.print("read byte from input: ");
     Serial.println(in);
@@ -70,6 +63,58 @@ static void check_pwm_update(void){
     setPWM(last);
   }
 }
+
+// simple state machine around protocol of:
+// top: { stat }*
+// state: [T] float | [R] posint | [P] ubyte
+// float: digit+.digit+
+// all exceptions return to top
+static void check_state_update(void){
+  static enum {
+    STATE_BEGIN,
+    STATE_PWM,
+    STATE_RPM,
+    STATE_TEMP,
+  } state = STATE_BEGIN;
+  static int int_ongoing = 0;
+  static float float_ongoing = 0;
+  int last = -1;
+  int in;
+  while((in = Serial2.read()) != -1){
+    Serial.print("read byte from UART!!! ");
+    Serial.println(in, DEC);
+    switch(state){
+      case STATE_BEGIN:
+        if(in == 'T'){
+          state = STATE_TEMP;
+        }else if(in == 'R'){
+          state = STATE_RPM;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+        }else{
+          Serial.println("unexpected stat prefix");
+        }
+        break;
+      case STATE_PWM:
+        // FIXME
+        state = STATE_BEGIN;
+        break;
+      case STATE_RPM:
+        // FIXME
+        state = STATE_BEGIN;
+        break;
+      case STATE_TEMP:
+        // FIXME
+        state = STATE_BEGIN;
+        break;
+      default:
+        Serial.println("invalid lexer state!");
+        state = STATE_BEGIN;
+        break;
+    }
+  }
+}
+
 
 static void displayConnectionStatus(int y){
   const char* connstr;
@@ -143,26 +188,62 @@ static void updateDisplay(void){
     Heltec.display->drawString(35, 21, String(Therm));
   }
   Heltec.display->drawString(0, 31, "Uptime: ");
-  if(maketimestr(timestr) == 0){
-    Heltec.display->drawString(41, 31, maketimestr(timestr) ? "a long time" : timestr);
-  }
+  Heltec.display->drawString(41, 31, maketimestr(timestr) ? "a long time" : timestr);
+Serial.print("uptime: ");
+Serial.println(timestr);
   Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   displayConnectionStatus(51);
   Heltec.display->display();
 }
 
 void loop(){
+  // millis() when we last sent a PWM directive over the UART. we send it
+  // frequently, in case the arduino has only just come online, but we don't
+  // want to drown the partner in UART content. 
+  static unsigned long last_pwm_write = 0;
+  static int lastRPM = INT_MAX;
+  static float lastTherm = FLT_MAX;
+  static int lastPWM = -1;
+  // only update the screen on a change, or in a new second (resolution
+  // of the uptime string used on the display)
+  static unsigned long last_screen_second = 0;
   // FIXME use the enqueue work version of this, as client.loop() can
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
-  // FIXME ideally only run if things have changed
-  updateDisplay();
-  // FIXME if not connected, retain a buffer of values
-  if(RPM != INT_MAX){
-    client.publish("mora3/rpms", String(RPM));
-  }
-  if(Therm != FLT_MAX){
-    client.publish("mora3/therm", String(Therm));
-  }
+  //check_state_update();
   check_pwm_update();
+  bool change = false;
+  unsigned long m = millis();
+  if(lastPWM != Pwm){
+    lastPWM = Pwm;
+    last_pwm_write = m;
+    send_pwm();
+    change = true;
+  }
+  if(m < last_pwm_write || m - last_pwm_write > 1000){
+    last_pwm_write = m;
+    send_pwm();
+  }
+  if(lastRPM != RPM){
+    lastRPM = RPM;
+    if(RPM != INT_MAX){
+      client.publish("mora3/rpms", String(RPM));
+    }
+    change = true;
+  }
+  if(lastTherm != Therm){
+    lastTherm = Therm;
+    if(Therm != FLT_MAX){
+      client.publish("mora3/therm", String(Therm));
+    }
+    change = true;
+  }
+  m /= 1000;
+  if(m != last_screen_second){
+    last_screen_second = m;
+    change = true;
+  }
+  if(change){
+    updateDisplay();
+  }
 }
