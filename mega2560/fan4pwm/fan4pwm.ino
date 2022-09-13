@@ -74,15 +74,13 @@ void setup(){
   pinMode(TEMPPIN, INPUT);
   // we'll get better thermistor readings if we use the cleaner
   // 3.3V line. connect 3.3V to AREF.
-  //analogReference(EXTERNAL);
-
-  //ADMUX = 0xc8; // enable internal temperature sensor via ADC
+  analogReference(EXTERNAL);
 
   pinMode(RRGBPIN, OUTPUT);
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
   analogWrite(RRGBPIN, 255);
-  analogWrite(GRGBPIN, 255);
+  analogWrite(GRGBPIN, 0);
   analogWrite(BRGBPIN, 255);
 }
 
@@ -117,7 +115,7 @@ static void check_pwm_update(void){
   while((in = UART.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
-    last = in;
+    //last = in;
   }
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
@@ -133,15 +131,17 @@ float readThermistor(void){
   const float R1 = 10;
   const float VREF = 3.3;
   float v0 = analogRead(TEMPPIN);
-  //Serial.print("read raw voltage: ");
-  //Serial.print(v0);
+  Serial.print("read raw voltage: ");
+  Serial.print(v0);
   float scaled = v0 * (VREF / 1023.0);
-  //Serial.print(" scaled: ");
-  //Serial.println(scaled);
-  float R = (scaled * R1) / (VREF - scaled);
-  float t = 1.0 / ((1.0 / NOMINAL) + ((log(R / 10)) / BETA));
-  //Serial.print("read raw temp: ");
-  //Serial.println(t);
+  Serial.print(" scaled: ");
+  Serial.println(scaled);
+  float R = ((scaled * R1) / (VREF - scaled)) / 10;
+  Serial.print("R: ");
+  Serial.println(R);
+  float t = 1.0 / ((1.0 / NOMINAL) + ((log(R)) / BETA));
+  Serial.print("read raw temp: ");
+  Serial.println(t);
   return t;
 }
 
@@ -198,4 +198,11 @@ void loop (){
   UART.print(therm);
   UART.print("P");
   UART.print(Pwm);
+
+  Serial.print("R");
+  Serial.print(p);
+  Serial.print("T");
+  Serial.print(therm);
+  Serial.print("P");
+  Serial.println(Pwm);
 }
