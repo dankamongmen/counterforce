@@ -128,18 +128,18 @@ static void check_pwm_update(void){
 float readThermistor(void){
   const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 25;
-  const float R1 = 10;
+  const float R1 = 10000;
   const float VREF = 3.3;
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw voltage: ");
   Serial.print(v0);
   float scaled = v0 * (VREF / 1023.0);
   Serial.print(" scaled: ");
-  Serial.println(scaled);
-  float R = ((scaled * R1) / (VREF - scaled)) / 10;
-  Serial.print("R: ");
+  Serial.print(scaled);
+  float R = ((scaled * R1) / (VREF - scaled)) / R1;
+  Serial.print(" R: ");
   Serial.println(R);
-  float t = 1.0 / ((1.0 / NOMINAL) + ((log(R)) / BETA));
+  float t = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
   Serial.print("read raw temp: ");
   Serial.println(t);
   return t;
