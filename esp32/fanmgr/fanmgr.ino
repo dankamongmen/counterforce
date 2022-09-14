@@ -13,6 +13,8 @@ int Pwm = -1;
 int RPM = INT_MAX;
 float Therm = FLT_MAX;
 
+HardwareSerial UART(1);
+
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
@@ -26,14 +28,14 @@ void setup(){
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  Serial2.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
+  UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   setPWM(INITIAL_PWM);
 }
 
 // write the desired PWM value over UART
 static void send_pwm(void){
   Serial.println("sending PWM over UART");
-  Serial2.print(Pwm);
+  UART.print(Pwm);
 }
 
 static int setPWM(int pwm){
@@ -76,36 +78,77 @@ static void check_state_update(void){
     STATE_RPM,
     STATE_TEMP,
   } state = STATE_BEGIN;
-  static int int_ongoing = 0;
-  static float float_ongoing = 0;
+  static int int_ongoing;
+  static float float_ongoing;
   int last = -1;
   int in;
-  while((in = Serial2.read()) != -1){
-    Serial.print("read byte from UART!!! ");
-    Serial.println(in, DEC);
+  while((in = UART.read()) != -1){
+    //Serial.print("read byte from UART!!! ");
+    //Serial.println(in, DEC);
     switch(state){
       case STATE_BEGIN:
         if(in == 'T'){
           state = STATE_TEMP;
+          float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
+          int_ongoing = 0;
         }else if(in == 'P'){
           state = STATE_PWM;
+          int_ongoing = 0;
         }else{
           Serial.println("unexpected stat prefix");
         }
         break;
       case STATE_PWM:
-        // FIXME
-        state = STATE_BEGIN;
+        if(isdigit(in)){
+          int_ongoing *= 10;
+          int_ongoing += in - '0';
+        }else if(in == 'T'){
+          state = STATE_TEMP;
+          Pwm = int_ongoing;
+          float_ongoing = 0;
+        }else if(in == 'R'){
+          state = STATE_RPM;
+          Pwm = int_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
         break;
       case STATE_RPM:
-        // FIXME
-        state = STATE_BEGIN;
+        if(isdigit(in)){
+          int_ongoing *= 10;
+          int_ongoing += in - '0';
+        }else if(in == 'T'){
+          state = STATE_TEMP;
+          RPM = int_ongoing;
+          float_ongoing = 0;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+          RPM = int_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
         break;
       case STATE_TEMP:
-        // FIXME
-        state = STATE_BEGIN;
+        if(isdigit(in)){
+          float_ongoing *= 10;
+          float_ongoing += in - '0';
+        }else if(in == '.'){
+          // FIXME
+        }else if(in == 'R'){
+          state = STATE_RPM;
+          Therm = float_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+          Therm = float_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
         break;
       default:
         Serial.println("invalid lexer state!");
@@ -210,7 +253,7 @@ void loop(){
   // FIXME use the enqueue work version of this, as client.loop() can
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
-  //check_state_update();
+  check_state_update();
   check_pwm_update();
   bool change = false;
   unsigned long m = millis();
