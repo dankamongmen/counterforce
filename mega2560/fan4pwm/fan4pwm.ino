@@ -79,9 +79,9 @@ void setup(){
   pinMode(RRGBPIN, OUTPUT);
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
-  analogWrite(RRGBPIN, 255);
-  analogWrite(GRGBPIN, 255);
-  analogWrite(BRGBPIN, 255);
+  analogWrite(RRGBPIN, 64);
+  analogWrite(GRGBPIN, 32);
+  analogWrite(BRGBPIN, 128);
 }
 
 void setPWM(byte pwm){
@@ -187,8 +187,6 @@ void loop (){
   Serial.print(therm);
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
-  //Serial.print(" Internal temp: ");
-  //Serial.print(temp);
   Serial.println();
   check_pwm_update();
 
