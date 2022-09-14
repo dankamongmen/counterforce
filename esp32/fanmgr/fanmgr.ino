@@ -35,7 +35,7 @@ void setup(){
 // write the desired PWM value over UART
 static void send_pwm(void){
   Serial.println("sending PWM over UART");
-  UART.print(Pwm);
+  UART.write(Pwm); // send as single byte
 }
 
 static int setPWM(int pwm){
