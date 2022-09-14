@@ -19,10 +19,6 @@ EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
 
-void onConnectionEstablished() {
-  Serial.println("got an MQTT connection");
-}
-
 void setup(){
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
@@ -36,6 +32,20 @@ void setup(){
 static void send_pwm(void){
   Serial.println("sending PWM over UART");
   UART.write(Pwm); // send as single byte
+}
+
+void onConnectionEstablished() {
+  Serial.println("got an MQTT connection");
+  client.subscribe("mora3/pwm", [](const String &payload){
+      Serial.print("received PWM via mqtt: ");
+      Serial.println(payload);
+      // no way to check format with toInt() =[
+      long p = payload.toInt();
+      if(p >= 0){
+        setPWM(p);
+      }
+    }
+  );
 }
 
 static int setPWM(int pwm){

@@ -80,7 +80,7 @@ void setup(){
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
   analogWrite(RRGBPIN, 255);
-  analogWrite(GRGBPIN, 0);
+  analogWrite(GRGBPIN, 255);
   analogWrite(BRGBPIN, 255);
 }
 
