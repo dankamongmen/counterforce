@@ -81,6 +81,7 @@ static void check_state_update(void){
   } state = STATE_BEGIN;
   static int int_ongoing;
   static float float_ongoing;
+  static int divisor_exponent; // used for float mantissa
   int last = -1;
   int in;
   while((in = UART.read()) != -1){
@@ -161,11 +162,11 @@ static void check_state_update(void){
           ++divisor_exponent;
         }else if(in == 'R'){
           state = STATE_RPM;
-          Therm = float_ongoing + int_going / pow(10, divisor_exponent);
+          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
           int_ongoing = 0;
         }else if(in == 'P'){
           state = STATE_PWM;
-          Therm = float_ongoing + int_going / pow(10, divisor_exponent);
+          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
           int_ongoing = 0;
         }else{
           state = STATE_BEGIN;
