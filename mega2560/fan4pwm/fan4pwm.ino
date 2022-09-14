@@ -115,7 +115,7 @@ static void check_pwm_update(void){
   while((in = UART.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
-    //last = in;
+    last = in;
   }
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
