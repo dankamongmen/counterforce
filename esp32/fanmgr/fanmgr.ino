@@ -77,6 +77,7 @@ static void check_state_update(void){
     STATE_PWM,
     STATE_RPM,
     STATE_TEMP,
+    STATE_TEMP_MANTISSA,
   } state = STATE_BEGIN;
   static int int_ongoing;
   static float float_ongoing;
@@ -84,7 +85,7 @@ static void check_state_update(void){
   int in;
   while((in = UART.read()) != -1){
     //Serial.print("read byte from UART!!! ");
-    //Serial.println(in, DEC);
+    //Serial.println(in, HEX);
     switch(state){
       case STATE_BEGIN:
         if(in == 'T'){
@@ -97,7 +98,8 @@ static void check_state_update(void){
           state = STATE_PWM;
           int_ongoing = 0;
         }else{
-          Serial.println("unexpected stat prefix");
+          Serial.print("unexpected stat prefix: ");
+          Serial.println(in, HEX);
         }
         break;
       case STATE_PWM:
@@ -137,7 +139,9 @@ static void check_state_update(void){
           float_ongoing *= 10;
           float_ongoing += in - '0';
         }else if(in == '.'){
-          // FIXME
+          int_ongoing = 0;
+          divisor_exponent = 0;
+          state = STATE_TEMP_MANTISSA;
         }else if(in == 'R'){
           state = STATE_RPM;
           Therm = float_ongoing;
@@ -145,6 +149,23 @@ static void check_state_update(void){
         }else if(in == 'P'){
           state = STATE_PWM;
           Therm = float_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
+        break;
+      case STATE_TEMP_MANTISSA:
+        if(isdigit(in)){
+          int_ongoing *= 10;
+          int_ongoing += in - '0';
+          ++divisor_exponent;
+        }else if(in == 'R'){
+          state = STATE_RPM;
+          Therm = float_ongoing + int_going / pow(10, divisor_exponent);
+          int_ongoing = 0;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+          Therm = float_ongoing + int_going / pow(10, divisor_exponent);
           int_ongoing = 0;
         }else{
           state = STATE_BEGIN;
@@ -243,7 +264,7 @@ void loop(){
   // millis() when we last sent a PWM directive over the UART. we send it
   // frequently, in case the arduino has only just come online, but we don't
   // want to drown the partner in UART content. 
-  static unsigned long last_pwm_write = 0;
+  static unsigned long last_broadcast = 0;
   static int lastRPM = INT_MAX;
   static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
@@ -259,22 +280,24 @@ void loop(){
   unsigned long m = millis();
   if(lastPWM != Pwm){
     lastPWM = Pwm;
-    last_pwm_write = m;
+    last_broadcast = m;
     send_pwm();
     change = true;
   }
-  if(m < last_pwm_write || m - last_pwm_write > 1000){
-    last_pwm_write = m;
+  bool broadcast = false;
+  if(m < last_broadcast || m - last_broadcast > 1000){
+    broadcast = true;
+    last_broadcast = m;
     send_pwm();
   }
-  if(lastRPM != RPM){
+  if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
     if(RPM != INT_MAX){
       client.publish("mora3/rpms", String(RPM));
     }
     change = true;
   }
-  if(lastTherm != Therm){
+  if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
       client.publish("mora3/therm", String(Therm));
