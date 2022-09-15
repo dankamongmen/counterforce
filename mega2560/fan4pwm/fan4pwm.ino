@@ -28,6 +28,10 @@ const int TEMPPIN = A0;
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
+byte Red = 32;
+byte Green = 64;
+byte Blue = 128;
+
 unsigned Pwm;
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
@@ -51,6 +55,12 @@ static void setup_timers(void){
   ICR4 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
+}
+
+static void apply_rgb(void){
+  analogWrite(RRGBPIN, Red);
+  analogWrite(GRGBPIN, Green);
+  analogWrite(BRGBPIN, Blue);
 }
 
 void setup(){
@@ -79,9 +89,7 @@ void setup(){
   pinMode(RRGBPIN, OUTPUT);
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
-  analogWrite(RRGBPIN, 64);
-  analogWrite(GRGBPIN, 32);
-  analogWrite(BRGBPIN, 128);
+  apply_rgb();
 }
 
 void setPWM(byte pwm){
@@ -105,6 +113,52 @@ static int apply_pwm(int in){
   }
 }
 
+// handle a byte read from the UART
+static void handle_uart(int in){
+  static enum {
+    STATE_BEGIN,
+    STATE_PWM, // got a 'P'
+    STATE_RRGB, // got a 'C'
+    STATE_GRGB, // got a Red
+    STATE_BRGB, // got a Green
+  } state = STATE_BEGIN;
+  static byte uart_red;
+  static byte uart_green;
+  switch(state){
+    case STATE_BEGIN:
+      if(in == 'P'){
+        state = STATE_PWM;
+      }else if(in == 'C'){
+        state = STATE_RRGB;
+      }else{
+        Serial.println("invalid uart input");
+      }
+      break;
+    case STATE_PWM:
+      apply_pwm(in);
+      state = STATE_BEGIN;
+      break;
+    case STATE_RRGB:
+      uart_red = in;
+      state = STATE_GRGB;
+      break;
+    case STATE_GRGB:
+      uart_green = in;
+      state = STATE_BRGB;
+      break;
+    case STATE_BRGB:
+      state = STATE_BEGIN;
+      Red = uart_red;
+      Green = uart_green;
+      Blue = in;
+      apply_rgb();
+      break;
+    default:
+      Serial.println("invalid uart state");
+      break;
+  }
+}
+
 // read bytes from UART/USB, using the global references.
 // each byte is interpreted as a PWM level, and ought be between [0..255].
 // we act on the last byte available. USB has priority over UART.
@@ -115,7 +169,7 @@ static void check_pwm_update(void){
   while((in = UART.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
-    last = in;
+    handle_uart(in);
   }
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
