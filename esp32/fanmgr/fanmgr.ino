@@ -10,6 +10,9 @@ const int INITIAL_PWM = 50;
 const int UartTX = 17;
 const int UartRX = 36;
 int Pwm = -1;
+int Red = -1;
+int Green = -1;
+int Blue = -1;
 int RPM = INT_MAX;
 float Therm = FLT_MAX;
 
@@ -28,14 +31,59 @@ void setup(){
   setPWM(INITIAL_PWM);
 }
 
-// write the desired PWM value over UART
+// write the desired PWM value over UART (1 byte + label 'P')
 static void send_pwm(void){
   Serial.println("sending PWM over UART");
+  UART.write('P');
   UART.write(Pwm); // send as single byte
+}
+
+// write the desired RGB values over UART (3 bytes + label 'C');
+static void send_rgb(void){
+  Serial.println("sending RGB over UART");
+  UART.write('C');
+  UART.write(Red);
+  UART.write(Green);
+  UART.write(Blue);
+}
+
+// precondition: isxdigit(c) is true
+static byte getHex(char c){
+  if(isdigit(c)){
+    return c - '0';
+  }
+  c = tolower(c);
+  return c - 'a' + 10;
 }
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
+  client.subscribe("mora3/rbg", [](const String &payload){
+      Serial.print("received RGB via mqtt: ");
+      Serial.println(payload);
+      byte colors[3]; // rgb
+      if(payload.length() != 2 * sizeof(colors)){
+        Serial.println("RGB wasn't 6 characters");
+        return;
+      }
+      for(int i = 0 ; i < sizeof(colors) ; ++i){
+        char h = payload.charAt(i * 2);
+        char l = payload.charAt(i * 2 + 1);
+        if(!isxdigit(h) || !isxdigit(l)){
+          Serial.println("invalid RGB character");
+          return;
+        }
+        byte hb = getHex(h);
+        byte lb = getHex(l);
+        colors[i] = hb * 16 + lb;
+      }
+      // everything was valid; update globals
+      Red = colors[0];
+      Green = colors[1];
+      Blue = colors[2];
+      send_rgb();
+    }
+  );
   client.subscribe("mora3/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
@@ -300,6 +348,7 @@ void loop(){
     broadcast = true;
     last_broadcast = m;
     send_pwm();
+    send_rgb();
   }
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
