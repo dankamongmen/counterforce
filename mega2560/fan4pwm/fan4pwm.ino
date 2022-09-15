@@ -20,6 +20,11 @@ const int RRGBPIN = 11;
 const int GRGBPIN = 10;
 const int BRGBPIN = 9;
 
+// fixed 12V LEDs in the reservoir atop the MO-RA3
+const int RRESPN = 7;
+const int GRESPN = 6;
+const int BRESPN = 5;
+
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
 
@@ -90,6 +95,14 @@ void setup(){
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
   apply_rgb();
+
+  // the reservoir color is fixed; just set it once here
+  pinMode(RRESPIN, OUTPUT);
+  pinMode(GRESPIN, OUTPUT);
+  pinMode(BRESPIN, OUTPUT);
+  analogWrite(RRESPIN, 0);
+  analogWrite(GRESPIN, 0);
+  analogWrite(BRESPIN, 255);
 }
 
 void setPWM(byte pwm){
