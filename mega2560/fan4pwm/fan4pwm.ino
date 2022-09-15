@@ -21,9 +21,9 @@ const int GRGBPIN = 10;
 const int BRGBPIN = 9;
 
 // fixed 12V LEDs in the reservoir atop the MO-RA3
-const int RRESPN = 7;
-const int GRESPN = 6;
-const int BRESPN = 5;
+const int RRESPIN = 7;
+const int GRESPIN = 6;
+const int BRESPIN = 5;
 
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
