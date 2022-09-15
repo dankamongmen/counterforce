@@ -58,7 +58,7 @@ static byte getHex(char c){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("mora3/rbg", [](const String &payload){
+  client.subscribe("mora3/rgb", [](const String &payload){
       Serial.print("received RGB via mqtt: ");
       Serial.println(payload);
       byte colors[3]; // rgb
