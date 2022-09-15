@@ -63,6 +63,7 @@ static void setup_timers(void){
 }
 
 static void apply_rgb(void){
+  Serial.println("committing RGB values");
   analogWrite(RRGBPIN, Red);
   analogWrite(GRGBPIN, Green);
   analogWrite(BRGBPIN, Blue);
