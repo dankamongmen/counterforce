@@ -1,0 +1,29 @@
+digraph G {
+  subgraph clusterMORA3 {
+    MEGA [shape=box label="Arduino MEGA2560"];
+    node [shape=record];
+      reservoir [label="<res>FrozenQ Reservoir|<resleds>12V LED strip|<temp>Aquacool 10K"];
+    MEGA -> reservoir:resleds;
+    MORA3 [shape=box, label="MO-RA3 420"];
+    esp32 [shape=box, label="Heltec ESP32"];
+    reservoir:temp -> MEGA;
+    reservoir:res -> MORA3;
+    hub12v [shape=box, label="12V hub"];
+    ac [shape=rectangle, label="12V AC adapter"];
+    buck [shape=rectangle, label="LM2596"];
+    ac -> hub12v;
+    hub12v -> buck;
+    hub12v -> reservoir:resleds;
+    buck -> MEGA [label="7.1V"];
+    buck -> esp32 [label="7.1V"];
+    MEGA -> hub12v [label="PWM"];
+    hub12v -> MEGA [label="Tach"];
+    tx [shape=box, label="TXS0108E"];
+    w0 [label="", shape=none]
+    w1 [label="", shape=none]
+    w0 -> reservoir:res [label="from workstation"];
+    MORA3 -> w1 [label="to workstation"];
+    MEGA -> tx;
+    tx -> esp32;
+  }
+}
