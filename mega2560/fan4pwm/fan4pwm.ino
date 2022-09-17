@@ -259,14 +259,14 @@ void loop (){
   check_pwm_update();
 
   UART.print("R");
-  UART.print(p);
+  UART.print(p * 30);
   UART.print("T");
   UART.print(therm);
   UART.print("P");
   UART.print(Pwm);
 
   Serial.print("R");
-  Serial.print(p);
+  Serial.print(p * 30);
   Serial.print("T");
   Serial.print(therm);
   Serial.print("P");
