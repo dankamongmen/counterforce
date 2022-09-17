@@ -1,21 +1,25 @@
 .PHONY: all clean
 
+OUT:=out
 MEGAHEX:=$(addsuffix .hex, fan4pwm geiger)
 ESPHEX:=$(addsuffix .hex, fanmgr)
-HEX:=$(MEGAHEX) $(ESPHEX)
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESPHEX))
 
 ACLI:=arduino-cli
 
 all: $(HEX)
 
-fanmgr.hex: $(addprefix esp32/fanmgr/, EspMQTTConfig.h fanmgr.ino)
-	$(ACLI) compile -b heltec:esp32:wifi_lora_32_V2 -v --output-dir . esp32/fanmgr
+$(OUT)/fanmgr.hex: $(addprefix esp32/fanmgr/, EspMQTTConfig.h fanmgr.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile -b heltec:esp32:wifi_lora_32_V2 -v --output-dir $(@D) esp32/fanmgr
 
-geiger.hex: $(addprefix mega2560/geiger/, geiger.ino)
-	$(ACLI) compile -b arduino:avr:mega -v --output-dir . mega2560/geiger
+$(OUT)/geiger.hex: $(addprefix mega2560/geiger/, geiger.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile -b arduino:avr:mega -v --output-dir $(@D) mega2560/geiger
 
-fan4pwm.hex: $(addprefix mega2560/fan4pwm/, fan4pwm.ino)
-	$(ACLI) compile -b arduino:avr:mega -v --output-dir . mega2560/fan4pwm
+$(OUT)/fan4pwm.hex: $(addprefix mega2560/fan4pwm/, fan4pwm.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile -b arduino:avr:mega -v --output-dir $(@D) mega2560/fan4pwm
 
 clean:
-	rm -f $(HEX)
+	rm -rf $(OUT)
