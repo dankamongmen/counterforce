@@ -103,6 +103,7 @@ void onConnectionEstablished() {
         p += h - '0';
       }
       setPWM(p);
+      send_pwm();
     }
   );
 }
@@ -117,22 +118,6 @@ static int setPWM(int pwm){
   Serial.println(pwm);
   Pwm = pwm;
   return 0;
-}
-
-// read bytes from Serial. each byte is interpreted as a PWM level, and
-// ought be between [0..255]. we act on the last byte available. we
-static void check_pwm_update(void){
-  int last = -1;
-  int in;
-  // FIXME also need to check MQTT
-  while((in = Serial.read()) != -1){
-    Serial.print("read byte from input: ");
-    Serial.println(in);
-    last = in;
-  }
-  if(last >= 0){
-    setPWM(last);
-  }
 }
 
 // simple state machine around protocol of:
@@ -154,8 +139,8 @@ static void check_state_update(void){
   int last = -1;
   int in;
   while((in = UART.read()) != -1){
-    //Serial.print("read byte from UART!!! ");
-    //Serial.println(in, HEX);
+    Serial.print("read byte from UART!!! ");
+    Serial.println(in, HEX);
     switch(state){
       case STATE_BEGIN:
         if(in == 'T'){
@@ -356,7 +341,6 @@ void loop(){
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
-  check_pwm_update();
   unsigned long m = millis();
   updateDisplay(m);
   bool broadcast = false;
@@ -375,12 +359,16 @@ void loop(){
     lastRPM = RPM;
     if(RPM != INT_MAX){
       mqttPublish(client, "rpm", String(RPM));
+    }else{
+      Serial.println("don't have an rpm sample");
     }
   }
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
       mqttPublish(client, "therm", String(Therm));
+    }else{
+      Serial.println("don't have a therm sample");
     }
   }
 }
