@@ -87,11 +87,21 @@ void onConnectionEstablished() {
   client.subscribe("mora3/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
-      // no way to check format with toInt() =[
-      long p = payload.toInt();
-      if(p >= 0){
-        setPWM(p);
+      unsigned long p = 0;
+      if(payload.length() == 0){
+        Serial.println("empty PWM input");
+        return;
       }
+      for(int i = 0 ; i < payload.length() ; ++i){
+        char h = payload.charAt(i);
+        if(!isdigit(h)){
+          Serial.println("invalid PWM character");
+          return;
+        }
+        p *= 10; // FIXME check for overflow
+        p += h - '0';
+      }
+      setPWM(p);
     }
   );
 }
@@ -257,8 +267,8 @@ static void displayConnectionStatus(int y){
 #define MAXTIMELEN 17
 
 // timestr needs be MAXTIMELEN bytes or more
-static int maketimestr(char *timestr){
-  unsigned long t = millis() / 1000; // FIXME deal with rollover
+static int maketimestr(char *timestr, unsigned long m){
+  unsigned long t = m / 1000; // FIXME deal with rollover
   unsigned long epoch = 365ul * 24 * 60 * 60;
   int off = 0; // write offset
   if(t > epoch){
@@ -291,7 +301,8 @@ static int maketimestr(char *timestr){
   return 0;
 }
 
-static void updateDisplay(void){
+// m is millis()
+static void updateDisplay(unsigned long m){
   char timestr[MAXTIMELEN];
   // dump information to OLED
   Heltec.display->clear();
@@ -311,9 +322,8 @@ static void updateDisplay(void){
     Heltec.display->drawString(35, 21, String(Therm));
   }
   Heltec.display->drawString(0, 31, "Uptime: ");
-  Heltec.display->drawString(41, 31, maketimestr(timestr) ? "a long time" : timestr);
-Serial.print("uptime: ");
-Serial.println(timestr);
+  Heltec.display->drawString(41, 31, maketimestr(timestr, m) ?
+                             "a long time" : timestr);
   Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   displayConnectionStatus(51);
   Heltec.display->display();
@@ -327,49 +337,35 @@ void loop(){
   static int lastRPM = INT_MAX;
   static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
-  // only update the screen on a change, or in a new second (resolution
-  // of the uptime string used on the display)
-  static unsigned long last_screen_second = 0;
   // FIXME use the enqueue work version of this, as client.loop() can
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
   check_pwm_update();
-  bool change = false;
   unsigned long m = millis();
-  if(lastPWM != Pwm){
-    lastPWM = Pwm;
-    last_broadcast = m;
-    send_pwm();
-    change = true;
-  }
+  updateDisplay(m);
   bool broadcast = false;
   if(m < last_broadcast || m - last_broadcast > 1000){
     broadcast = true;
     last_broadcast = m;
+    lastPWM = Pwm;
     send_pwm();
     send_rgb();
+  }else if(lastPWM != Pwm){
+    lastPWM = Pwm;
+    last_broadcast = m;
+    send_pwm();
   }
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
     if(RPM != INT_MAX){
       client.publish("mora3/rpms", String(RPM));
     }
-    change = true;
   }
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
       client.publish("mora3/therm", String(Therm));
     }
-    change = true;
-  }
-  m /= 1000;
-  if(m != last_screen_second){
-    last_screen_second = m;
-    change = true;
-  }
-  if(change){
-    updateDisplay();
   }
 }
