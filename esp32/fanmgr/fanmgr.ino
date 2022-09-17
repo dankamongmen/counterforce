@@ -309,9 +309,10 @@ static int maketimestr(char *timestr, unsigned long m){
 int mqttPublish(EspMQTTClient& mqtt, const char* key, const String& value){
   DynamicJsonDocument doc(BUFSIZ); // FIXME
   doc[key] = value;
-  String j;
-  serializeJson(doc, j);
-  mqtt.publish("mora3", j);
+  // PubSubClient limits messages to 256 bytes
+  char buf[257];
+  size_t n = serializeJson(doc, buf);
+  mqtt.publish("mora3", buf, n);
   return 0;
 }
 
