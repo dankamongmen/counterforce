@@ -4,6 +4,7 @@
 #include "heltec.h"
 #include <float.h>
 #include "EspMQTTClient.h"
+#include <ArduinoJson.h>
 
 const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 50;
@@ -177,11 +178,15 @@ static void check_state_update(void){
           int_ongoing += in - '0';
         }else if(in == 'T'){
           state = STATE_TEMP;
-          Pwm = int_ongoing;
+          if(Pwm != int_ongoing){
+            send_pwm();
+          }
           float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
-          Pwm = int_ongoing;
+          if(Pwm != int_ongoing){
+            send_pwm();
+          }
           int_ongoing = 0;
         }else{
           state = STATE_BEGIN;
@@ -301,6 +306,15 @@ static int maketimestr(char *timestr, unsigned long m){
   return 0;
 }
 
+int mqttPublish(EspMQTTClient& mqtt, const char* key, const String& value){
+  DynamicJsonDocument doc(BUFSIZ); // FIXME
+  doc[key] = value;
+  String j;
+  serializeJson(doc, j);
+  mqtt.publish("mora3", j);
+  return 0;
+}
+
 // m is millis()
 static void updateDisplay(unsigned long m){
   char timestr[MAXTIMELEN];
@@ -359,13 +373,13 @@ void loop(){
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
     if(RPM != INT_MAX){
-      client.publish("mora3/rpms", String(RPM));
+      mqttPublish(client, "rpm", String(RPM));
     }
   }
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
-      client.publish("mora3/therm", String(Therm));
+      mqttPublish(client, "therm", String(Therm));
     }
   }
 }
