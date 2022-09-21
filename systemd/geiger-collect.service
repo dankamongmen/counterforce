@@ -1,0 +1,16 @@
+[Unit]
+Description=Mega 2560 disintegration tracker
+Wants=local-fs.target
+Wants=time-sync.target
+
+[Service]
+Type=simple
+ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/geiger-collect
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+WorkingDirectory=/home/dank/src/dankamongmen/counterforce
+
+[Install]
+WantedBy=default.target

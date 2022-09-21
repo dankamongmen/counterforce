@@ -234,11 +234,13 @@ void loop (){
   unsigned p = Pulses;
   Pulses = 0;
   interrupts();
-  if(p * 30 > 65535){
+  if((unsigned long)p * 30 > 65535){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
   }else{
     unsigned c = p * 30;
+    UART.print("R");
+    UART.print(c);
     Serial.print(RPMPIN, DEC);
     Serial.print(" ");
     Serial.print(p, DEC);
@@ -251,24 +253,20 @@ void loop (){
   Serial.println("µs");
   Serial.println("");
   float therm = readThermistor();
+  UART.print("T");
+  UART.print(therm);
   Serial.print("Thermistor: ");
   Serial.print(therm);
+  UART.print("P");
+  UART.print(Pwm);
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
   Serial.println();
-  check_pwm_update();
-
-  UART.print("R");
-  UART.print(p * 30);
-  UART.print("T");
-  UART.print(therm);
-  UART.print("P");
-  UART.print(Pwm);
-
   Serial.print("R");
   Serial.print(p * 30);
   Serial.print("T");
   Serial.print(therm);
   Serial.print("P");
   Serial.println(Pwm);
+  check_pwm_update();
 }
