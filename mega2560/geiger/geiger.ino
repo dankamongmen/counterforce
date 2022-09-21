@@ -2,7 +2,7 @@
 // sound level sensor. the former needs 5V; the latter can get by with 3.3V.
 #include <float.h>
 
-#define RADPIN 2  // digital input 2 on INT4
+#define RADPIN 19  // digital pin 18 on INT4
 #define MICPIN A0 // analog input 0
 
 // we want a sample per second
