@@ -7,13 +7,15 @@ MQTT=$(which mosquitto_pub)
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
-cat < /dev/tty-geiger | while read line
+# FIXME we need the device to be put in the correct mode, as done by e.g.
+#  arduino-cli, before this will work. i think we can do so with stty?
+exec cat < /dev/tty-geiger | while read line
 do
   VAL=$(echo "$line" | cut -d\  -f2 | tr -d [:space:])
   if echo "$line" | grep '^Count: ' > /dev/null ; then
-    TOPIC=geiger
+    KEY=geiger
   elif echo "$line" | grep '^Mic: ' > /dev/null ; then
-    TOPIC=mic
+    KEY=mic
   fi
-  "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "mora3/$TOPIC" -m "{\"$TOPIC\":\"$VAL\"}"
+  "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "mora3" -m "{\"$KEY\":\"$VAL\"}"
 done
