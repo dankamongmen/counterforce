@@ -4,10 +4,15 @@ OUT:=out
 MEGAHEX:=$(addsuffix .hex, fan4pwm geiger)
 ESPHEX:=$(addsuffix .hex, fanmgr)
 HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESPHEX))
+BIN:=$(addprefix $(OUT)/, counterforce)
 
 ACLI:=arduino-cli
 
-all: $(HEX)
+all: $(HEX) $(BIN)
+
+$(OUT)/counterforce: pi/counterforce.c
+	@mkdir -p $(@D)
+	$(CC) -o $@ $< -lnotcurses $(shell pkg-config --libs notcurses)
 
 $(OUT)/fanmgr.hex: $(addprefix esp32/fanmgr/, EspMQTTConfig.h fanmgr.ino)
 	@mkdir -p $(@D)
