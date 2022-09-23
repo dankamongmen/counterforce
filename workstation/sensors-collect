@@ -50,5 +50,5 @@ while true ; do
   GPU=$(nvidia-smi -q | grep 'GPU Current Temp' | cut -d: -f2 | tr -d C[:space:])
   "$MQTT" -t mora3 -m "{\"gputemp\":\"$GPU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
-  sleep 1
+  sleep 30
 done
