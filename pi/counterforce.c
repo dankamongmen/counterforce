@@ -66,8 +66,14 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
-  sleep(4);
-  // FIXME loop, showing data
+  ncinput ni;
+  uint32_t k;
+  while((k = notcurses_get(nc, NULL, &ni)) >= 0){
+    if(k == 'q'){
+      notcurses_stop(nc);
+      return EXIT_SUCCESS;
+    }
+  }
   notcurses_stop(nc);
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
