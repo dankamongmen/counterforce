@@ -9,6 +9,7 @@ MQTT=$(which mosquitto_pub)
 
 # FIXME terrible, truly terrible
 while true ; do
+  # k10 temp sensors
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   "$MQTT" -t mora3 -m "{\"Tctl\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
@@ -19,5 +20,12 @@ while true ; do
   "$MQTT" -t mora3 -m "{\"Tccd3\":\"$Tccd3\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
   "$MQTT" -t mora3 -m "{\"Tccd4\":\"$Tccd4\"}" -u "$MQTTUSER" -P "$MQTTPASS"
-  sleep 1
+
+  # it87 rpm sensors
+  CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"cpu0rpm\":\"$CPU0RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"cpu1rpm\":\"$CPU1RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+
+  sleep 5
 done
