@@ -53,6 +53,8 @@ while true ; do
   # aquacomputer
   COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
   "$MQTT" -t temp/coolantaqua -m "$COOLTEMP" -u "$MQTTUSER" -P "$MQTTPASS"
+  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."External sensor".temp2_input') 2> /dev/null
+  "$MQTT" -t temp/externalhigh -m "$EXTTEMP" -u "$MQTTUSER" -P "$MQTTPASS"
 
   sleep 1
 done
