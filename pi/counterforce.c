@@ -10,11 +10,11 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
+  struct ncvisual* psu = ncvisual_from_file("counterforce-psu.jpg");
   if(psu == NULL){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
-  struct ncvisual* psu = ncvisual_from_file("counterforce-psu.jpg");
   // FIXME render them
   // FIXME loop, showing data
   notcurses_stop(nc);
