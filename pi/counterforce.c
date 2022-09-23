@@ -23,12 +23,10 @@ int main(void){
   struct ncvisual_options mopts = {0};
   mopts.blitter = NCBLIT_PIXEL;
   mopts.scaling = NCSCALE_STRETCH;
-  mopts.flags = NCVISUAL_OPTION_CHILDPLANE;
   if((mopts.n = ncplane_create(std, &mpopts)) == NULL){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
-  mopts.n = notcurses_stdplane(nc);
   ncvgeom mgeom;
   if(ncvisual_geom(nc, mobo, &mopts, &mgeom)){
     notcurses_stop(nc);
@@ -47,7 +45,6 @@ int main(void){
   struct ncvisual_options popts = {0};
   popts.blitter = NCBLIT_PIXEL;
   popts.scaling = NCSCALE_STRETCH;
-  popts.flags = NCVISUAL_OPTION_CHILDPLANE;
   if((popts.n = ncplane_create(std, &ppopts)) == NULL){
     notcurses_stop(nc);
     return EXIT_FAILURE;
