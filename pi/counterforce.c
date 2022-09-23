@@ -15,8 +15,20 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
+  int dimy, dimx;
+  struct ncplane* std = notcurses_stddim_yx(nc, &dimy, &dimx);
+  struct ncplane_options mpopts = {0};
+  mpopts.cols = dimx / 2;
+  mpopts.rows = dimy;
   struct ncvisual_options mopts = {0};
   mopts.blitter = NCBLIT_PIXEL;
+  mopts.scaling = NCSCALE_STRETCH;
+  mopts.flags = NCVISUAL_OPTION_CHILDPLANE;
+  if((mopts.n = ncplane_create(std, &mpopts)) == NULL){
+    notcurses_stop(nc);
+    return EXIT_FAILURE;
+  }
+  mopts.n = notcurses_stdplane(nc);
   ncvgeom mgeom;
   if(ncvisual_geom(nc, mobo, &mopts, &mgeom)){
     notcurses_stop(nc);
@@ -27,8 +39,19 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
+  struct ncplane_options ppopts = {0};
+  ppopts.cols = dimx / 2;
+  ppopts.rows = dimy;
+  ppopts.flags = NCPLANE_OPTION_HORALIGNED;
+  ppopts.x = NCALIGN_RIGHT;
   struct ncvisual_options popts = {0};
   popts.blitter = NCBLIT_PIXEL;
+  popts.scaling = NCSCALE_STRETCH;
+  popts.flags = NCVISUAL_OPTION_CHILDPLANE;
+  if((popts.n = ncplane_create(std, &ppopts)) == NULL){
+    notcurses_stop(nc);
+    return EXIT_FAILURE;
+  }
   ncvgeom pgeom;
   if(ncvisual_geom(nc, psu, &popts, &pgeom)){
     notcurses_stop(nc);
