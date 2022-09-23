@@ -15,5 +15,5 @@ do
   elif echo "$line" | grep '^Mic: ' > /dev/null ; then
     TOPIC=mic
   fi
-  "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "psumega/$TOPIC" -m "{\"$TOPIC\":\"$VAL\"}"
+  "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "mora3/$TOPIC" -m "{\"$TOPIC\":\"$VAL\"}"
 done
