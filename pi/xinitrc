@@ -1,0 +1,5 @@
+# goes in e.g. .config/xfce4/xinitrc
+
+xrandr -o 3
+xscreensaver -nosplash &
+exec xfce4-session
