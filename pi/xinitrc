@@ -2,4 +2,7 @@
 
 xrandr -o 3
 xscreensaver -nosplash &
+unclutter -idle 0.5 -root &
+chromium-browser --kiosk --disable-gpu http://10.128.0.1:3000/d/rYdddlPWk/node-exporter-full?orgId=1\&refresh=1m\&kiosk &
+xfce4-terminal --maximize &
 exec xfce4-session
