@@ -12,43 +12,47 @@ LCTL=$(which liquidctl)
 while true ; do
   # k10 temp sensors
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"Tctl\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/tctl -m "$TCTL" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"Tccd1\":\"$Tccd1\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/tccd1 -m "$Tccd1" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd2=$(sensors -j | jq '."k10temp-pci-00c3".Tccd3[]') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"Tccd2\":\"$Tccd2\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/tccd1 -m "$Tccd2" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd3=$(sensors -j | jq '."k10temp-pci-00c3".Tccd5[]') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"Tccd3\":\"$Tccd3\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/tccd3 -m "$Tccd3" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"Tccd4\":\"$Tccd4\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/tccd4 -m "$Tccd4" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # it87 rpm sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"cpu0rpm\":\"$CPU0RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t fan/cpu0 -m "$CPU0RPM" -u "$MQTTUSER" -P "$MQTTPASS"
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"cpu1rpm\":\"$CPU1RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t fan/cpu1 -m "$CPU1RPM" -u "$MQTTUSER" -P "$MQTTPASS"
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"hdrpm\":\"$HDRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t fan/mobohds -m "$HDRPM" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"ambpsu\":\"$AMBPSU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t temp/psuchamber -m "$AMBPSU" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # secondary it87 sensors
   HDPSURPM=$(sensors -j | jq '."it8688-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"hdpsurpm\":\"$HDPSURPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t fan/psuhds -m "$HDPSURPM" -u "$MQTTUSER" -P "$MQTTPASS"
   TOPRPM=$(sensors -j | jq '."it8688-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"toprpm\":\"$TOPRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t fan/top -m "$TOPRPM" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
-  "$MQTT" -t mora3 -m "{\"ambmobo\":\"$AMBMOBO\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t temp/mobochamber -m "$AMBMOBO" -u "$MQTTUSER" -P "$MQTTPASS"
 
   LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
-    "$MQTT" -t mora3 -m "{\"corsair$i\":\"$VAL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t fan/corsair$i -m "$VAL" -u "$MQTTUSER" -P "$MQTTPASS"
   done
 
   GPU=$(nvidia-smi -q | grep 'GPU Current Temp' | cut -d: -f2 | tr -d C[:space:])
-  "$MQTT" -t mora3 -m "{\"gputemp\":\"$GPU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t pe/gpu -m "$GPU" -u "$MQTTUSER" -P "$MQTTPASS"
 
-  sleep 30
+  # aquacomputer
+  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
+  "$MQTT" -t temp/coolantaqua -m "$COOLTEMP" -u "$MQTTUSER" -P "$MQTTPASS"
+
+  sleep 1
 done
