@@ -27,5 +27,5 @@ while true ; do
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
   "$MQTT" -t mora3 -m "{\"cpu1rpm\":\"$CPU1RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
-  sleep 5
+  sleep 1
 done
