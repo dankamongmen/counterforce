@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+
+# FIXME terrible, truly terrible
+while true ; do
+  TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"Tctl\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"Tccd1\":\"$Tccd1\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  Tccd2=$(sensors -j | jq '."k10temp-pci-00c3".Tccd3[]') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"Tccd2\":\"$Tccd2\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  Tccd3=$(sensors -j | jq '."k10temp-pci-00c3".Tccd5[]') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"Tccd3\":\"$Tccd3\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"Tccd4\":\"$Tccd4\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  sleep 1
+done
