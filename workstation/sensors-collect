@@ -3,6 +3,7 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
+LCTL=$(which liquidctl)
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
@@ -26,6 +27,25 @@ while true ; do
   "$MQTT" -t mora3 -m "{\"cpu0rpm\":\"$CPU0RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
   "$MQTT" -t mora3 -m "{\"cpu1rpm\":\"$CPU1RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"hdrpm\":\"$HDRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"ambpsu\":\"$AMBPSU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
-  sleep 1
+  # secondary it87 sensors
+  HDPSURPM=$(sensors -j | jq '."it8688-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"hdpsurpm\":\"$HDPSURPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  TOPRPM=$(sensors -j | jq '."it8688-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"toprpm\":\"$TOPRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
+  "$MQTT" -t mora3 -m "{\"ambmobo\":\"$AMBMOBO\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+
+  LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
+  for i in `seq 0 5` ; do
+    VAL=$(echo $LVALS | cut -d\  -f1)
+    LVALS=$(echo $LVALS | cut -d\  -f2-)
+    "$MQTT" -t mora3 -m "{\"corsair$i\":\"$VAL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  done
+
+  sleep 15
 done
