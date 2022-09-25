@@ -12,6 +12,7 @@ SERV=10.128.0.1
 while true ; do
   # rpi temp sensor
   TCTL=$(sensors -j | jq '."cpu_thermal-virtual-0".temp1[]') 2> /dev/null
-  "$MQTT" -h "$SERV" -t "$TOPIC" -m "{\"rpi4temp\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -h "$SERV" -t "$TOPIC" -m "{\"rpi4temp\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS" \
+    || { echo "Failed publishing to MQTT" >&2 ; }
   sleep 15
 done
