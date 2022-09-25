@@ -75,6 +75,7 @@ int main(void){
   struct ncplane* mobop = ncvisual_blit(nc, mobo, &mopts);
   if(mobop == NULL){
     notcurses_stop(nc);
+    fprintf(stderr, "Error blitting mobo visual\n");
     return EXIT_FAILURE;
   }
   ncplane_move_above(mopts.n, mobop);
@@ -99,15 +100,13 @@ int main(void){
   struct ncplane* psup = ncvisual_blit(nc, psu, &popts);
   if(psup == NULL){
     notcurses_stop(nc);
+    fprintf(stderr, "Error blitting PSU visual\n");
     return EXIT_FAILURE;
   }
   ncinput ni;
   uint32_t k;
   do{
-    if(update_mobo(mopts.n, &mctx)){
-      notcurses_stop(nc);
-      return EXIT_FAILURE;
-    }
+    update_mobo(mopts.n, &mctx);
     if(notcurses_render(nc)){
       notcurses_stop(nc);
       return EXIT_FAILURE;
