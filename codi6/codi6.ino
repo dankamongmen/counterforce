@@ -16,8 +16,23 @@ void setup() {
 }
 
 void loop() {
-  for(int i = 0 ; i < NUM_LEDS ; ++i){
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
     leds[i] = CRGB::Cyan;
+  }
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
+    leds[NUM_LEDS_PER_STRIP + i] = CRGB::Red;
+  }
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
+    leds[2 * NUM_LEDS_PER_STRIP + i] = CRGB::Green;
+  }
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
+    leds[3 * NUM_LEDS_PER_STRIP + i] = CRGB::SkyBlue;
+  }
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
+    leds[4 * NUM_LEDS_PER_STRIP + i] = CRGB::OliveDrab;
+  }
+  for(int i = 0 ; i < NUM_LEDS_PER_STRIP ; ++i){
+    leds[5 * NUM_LEDS_PER_STRIP + i] = CRGB::Gold;
   }
   FastLED.show();
 }
