@@ -1,6 +1,25 @@
 #include <notcurses/notcurses.h>
 
+struct moboctx {
+  int toprpm;     // top ek/noctua mix
+  int noctuarpm;  // bottom noctuae
+  int phantekrpm; // bottommost phanteks
+};
+
+// update the various labels on the mobo side, but do not rerender
+static int
+update_mobo(struct ncplane* n, const struct moboctx* mctx){
+  int dimy, dimx;
+  ncplane_dim_yx(n, &dimy, &dimx);
+  // FIXME kill off all these literal positions
+  if(ncplane_printf_yx(n, 3, 10, "%d %d %d", mctx->toprpm, mctx->toprpm, mctx->toprpm) < 0){
+    return -1;
+  }
+  return 0;
+}
+
 int main(void){
+  struct moboctx mctx = {0};
   struct notcurses* nc = notcurses_init(NULL, NULL);
   if(nc == NULL){
     exit(EXIT_FAILURE);
@@ -23,10 +42,16 @@ int main(void){
   struct ncvisual_options mopts = {0};
   mopts.blitter = NCBLIT_PIXEL;
   mopts.scaling = NCSCALE_STRETCH;
+  mopts.flags = NCVISUAL_OPTION_CHILDPLANE;
   if((mopts.n = ncplane_create(std, &mpopts)) == NULL){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
+  nccell bgc = NCCELL_TRIVIAL_INITIALIZER;
+  nccell_set_fg_alpha(&bgc, NCALPHA_TRANSPARENT);
+  nccell_set_bg_alpha(&bgc, NCALPHA_TRANSPARENT);
+  ncplane_set_base_cell(mopts.n, &bgc);
+  nccell_release(mopts.n, &bgc);
   ncvgeom mgeom;
   if(ncvisual_geom(nc, mobo, &mopts, &mgeom)){
     notcurses_stop(nc);
@@ -37,6 +62,7 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
+  ncplane_move_above(mopts.n, mobop);
   struct ncplane_options ppopts = {0};
   ppopts.cols = dimx / 2;
   ppopts.rows = dimy;
@@ -45,6 +71,7 @@ int main(void){
   struct ncvisual_options popts = {0};
   popts.blitter = NCBLIT_PIXEL;
   popts.scaling = NCSCALE_STRETCH;
+  popts.flags = NCVISUAL_OPTION_CHILDPLANE;
   if((popts.n = ncplane_create(std, &ppopts)) == NULL){
     notcurses_stop(nc);
     return EXIT_FAILURE;
@@ -59,18 +86,24 @@ int main(void){
     notcurses_stop(nc);
     return EXIT_FAILURE;
   }
-  if(notcurses_render(nc)){
-    notcurses_stop(nc);
-    return EXIT_FAILURE;
-  }
   ncinput ni;
   uint32_t k;
-  while((k = notcurses_get(nc, NULL, &ni)) >= 0){
+  do{
+    if(update_mobo(mopts.n, &mctx)){
+      notcurses_stop(nc);
+      return EXIT_FAILURE;
+    }
+    if(notcurses_render(nc)){
+      notcurses_stop(nc);
+      return EXIT_FAILURE;
+    }
     if(k == 'q'){
+      notcurses_debug(nc, stderr);
       notcurses_stop(nc);
       return EXIT_SUCCESS;
     }
-  }
+    // FIXME check for updates, along with stdin
+  }while((k = notcurses_get(nc, NULL, &ni)) >= 0);
   notcurses_stop(nc);
   return EXIT_FAILURE;
 }
