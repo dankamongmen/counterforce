@@ -31,9 +31,11 @@ do
   elif echo "$line" | grep '^Mic: ' > /dev/null ; then
     { M=$((M + VAL)) && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
     VAL=$(echo "$M / $MSAMPS" | bc)
-    "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":\"$VAL\"}" || \
-      { echo "Error publishing mic sample" >&2 ; }
-    M=0
-    MSAMPS=0
+    if [ $MSAMPS -ge 15 ] ; then
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":\"$VAL\"}" || \
+        { echo "Error publishing mic sample" >&2 ; }
+      M=0
+      MSAMPS=0
+    fi
   fi
 done
