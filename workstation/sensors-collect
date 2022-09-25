@@ -4,6 +4,7 @@ set -e
 
 MQTT=$(which mosquitto_pub)
 LCTL=$(which liquidctl)
+TOPIC=mora3
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
@@ -12,52 +13,52 @@ LCTL=$(which liquidctl)
 while true ; do
   # k10 temp sensors
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
-  "$MQTT" -t pe/tctl -m "$TCTL" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"tctl\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
-  "$MQTT" -t pe/tccd1 -m "$Tccd1" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"tccd1\":\"$Tccd1\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd2=$(sensors -j | jq '."k10temp-pci-00c3".Tccd3[]') 2> /dev/null
-  "$MQTT" -t pe/tccd1 -m "$Tccd2" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"tccd2\":\"$Tccd2\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd3=$(sensors -j | jq '."k10temp-pci-00c3".Tccd5[]') 2> /dev/null
-  "$MQTT" -t pe/tccd3 -m "$Tccd3" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"tccd3\":\"$Tccd3\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
-  "$MQTT" -t pe/tccd4 -m "$Tccd4" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"tccd4\":\"$Tccd4\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # it87 rpm sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
-  "$MQTT" -t fan/cpu0 -m "$CPU0RPM" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"cpu0rpm\":\"$CPU0RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
-  "$MQTT" -t fan/cpu1 -m "$CPU1RPM" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"cpu1rpm\":\"$CPU1RPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
-  "$MQTT" -t fan/mobohds -m "$HDRPM" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"mobohdrpm\":\"$HDRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
-  "$MQTT" -t temp/psuchamber -m "$AMBPSU" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"psuchamber\":\"$AMBPSU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # secondary it87 sensors
   HDPSURPM=$(sensors -j | jq '."it8688-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
-  "$MQTT" -t fan/psuhds -m "$HDPSURPM" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"psuhdrpm\":\"$HDPSURPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   TOPRPM=$(sensors -j | jq '."it8688-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
-  "$MQTT" -t fan/top -m "$TOPRPM" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"toprpm\":\"$TOPRPM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
-  "$MQTT" -t temp/mobochamber -m "$AMBMOBO" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"mobochamber\":\"$AMBMOBO\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
-    "$MQTT" -t fan/corsair$i -m "$VAL" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC" -m "{\"corsair$i\":\"$VAL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
 
   GPU=$(nvidia-smi -q | grep 'GPU Current Temp' | cut -d: -f2 | tr -d C[:space:])
-  "$MQTT" -t pe/gpu -m "$GPU" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC" -m "{\"gputemp\":\"$GPU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
-  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
+  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-8"."Coolant temp".temp1_input') 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
-    "$MQTT" -t temp/coolantaqua -m "$COOLTEMP" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC" -m "{\"aquacool\":\"$COOLTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."External sensor".temp2_input') 2> /dev/null
+  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-8"."External sensor".temp2_input') 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then
-    "$MQTT" -t temp/externalhigh -m "$EXTTEMP" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC" -m "{\"aquaext\":\"$EXTTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
   sleep 1
