@@ -1,0 +1,198 @@
+mqtt:
+ server: tcp://127.0.0.1:1883
+ # username and password come from systemd override
+ # Optional: for TLS client certificates
+ #ca_cert: certs/AmazonRootCA1.pem
+ #client_cert: certs/xxxxx-certificate.pem.crt
+ #client_key: certs/xxxxx-private.pem.key
+ # Optional: Used to specify ClientID. The default is <hostname>-<pid>
+ #client_id: somedevice
+ # The Topic path to subscribe to. Be aware that you have to specify the wildcard, if you want to follow topics for multiple sensors.
+ topic_path: mora3
+ # Optional: Regular expression to extract the device ID from the topic path. The default regular expression, assumes
+ # that the last "element" of the topic_path is the device id.
+ # The regular expression must contain a named capture group with the name deviceid
+ # For example the expression for tasamota based sensors is "tele/(?P<deviceid>.*)/.*"
+ device_id_regex: "(.*/)?(?P<deviceid>.*)"
+ # The MQTT QoS level
+ qos: 0
+cache:
+ # Timeout. Each received metric will be presented for this time if no update is send via MQTT.
+ # Set the timeout to -1 to disable the deletion of metrics from the cache. The exporter presents the ingest timestamp
+ # to prometheus.
+ timeout: 24h
+json_parsing:
+ # Separator. Used to split path to elements when accessing json fields.
+ # You can access json fields with dots in it. F.E. {"key.name": {"nested": "value"}}
+ # Just set separator to -> and use key.name->nested as mqtt_name
+ separator: .
+# This is a list of valid metrics. Only metrics listed here will be exported
+metrics:
+ - prom_name: mora3coolanttemp
+   mqtt_name: therm
+   help: Coolant temperature at MO-RA3
+   type: gauge
+ - prom_name: mora3fanrpm
+   mqtt_name: rpm
+   help: MO-RA3 fan RPMs
+   type: gauge
+ - prom_name: corsairfanrpm0
+   mqtt_name: corsair0
+   help: Corsair fan 1 RPMs
+   type: gauge
+ - prom_name: corsairfanrpm1
+   mqtt_name: corsair1
+   help: Corsair fan 2 RPMs
+   type: gauge
+ - prom_name: corsairfanrpm2
+   mqtt_name: corsair2
+   help: Corsair fan 3 RPMs
+   type: gauge
+ - prom_name: corsairfanrpm3
+   mqtt_name: corsair3
+   help: Corsair fan 4 RPMs
+   type: gauge
+ - prom_name: corsairfanrpm4
+   mqtt_name: corsair4
+   help: Corsair fan 5 RPMs
+   type: gauge
+ - prom_name: corsairfanrpm5
+   mqtt_name: corsair5
+   help: Corsair fan 6 RPMs
+   type: gauge
+ - prom_name: toprpm
+   mqtt_name: toprpm
+   help: Top fan RPMs
+   type: gauge
+ - prom_name: mobohdrpm
+   mqtt_name: mobohdrpm
+   help: Mobo-side hard drive fan RPMs
+   type: gauge
+ - prom_name: psuhdrpm
+   mqtt_name: psuhdrpm
+   help: PSU-side hard drive fan RPMs
+   type: gauge
+ - prom_name: xtop0rpm
+   mqtt_name: cpu0rpm
+   help: Dual XTOP pump 1 RPM
+   type: gauge
+ - prom_name: xtop1rpm
+   mqtt_name: cpu1rpm
+   help: Dual XTOP pump 2 RPM
+   type: gauge
+ - prom_name: psuchamber
+   mqtt_name: psuchamber
+   help: PSU chamber temperature
+   type: gauge
+ - prom_name: mobochamber
+   mqtt_name: mobochamber
+   help: Mobo chamber temperature
+   type: gauge
+ - prom_name: aquaext
+   mqtt_name: aquaext
+   help: Ambient temperature
+   type: gauge
+ - prom_name: aquacool
+   mqtt_name: aquacool
+   help: Coolant temperature at Aqua HighFLOW
+   type: gauge
+ - prom_name: gputemp
+   mqtt_name: gputemp
+   help: GPU temperature
+   type: gauge
+ - prom_name: tctl
+   mqtt_name: tctl
+   help: Processor Tctl
+   type: gauge
+ - prom_name: tccd1
+   mqtt_name: tccd1
+   help: Tccd1 temperature
+   type: gauge
+ - prom_name: tccd2
+   mqtt_name: tccd2
+   help: Tccd2 temperature
+   type: gauge
+ - prom_name: tccd3
+   mqtt_name: tccd3
+   help: Tccd3 temperature
+   type: gauge
+ - prom_name: tccd4
+   mqtt_name: tccd4
+   help: Tccd4 temperature
+   type: gauge
+ - prom_name: geiger
+   mqtt_name: geiger
+   help: Geiger counter events
+   type: gauge
+ - prom_name: mic
+   mqtt_name: mic
+   help: Ambient noise
+   type: gauge
+ - prom_name: rpi4temp
+   mqtt_name: rpi4temp
+   help: Raspberry Pi 4B temperature
+   type: gauge
+ - prom_name: sata0temp
+   mqtt_name: sata0
+   help: SATA disk 0 temperature
+   type: gauge
+ - prom_name: sata1temp
+   mqtt_name: sata1
+   help: SATA disk 1 temperature
+   type: gauge
+ - prom_name: sata2temp
+   mqtt_name: sata2
+   help: SATA disk 2 temperature
+   type: gauge
+ - prom_name: sata3temp
+   mqtt_name: sata3
+   help: SATA disk 3 temperature
+   type: gauge
+ - prom_name: sata4temp
+   mqtt_name: sata4
+   help: SATA disk 4 temperature
+   type: gauge
+ - prom_name: sata5temp
+   mqtt_name: sata5
+   help: SATA disk 5 temperature
+   type: gauge
+ - prom_name: sata6temp
+   mqtt_name: sata6
+   help: SATA disk 6 temperature
+   type: gauge
+ - prom_name: sata7temp
+   mqtt_name: sata7
+   help: SATA disk 7 temperature
+   type: gauge
+ - prom_name: sata8temp
+   mqtt_name: sata8
+   help: SATA disk 8 temperature
+   type: gauge
+ - prom_name: sata9temp
+   mqtt_name: sata9
+   help: SATA disk 9 temperature
+   type: gauge
+ - prom_name: sata10temp
+   mqtt_name: sata10
+   help: SATA disk 10 temperature
+   type: gauge
+ - prom_name: sata11temp
+   mqtt_name: sata11
+   help: SATA disk 11 temperature
+   type: gauge
+ - prom_name: sata12temp
+   mqtt_name: sata12
+   help: SATA disk 12 temperature
+   type: gauge
+ - prom_name: sata13temp
+   mqtt_name: sata13
+   help: SATA disk 13 temperature
+   type: gauge
+ - prom_name: sata14temp
+   mqtt_name: sata14
+   help: SATA disk 14 temperature
+   type: gauge
+ - prom_name: sata15temp
+   mqtt_name: sata15
+   help: SATA disk 15 temperature
+   type: gauge
