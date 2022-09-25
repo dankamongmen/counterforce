@@ -10,29 +10,30 @@ TOPIC=mora3
 
 stty 115200 -F /dev/tty-geiger
 
-# we read thirty samples before publishing (this ought be 15s). we sum over
-# the geiger counts, and average the mic samples.
+# we read fifteen samples of a given type before publishing (this ought be
+# 15s). we sum over the geiger counts, and average the mic samples.
 G=0
 M=0
 MSAMPS=0
-SAMPLES=0
+GSAMPS=0
 exec cat < /dev/tty-geiger | while read line
 do
   # all reported values are integers or floats with a mantissa of 0
   VAL=$(echo "$line" | cut -d\  -f2 | cut -d. -f1 | tr -d [:space:])
   if echo "$line" | grep '^Count: ' > /dev/null ; then
-    G=$((G + VAL)) || { echo "Invalid geiger report: $VAL" >&2 ; }
+    { G=$((G + VAL)) && GSAMPS=$((GSAMPS + 1)) ; } || { echo "Invalid geiger report: $VAL" >&2 ; }
+    if [ $GSAMPS -ge 15 ] ; then
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"geiger\":\"$G\"}" || \
+       { echo "Error publishing geiger sample" >&2 ; }
+      G=0
+      GSAMPS=0
+    fi
   elif echo "$line" | grep '^Mic: ' > /dev/null ; then
     { M=$((M + VAL)) && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
-  fi
-  SAMPLES=$((SAMPLES + 1))
-  if [ $SAMPLES -ge 30 ] ; then
-    "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"geiger\":\"$G\"}"
     VAL=$(echo "$M / $MSAMPS" | bc)
-    "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":\"$VAL\"}"
-    G=0
+    "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":\"$VAL\"}" || \
+      { echo "Error publishing mic sample" >&2 ; }
     M=0
     MSAMPS=0
-    SAMPLES=0
   fi
 done
