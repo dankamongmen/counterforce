@@ -23,7 +23,7 @@ do
   if echo "$line" | grep '^Count: ' > /dev/null ; then
     { G=$((G + VAL)) && GSAMPS=$((GSAMPS + 1)) ; } || { echo "Invalid geiger report: $VAL" >&2 ; }
     if [ $GSAMPS -ge 15 ] ; then
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"geiger\":\"$G\"}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/geiger" -m "{\"geiger\":$G}" || \
        { echo "Error publishing geiger sample" >&2 ; }
       G=0
       GSAMPS=0
@@ -32,7 +32,7 @@ do
     { M=$((M + VAL)) && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
     VAL=$(echo "$M / $MSAMPS" | bc)
     if [ $MSAMPS -ge 15 ] ; then
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":\"$VAL\"}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/mic" -m "{\"mic\":$VAL}" || \
         { echo "Error publishing mic sample" >&2 ; }
       M=0
       MSAMPS=0
