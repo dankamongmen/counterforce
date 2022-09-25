@@ -13,39 +13,39 @@ TOPIC=mora3
 while true ; do
   # k10 temp sensors
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"tctl\":$TCTL}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/tctl" -m "{\"tctl\":$TCTL}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"tccd1\":$Tccd1}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/tccd1" -m "{\"tccd1\":$Tccd1}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd2=$(sensors -j | jq '."k10temp-pci-00c3".Tccd3[]') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"tccd2\":$Tccd2}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/tccd2" -m "{\"tccd2\":$Tccd2}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd3=$(sensors -j | jq '."k10temp-pci-00c3".Tccd5[]') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"tccd3\":$Tccd3}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/tccd3" -m "{\"tccd3\":$Tccd3}" -u "$MQTTUSER" -P "$MQTTPASS"
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"tccd4\":$Tccd4}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/tccd4" -m "{\"tccd4\":$Tccd4}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # it87 rpm sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"cpu0rpm\":$CPU0RPM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/cpu0rpm" -m "{\"cpu0rpm\":$CPU0RPM}" -u "$MQTTUSER" -P "$MQTTPASS"
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"cpu1rpm\":$CPU1RPM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/cpu1rpm" -m "{\"cpu1rpm\":$CPU1RPM}" -u "$MQTTUSER" -P "$MQTTPASS"
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"mobohdrpm\":$HDRPM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/mobohdrpm" -m "{\"mobohdrpm\":$HDRPM}" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"psuchamber\":$AMBPSU}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/psuchamber" -m "{\"psuchamber\":$AMBPSU}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # secondary it87 sensors
   HDPSURPM=$(sensors -j | jq '."it8688-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"psuhdrpm\":$HDPSURPM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/psuhdrpm" -m "{\"psuhdrpm\":$HDPSURPM}" -u "$MQTTUSER" -P "$MQTTPASS"
   TOPRPM=$(sensors -j | jq '."it8688-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"toprpm\":$TOPRPM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/toprpm" -m "{\"toprpm\":$TOPRPM}" -u "$MQTTUSER" -P "$MQTTPASS"
   AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
-  "$MQTT" -t "$TOPIC" -m "{\"mobochamber\":$AMBMOBO}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/mobochamber" -m "{\"mobochamber\":$AMBMOBO}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
-    "$MQTT" -t "$TOPIC" -m "{\"corsair$i\":$VAL}" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC/corsair$i" -m "{\"corsair$i\":$VAL}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
 
   GPU=$(nvidia-smi -q | grep 'GPU Current Temp' | cut -d: -f2 | tr -d C[:space:])
@@ -54,15 +54,15 @@ while true ; do
   # aquacomputer
   COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
-    "$MQTT" -t "$TOPIC" -m "{\"aquacool\":$COOLTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC/aquacool" -m "{\"aquacool\":$COOLTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
   EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."External sensor".temp2_input') 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then
-    "$MQTT" -t "$TOPIC" -m "{\"aquaext\":$EXTTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC/aquaext" -m "{\"aquaext\":$EXTTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
   FLOW=$(sensors -j | jq '."highflownext-hid-3-a"."Flow [dL/h]".fan1_input') 2> /dev/null
   if [ "$FLOW" != "null" ] ; then
-    "$MQTT" -t "$TOPIC" -m "{\"aquaflow\":$FLOW}" -u "$MQTTUSER" -P "$MQTTPASS"
+    "$MQTT" -t "$TOPIC/aquaflow" -m "{\"aquaflow\":$FLOW}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
   # SATA disks
@@ -75,15 +75,15 @@ while true ; do
 
   # load average
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
-  "$MQTT" -t "$TOPIC" -m "{\"loadavg\":$LOAD}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/loadavg" -m "{\"loadavg\":$LOAD}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # memory
   ACTMEM=$(cat /proc/meminfo | grep ^Active: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
   ACTMEM=$((ACTMEM * 1024))
-  "$MQTT" -t "$TOPIC" -m "{\"actmem\":$ACTMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/actmem" -m "{\"actmem\":$ACTMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
   CACHEMEM=$(cat /proc/meminfo | grep ^Cached: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
   CACHEMEM=$((CACHEMEM * 1024))
-  "$MQTT" -t "$TOPIC" -m "{\"cachemem\":$CACHEMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  "$MQTT" -t "$TOPIC/cachemem" -m "{\"cachemem\":$CACHEMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   sleep 15
 done
