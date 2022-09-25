@@ -61,5 +61,5 @@ while true ; do
     "$MQTT" -t "$TOPIC" -m "{\"aquaext\":\"$EXTTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
-  sleep 1
+  sleep 15
 done

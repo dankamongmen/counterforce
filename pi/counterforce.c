@@ -6,13 +6,27 @@ struct moboctx {
   int phantekrpm; // bottommost phanteks
 };
 
+// fill in canned values for testing
+static void
+canned_values(struct moboctx* mctx){
+  mctx->toprpm = 2000;
+  mctx->noctuarpm = 1500;
+  mctx->phantekrpm = 1800;
+}
+
 // update the various labels on the mobo side, but do not rerender
 static int
 update_mobo(struct ncplane* n, const struct moboctx* mctx){
   int dimy, dimx;
   ncplane_dim_yx(n, &dimy, &dimx);
   // FIXME kill off all these literal positions
-  if(ncplane_printf_yx(n, 3, 10, "%d %d %d", mctx->toprpm, mctx->toprpm, mctx->toprpm) < 0){
+  if(ncplane_printf_yx(n, 11, 20, "%d           %d           %d", mctx->toprpm, mctx->toprpm, mctx->toprpm) < 0){
+    return -1;
+  }
+  if(ncplane_printf_yx(n, 54, 20, "%d           %d", mctx->noctuarpm, mctx->noctuarpm) < 0){
+    return -1;
+  }
+  if(ncplane_printf_yx(n, 60, 20, "%d           %d", mctx->phantekrpm, mctx->phantekrpm) < 0){
     return -1;
   }
   return 0;
@@ -20,6 +34,7 @@ update_mobo(struct ncplane* n, const struct moboctx* mctx){
 
 int main(void){
   struct moboctx mctx = {0};
+  canned_values(&mctx); // FIXME
   struct notcurses* nc = notcurses_init(NULL, NULL);
   if(nc == NULL){
     exit(EXIT_FAILURE);
