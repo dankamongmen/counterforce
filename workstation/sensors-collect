@@ -61,5 +61,13 @@ while true ; do
     "$MQTT" -t "$TOPIC" -m "{\"aquaext\":\"$EXTTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
+  # SATA disks
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
+  DIDX=0
+  for i in $DISKTEMPS ; do
+    "$MQTT" -t "$TOPIC" -m "{\"sata$DIDX\":\"$i\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+    DIDX=$((DIDX + 1))
+  done
+
   sleep 15
 done
