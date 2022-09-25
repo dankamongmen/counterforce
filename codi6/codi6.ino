@@ -13,7 +13,7 @@ void loop() {
     flt[i] = CRGB::Cyan;
   }
   for(int i = 0 ; i < sizeof(strips) / sizeof(*strips) ; ++i){
-    strips[i] = CRGB::Purple;
+    strips[i] = CRGB::DarkGreen;
   }
   FastLED.show();
 }
