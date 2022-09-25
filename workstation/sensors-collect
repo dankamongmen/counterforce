@@ -52,13 +52,17 @@ while true ; do
   "$MQTT" -t "$TOPIC" -m "{\"gputemp\":\"$GPU\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
-  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-8"."Coolant temp".temp1_input') 2> /dev/null
+  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC" -m "{\"aquacool\":\"$COOLTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-8"."External sensor".temp2_input') 2> /dev/null
+  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."External sensor".temp2_input') 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC" -m "{\"aquaext\":\"$EXTTEMP\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  fi
+  FLOW=$(sensors -j | jq '."highflownext-hid-3-a"."Flow [dL/h]".fan1_input') 2> /dev/null
+  if [ "$FLOW" != "null" ] ; then
+    "$MQTT" -t "$TOPIC" -m "{\"aquaflow\":\"$FLOW\"}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
   # SATA disks
@@ -68,6 +72,18 @@ while true ; do
     "$MQTT" -t "$TOPIC" -m "{\"sata$DIDX\":\"$i\"}" -u "$MQTTUSER" -P "$MQTTPASS"
     DIDX=$((DIDX + 1))
   done
+
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  "$MQTT" -t "$TOPIC" -m "{\"loadavg\":\"$LOAD\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+
+  # memory
+  ACTMEM=$(cat /proc/meminfo | grep ^Active: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
+  ACTMEM=$((ACTMEM * 1024))
+  "$MQTT" -t "$TOPIC" -m "{\"actmem\":\"$ACTMEM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  CACHEMEM=$(cat /proc/meminfo | grep ^Cached: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
+  CACHEMEM=$((CACHEMEM * 1024))
+  "$MQTT" -t "$TOPIC" -m "{\"cachemem\":\"$CACHEMEM\"}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   sleep 15
 done

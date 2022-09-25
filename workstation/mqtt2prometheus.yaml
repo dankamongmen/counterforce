@@ -196,3 +196,19 @@ metrics:
    mqtt_name: sata15
    help: SATA disk 15 temperature
    type: gauge
+ - prom_name: loadavg1min
+   mqtt_name: loadavg
+   help: One-minute load average
+   type: gauge
+ - prom_name: aquaflow
+   mqtt_name: aquaflow
+   help: Deciliters per hour
+   type: gauge
+ - prom_name: actmem
+   mqtt_name: actmem
+   help: Active memory
+   type: gauge
+ - prom_name: cachemem
+   mqtt_name: cachemem
+   help: Page cache
+   type: gauge
