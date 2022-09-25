@@ -1,0 +1,16 @@
+[Unit]
+Description=Raspberry Pi sensors tracker
+Wants=local-fs.target
+Wants=time-sync.target
+
+[Service]
+Type=simple
+ExecStart=/home/dank/counterforce/pi/amoled-collect
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+WorkingDirectory=/home/dank/counterforce
+
+[Install]
+WantedBy=default.target

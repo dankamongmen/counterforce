@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+TOPIC=mora3
+SERV=10.128.0.1
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+
+while true ; do
+  # rpi temp sensor
+  TCTL=$(sensors -j | jq '."cpu_thermal-virtual-0".temp1[]') 2> /dev/null
+  "$MQTT" -h "$SERV" -t "$TOPIC" -m "{\"rpi4temp\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS"
+  sleep 15
+done
