@@ -41,6 +41,7 @@ while true ; do
   AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
   "$MQTT" -t "$TOPIC/mobochamber" -m "{\"mobochamber\":$AMBMOBO}" -u "$MQTTUSER" -P "$MQTTPASS"
 
+  # corsair commander core xt
   LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
@@ -48,19 +49,22 @@ while true ; do
     "$MQTT" -t "$TOPIC/corsair$i" -m "{\"corsair$i\":$VAL}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
 
-  GPU=$(nvidia-smi -q | grep 'GPU Current Temp' | cut -d: -f2 | tr -d C[:space:])
+  # nvidia
+  GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
   "$MQTT" -t "$TOPIC/gputemp" -m "{\"gputemp\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
+  GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
+  "$MQTT" -t "$TOPIC/gpuactmem" -m "{\"gpuactmem\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
-  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."Coolant temp".temp1_input') 2> /dev/null
+  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."Coolant temp".temp1_input') 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC/aquacool" -m "{\"aquacool\":$COOLTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-a"."External sensor".temp2_input') 2> /dev/null
+  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."External sensor".temp2_input') 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC/aquaext" -m "{\"aquaext\":$EXTTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  FLOW=$(sensors -j | jq '."highflownext-hid-3-a"."Flow [dL/h]".fan1_input') 2> /dev/null
+  FLOW=$(sensors -j | jq '."highflownext-hid-3-7"."Flow [dL/h]".fan1_input') 2> /dev/null
   if [ "$FLOW" != "null" ] ; then
     "$MQTT" -t "$TOPIC/aquaflow" -m "{\"aquaflow\":$FLOW}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi

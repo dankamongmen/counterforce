@@ -106,6 +106,10 @@ metrics:
    mqtt_name: gputemp
    help: GPU temperature
    type: gauge
+ - prom_name: gpuactmem
+   mqtt_name: gpuactmem
+   help: GPU active memory
+   type: gauge
  - prom_name: actmem
    mqtt_name: actmem
    help: Active memory
