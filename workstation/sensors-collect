@@ -9,6 +9,8 @@ TOPIC=mora3
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
+HFLOW=$(sensors | grep ^highflownext-hid)
+
 # FIXME terrible, truly terrible
 while true ; do
   # k10 temp sensors
@@ -64,15 +66,15 @@ while true ; do
   "$MQTT" -t "$TOPIC/gpuwatts" -m "{\"gpuwatts\":$GPUW}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
-  COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."Coolant temp".temp1_input') 2> /dev/null
+  COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC/aquacool" -m "{\"aquacool\":$COOLTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  EXTTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."External sensor".temp2_input') 2> /dev/null
+  EXTTEMP=$(sensors -j | jq .\"$HFLOW\".\"External\ sensor\".temp2_input) 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then
     "$MQTT" -t "$TOPIC/aquaext" -m "{\"aquaext\":$EXTTEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-  FLOW=$(sensors -j | jq '."highflownext-hid-3-7"."Flow [dL/h]".fan1_input') 2> /dev/null
+  FLOW=$(sensors -j | jq .\"$HFLOW\".\"Flow\ \[dL/h\]\".fan1_input) 2> /dev/null
   if [ "$FLOW" != "null" ] ; then
     # convert deciliters-per-hour to liters-per-minute
     FLOW=$(jq -n $FLOW/60/10)
