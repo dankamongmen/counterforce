@@ -53,8 +53,8 @@ while true ; do
   GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
   "$MQTT" -t "$TOPIC/gputemp" -m "{\"gputemp\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
   GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
-  GPUMEM=$(jq -n $GPUMEM*11811160064/100)
-  "$MQTT" -t "$TOPIC/gpuactmem" -m "{\"gpuactmem\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
+  GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
+  "$MQTT" -t "$TOPIC/gpuactmem" -m "{\"gpuactmem\":$GPUMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
   COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."Coolant temp".temp1_input') 2> /dev/null
