@@ -19,7 +19,9 @@ while true ; do
 
   # fs availability
   for i in / /home /media/qwop /media/qwopino ; do
-    PCENT=$(df $i --output=pcent | sed -e 1d | cut -d% -f1 | tr -d [:space:])
+    AVAIL=$(df $i --output=avail | sed -e 1d)
+    TOTAL=$(df $i --output=size | sed -e 1d)
+    PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
     NAME="fs`basename $i | sed -e 's/\//root/'`"
     "$MQTT" -t "$TOPIC/$NAME" -m "{\"$NAME\":$PCENT}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
