@@ -10,7 +10,7 @@ mqtt:
  # Optional: Used to specify ClientID. The default is <hostname>-<pid>
  #client_id: somedevice
  # The Topic path to subscribe to. Be aware that you have to specify the wildcard, if you want to follow topics for multiple sensors.
- topic_path: mora3/+
+ topic_path: sensors/+
  # Optional: Regular expression to extract the device ID from the topic path. The default regular expression, assumes
  # that the last "element" of the topic_path is the device id.
  # The regular expression must contain a named capture group with the name deviceid
@@ -245,4 +245,12 @@ metrics:
  - prom_name: fsqwopino
    mqtt_name: fsqwopino
    help: Media utilization
+   type: gauge
+ - prom_name: mora3coolanttemp
+   mqtt_name: mora3/therm
+   help: Coolant temperature at MO-RA3
+   type: gauge
+ - prom_name: mora3fanrpm
+   mqtt_name: mora3/rpm
+   help: MO-RA3 fan RPMs
    type: gauge

@@ -59,7 +59,7 @@ static byte getHex(char c){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("mora3/rgb", [](const String &payload){
+  client.subscribe("control/mora3/rgb", [](const String &payload){
       Serial.print("received RGB via mqtt: ");
       Serial.println(payload);
       byte colors[3]; // rgb
@@ -85,7 +85,7 @@ void onConnectionEstablished() {
       send_rgb();
     }
   );
-  client.subscribe("mora3/pwm", [](const String &payload){
+  client.subscribe("control/mora3/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
       unsigned long p = 0;
@@ -297,7 +297,7 @@ int mqttPublish(EspMQTTClient& mqtt, const char* key, const String& value){
   // PubSubClient limits messages to 256 bytes
   char buf[257];
   size_t n = serializeJson(doc, buf);
-  mqtt.publish("mora3", buf, n);
+  mqtt.publish("sensors/mora3", buf, n);
   return 0;
 }
 
@@ -337,11 +337,15 @@ void loop(){
   static int lastRPM = INT_MAX;
   static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
+  // FIXME we can remove this updateDisplay/millis() once the client.loop()
+  // below is bounded
+  unsigned long m = millis();
+  updateDisplay(m);
   // FIXME use the enqueue work version of this, as client.loop() can
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
-  unsigned long m = millis();
+  m = millis();
   updateDisplay(m);
   bool broadcast = false;
   if(m < last_broadcast || m - last_broadcast > 1000){
