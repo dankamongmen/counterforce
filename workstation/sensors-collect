@@ -66,6 +66,8 @@ while true ; do
   fi
   FLOW=$(sensors -j | jq '."highflownext-hid-3-7"."Flow [dL/h]".fan1_input') 2> /dev/null
   if [ "$FLOW" != "null" ] ; then
+    # convert deciliters-per-hour to liters-per-minute
+    FLOW=$(jq -n $FLOW/60/10)
     "$MQTT" -t "$TOPIC/aquaflow" -m "{\"aquaflow\":$FLOW}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
 
