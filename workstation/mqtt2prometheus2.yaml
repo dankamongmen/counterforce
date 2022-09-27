@@ -210,3 +210,19 @@ metrics:
    mqtt_name: toprpm
    help: Top fan RPMs
    type: gauge
+ - prom_name: fsroot
+   mqtt_name: fsroot
+   help: Root filesystem utilization
+   type: gauge
+ - prom_name: fshome
+   mqtt_name: fshome
+   help: Home filesystem utilization
+   type: gauge
+ - prom_name: fsqwop
+   mqtt_name: fsqwop
+   help: Media utilization
+   type: gauge
+ - prom_name: fsqwopino
+   mqtt_name: fsqwopino
+   help: Media utilization
+   type: gauge

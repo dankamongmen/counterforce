@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+TOPIC=mora3
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+
+while true ; do
+  # SATA disks
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
+  DIDX=0
+  for i in $DISKTEMPS ; do
+    "$MQTT" -t "$TOPIC/sata$DIDX" -m "{\"sata$DIDX\":$i}" -u "$MQTTUSER" -P "$MQTTPASS"
+    DIDX=$((DIDX + 1))
+  done
+
+  # fs availability
+  for i in / /home /media/qwop /media/qwopino ; do
+    PCENT=$(df $i --output=pcent | sed -e 1d | cut -d% -f1 | tr -d [:space:])
+    NAME="fs`basename $i | sed -e 's/\//root/'`"
+    "$MQTT" -t "$TOPIC/$NAME" -m "{\"$NAME\":$PCENT}" -u "$MQTTUSER" -P "$MQTTPASS"
+  done
+
+  sleep 15
+done
