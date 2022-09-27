@@ -53,6 +53,7 @@ while true ; do
   GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
   "$MQTT" -t "$TOPIC/gputemp" -m "{\"gputemp\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
   GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
+  GPUMEM=$(jq -n $GPUMEM*11811160064/100)
   "$MQTT" -t "$TOPIC/gpuactmem" -m "{\"gpuactmem\":$GPU}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
@@ -70,14 +71,6 @@ while true ; do
     FLOW=$(jq -n $FLOW/60/10)
     "$MQTT" -t "$TOPIC/aquaflow" -m "{\"aquaflow\":$FLOW}" -u "$MQTTUSER" -P "$MQTTPASS"
   fi
-
-  # SATA disks
-  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
-  DIDX=0
-  for i in $DISKTEMPS ; do
-    "$MQTT" -t "$TOPIC/sata$DIDX" -m "{\"sata$DIDX\":$i}" -u "$MQTTUSER" -P "$MQTTPASS"
-    DIDX=$((DIDX + 1))
-  done
 
   # load average
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
