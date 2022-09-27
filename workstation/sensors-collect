@@ -48,6 +48,11 @@ while true ; do
     LVALS=$(echo $LVALS | cut -d\  -f2-)
     "$MQTT" -t "$TOPIC/corsair$i" -m "{\"corsair$i\":$VAL}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
+  # temp 1 is broken
+  LVALS=$(echo $LVALS | cut -d\  -f2-)
+  # use temp2
+  VAL=$(echo $LVALS | cut -d\  -f1)
+  "$MQTT" -t "$TOPIC/corsairtemp1" -m "{\"corsairtemp1\":$VAL}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # nvidia
   GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
@@ -55,6 +60,8 @@ while true ; do
   GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
   GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
   "$MQTT" -t "$TOPIC/gpuactmem" -m "{\"gpuactmem\":$GPUMEM}" -u "$MQTTUSER" -P "$MQTTPASS"
+  GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits)
+  "$MQTT" -t "$TOPIC/gpuwatts" -m "{\"gpuwatts\":$GPUW}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   # aquacomputer
   COOLTEMP=$(sensors -j | jq '."highflownext-hid-3-7"."Coolant temp".temp1_input') 2> /dev/null

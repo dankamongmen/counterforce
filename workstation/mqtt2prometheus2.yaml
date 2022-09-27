@@ -102,6 +102,22 @@ metrics:
    mqtt_name: sata15
    help: SATA disk 15 temperature
    type: gauge
+ - prom_name: pkgwatts
+   mqtt_name: pkgwatts
+   help: CPU package power draw
+   type: gauge
+ - prom_name: corewatts
+   mqtt_name: corewatts
+   help: CPU core power draw
+   type: gauge
+ - prom_name: upswatts
+   mqtt_name: upswatts
+   help: UPS-reported power draw
+   type: gauge
+ - prom_name: gpuwatts
+   mqtt_name: gpuwatts
+   help: GPU power draw
+   type: gauge
  - prom_name: gputemp
    mqtt_name: gputemp
    help: GPU temperature
@@ -117,6 +133,10 @@ metrics:
  - prom_name: cachemem
    mqtt_name: cachemem
    help: Page cache
+   type: gauge
+ - prom_name: corsairtemp1
+   mqtt_name: corsairtemp1
+   help: Corsair temperature 1
    type: gauge
  - prom_name: corsairfanrpm0
    mqtt_name: corsair0
