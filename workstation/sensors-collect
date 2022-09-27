@@ -94,6 +94,16 @@ while true ; do
   # these require root, ugh
   UPSW=$(sudo pwrstat -status | grep Load | cut -d\  -f2)
   "$MQTT" -t "$TOPIC/upswatts" -m "{\"upswatts\":$UPSW}" -u "$MQTTUSER" -P "$MQTTPASS"
+  #CORE1W=$(sudo powercap-info -z 0:0 intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
+  #sleep 1
+  #CORE2W=$(sudo powercap-info -z 0:0 intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
+  #COREW=`jq -n \($CORE2W-$CORE1W\)/100000`
+  #"$MQTT" -t "$TOPIC/corewatts" -m "{\"corewatts\":$COREW}" -u "$MQTTUSER" -P "$MQTTPASS"
+  PKG1W=$(sudo powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
+  sleep 1
+  PKG2W=$(sudo powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
+  PKGW=`jq -n \($PKG2W-$PKG1W\)/1000000`
+  "$MQTT" -t "$TOPIC/pkgwatts" -m "{\"pkgwatts\":$PKGW}" -u "$MQTTUSER" -P "$MQTTPASS"
 
   sleep 15
 done
