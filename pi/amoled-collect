@@ -3,7 +3,7 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
-TOPIC=mora3/rpi4temp
+TOPIC=sensors/rpi4temp
 SERV=10.128.0.1
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
