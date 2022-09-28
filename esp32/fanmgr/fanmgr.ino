@@ -10,6 +10,7 @@ const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 50;
 const int UartTX = 17;
 const int UartRX = 36;
+int ReportedPwm = -1;
 int Pwm = -1;
 int Red = -1;
 int Green = -1;
@@ -163,13 +164,15 @@ static void check_state_update(void){
           int_ongoing += in - '0';
         }else if(in == 'T'){
           state = STATE_TEMP;
-          if(Pwm != int_ongoing){
+          ReportedPwm = int_ongoing;
+          if(Pwm != ReportedPwm){
             send_pwm();
           }
           float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
-          if(Pwm != int_ongoing){
+          ReportedPwm = int_ongoing;
+          if(Pwm != ReportedPwm){
             send_pwm();
           }
           int_ongoing = 0;
@@ -336,6 +339,7 @@ void loop(){
   // want to drown the partner in UART content. 
   static unsigned long last_broadcast = 0;
   static int lastRPM = INT_MAX;
+  static int lastReportedPWM = INT_MAX;
   static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
   // FIXME we can remove this updateDisplay/millis() once the client.loop()
@@ -359,6 +363,14 @@ void loop(){
     lastPWM = Pwm;
     last_broadcast = m;
     send_pwm();
+  }
+  if(lastReportedPWM != ReportedPwm || broadcast){
+    lastReportedPWM = ReportedPwm;
+    if(ReportedPwm != INT_MAX){
+      mqttPublish(client, "pwm", ReportedPwm);
+    }else{
+      Serial.println("don't have a pwm report");
+    }
   }
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
