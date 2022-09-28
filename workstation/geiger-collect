@@ -3,7 +3,7 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
-TOPIC=mora3
+TOPIC=sensors
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }

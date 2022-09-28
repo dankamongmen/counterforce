@@ -3,7 +3,7 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
-TOPIC=mora3
+TOPIC=sensors
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
@@ -15,6 +15,13 @@ while true ; do
   for i in $DISKTEMPS ; do
     "$MQTT" -t "$TOPIC/sata$DIDX" -m "{\"sata$DIDX\":$i}" -u "$MQTTUSER" -P "$MQTTPASS"
     DIDX=$((DIDX + 1))
+  done
+
+  # NVMe disks
+  for i in /dev/nvme? ; do
+    TEMP=$(sudo nvme smart-log $i | grep temperature | cut -d: -f2 | cut -dC -f1 | tr -d [:space:])
+    S=$(echo $i | cut -d/ -f3)
+    "$MQTT" -t "$TOPIC/$S"temp -m "{\"$S""temp\":$TEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
 
   # fs availability

@@ -38,6 +38,26 @@ metrics:
    mqtt_name: mic
    help: Microphone levels
    type: gauge
+ - prom_name: nvme0temp
+   mqtt_name: nvme0
+   help: NVMe disk 0 temperature
+   type: gauge
+ - prom_name: nvme1temp
+   mqtt_name: nvme1
+   help: NVMe disk 1 temperature
+   type: gauge
+ - prom_name: nvme2temp
+   mqtt_name: nvme2
+   help: NVMe disk 2 temperature
+   type: gauge
+ - prom_name: nvme3temp
+   mqtt_name: nvme3
+   help: NVMe disk 3 temperature
+   type: gauge
+ - prom_name: nvme4temp
+   mqtt_name: nvme4
+   help: NVMe disk 4 temperature
+   type: gauge
  - prom_name: sata0temp
    mqtt_name: sata0
    help: SATA disk 0 temperature
@@ -247,10 +267,10 @@ metrics:
    help: Media utilization
    type: gauge
  - prom_name: mora3coolanttemp
-   mqtt_name: mora3/therm
+   mqtt_name: therm
    help: Coolant temperature at MO-RA3
    type: gauge
  - prom_name: mora3fanrpm
-   mqtt_name: mora3/rpm
+   mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
