@@ -104,8 +104,12 @@ while true ; do
   PKG1W=$(powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
   sleep 1
   PKG2W=$(powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
-  PKGW=`jq -n \($PKG2W-$PKG1W\)/1000000`
-  "$MQTT" -t "$TOPIC/pkgwatts" -m "{\"pkgwatts\":$PKGW}" -u "$MQTTUSER" -P "$MQTTPASS"
+  if [ $PKG2W -ge $PKG1W ] ; then
+    PKGW=`jq -n \($PKG2W-$PKG1W\)/1000000`
+    "$MQTT" -t "$TOPIC/pkgwatts" -m "{\"pkgwatts\":$PKGW}" -u "$MQTTUSER" -P "$MQTTPASS"
+  else
+    echo "powercap went backwards $PKG1W $PKG2W" >&2
+  fi
 
-  sleep 15
+  sleep 10
 done
