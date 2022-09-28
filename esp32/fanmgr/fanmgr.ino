@@ -363,7 +363,7 @@ void loop(){
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
     if(RPM != INT_MAX){
-      mqttPublish(client, "rpm", String(RPM));
+      mqttPublish(client, "rpm", RPM);
     }else{
       Serial.println("don't have an rpm sample");
     }
@@ -371,7 +371,7 @@ void loop(){
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
-      mqttPublish(client, "therm", String(Therm));
+      mqttPublish(client, "therm", Therm);
     }else{
       Serial.println("don't have a therm sample");
     }
