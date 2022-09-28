@@ -291,7 +291,8 @@ static int maketimestr(char *timestr, unsigned long m){
   return 0;
 }
 
-int mqttPublish(EspMQTTClient& mqtt, const char* key, const String& value){
+template<typename T>
+int mqttPublish(EspMQTTClient& mqtt, const char* key, const T& value){
   DynamicJsonDocument doc(BUFSIZ); // FIXME
   doc[key] = value;
   // PubSubClient limits messages to 256 bytes
