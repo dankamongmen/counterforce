@@ -1,20 +1,26 @@
 #include <FastLED.h>
  
-CRGB flt[15];      // Quantum FLT
-CRGB lianli[37];   // Lian Li LAN2-2X strips
-CRGB phanteks[38]; // Phanteks NEON strips
+CRGB lianliA[37];   // Lian Li LAN2-2X strips 
+CRGB lianliB[40];   // Lian Li Infinity fan
+CRGB lianliC[37];   // Lian Li LAN2-2X strips
+CRGB phanteksA[38]; // Phanteks NEON strips
+CRGB phanteksB[38]; // Phanteks NEON strips
+CRGB phanteksC[38]; // Phanteks NEON strips
  
 void setup() {
-  FastLED.addLeds<NEOPIXEL, 3>(flt, 0, sizeof(flt) / sizeof(*flt));
-  FastLED.addLeds<NEOPIXEL, 6>(lianli, 0, sizeof(lianli) / sizeof(*lianli));
-  FastLED.addLeds<NEOPIXEL, 9>(phanteks, 0, sizeof(phanteks) / sizeof(*phanteks));
+  FastLED.addLeds<NEOPIXEL, 3>(lianliA, 0, sizeof(lianliA) / sizeof(*lianliA));
+  FastLED.addLeds<NEOPIXEL, 5>(lianliB, 0, sizeof(lianliB) / sizeof(*lianliB));
+  FastLED.addLeds<NEOPIXEL, 6>(lianliC, 0, sizeof(lianliC) / sizeof(*lianliC));
+  FastLED.addLeds<NEOPIXEL, 9>(phanteksA, 0, sizeof(phanteksA) / sizeof(*phanteksA));
+  FastLED.addLeds<NEOPIXEL, 10>(phanteksB, 0, sizeof(phanteksB) / sizeof(*phanteksB));
+  FastLED.addLeds<NEOPIXEL, 11>(phanteksC, 0, sizeof(phanteksC) / sizeof(*phanteksC));
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
-#define animation_speed 5.0
+#define animation_speed 10.0
 #define color_rotation_speed 10.0
-#define spacing 2.0
-#define thickness 2.0
+#define spacing 1.0
+#define thickness 1.0
 #define Speed 60
 #define FPS 60
 
@@ -31,7 +37,6 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing)  + progress);
 
   int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
-  //hue = (hue % 60) + 90; // 90--150; we only want greens
   CHSV hsv =
     CHSV(hue, 255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
 
@@ -54,10 +59,11 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 }
 
 void loop() {
-  for(int i = 0 ; i < sizeof(flt) / sizeof(*flt) ; ++i){
-    flt[i] = CRGB::Cyan;
-  }
-  StepEffect(lianli, sizeof(lianli) / sizeof(*lianli));
-  StepEffect(phanteks, sizeof(phanteks) / sizeof(*phanteks));
+  StepEffect(lianliA, sizeof(lianliA) / sizeof(*lianliA));
+  StepEffect(phanteksA, sizeof(phanteksA) / sizeof(*phanteksA));
+  StepEffect(lianliB, sizeof(lianliB) / sizeof(*lianliB));
+  StepEffect(phanteksB, sizeof(phanteksB) / sizeof(*phanteksB));
+  StepEffect(lianliC, sizeof(lianliC) / sizeof(*lianliC));
+  StepEffect(phanteksC, sizeof(phanteksC) / sizeof(*phanteksC));
   FastLED.show();
 }
