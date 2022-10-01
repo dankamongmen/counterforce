@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 
 const unsigned long UARTSPEED = 9600;
-const int INITIAL_PWM = 50;
+const int INITIAL_PWM = 128;
 const int UartTX = 17;
 const int UartRX = 36;
 int Pwm = -1;
