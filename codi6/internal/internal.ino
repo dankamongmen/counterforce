@@ -1,19 +1,21 @@
 #include <FastLED.h>
  
-CRGB flt[15];    // Quantum FLT
-CRGB strips[60]; // 2 EZDIY strips of 30 LEDs each, mobo side
+CRGB flt[15];      // Quantum FLT
+CRGB lianli[37];   // Lian Li LAN2-2X strips
+CRGB phanteks[38]; // Phanteks NEON strips
  
 void setup() {
   FastLED.addLeds<NEOPIXEL, 3>(flt, 0, sizeof(flt) / sizeof(*flt));
-  FastLED.addLeds<NEOPIXEL, 6>(strips, 0, sizeof(strips) / sizeof(*strips));
+  FastLED.addLeds<NEOPIXEL, 6>(lianli, 0, sizeof(lianli) / sizeof(*lianli));
+  FastLED.addLeds<NEOPIXEL, 9>(phanteks, 0, sizeof(phanteks) / sizeof(*phanteks));
 }
 
 // largely ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
-#define animation_speed 1.0
-#define color_rotation_speed 1.0
-#define spacing 1.0
-#define thickness 1.0
-#define Speed 50
+#define animation_speed 5.0
+#define color_rotation_speed 10.0
+#define spacing 2.0
+#define thickness 2.0
+#define Speed 60
 #define FPS 60
 
 double progress = 1000;
@@ -28,9 +30,10 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   double distance = sqrt(pow(cx - x, 2) + pow(cy - y, 2));
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing)  + progress);
 
+  int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
+  //hue = (hue % 60) + 90; // 90--150; we only want greens
   CHSV hsv =
-    CHSV(abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360), // hue
-       255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
+    CHSV(hue, 255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
 
   hsv2rgb_rainbow(hsv, leds[x]);
 }
@@ -54,6 +57,7 @@ void loop() {
   for(int i = 0 ; i < sizeof(flt) / sizeof(*flt) ; ++i){
     flt[i] = CRGB::Cyan;
   }
-  StepEffect(strips, sizeof(strips) / sizeof(*strips));
+  StepEffect(lianli, sizeof(lianli) / sizeof(*lianli));
+  StepEffect(phanteks, sizeof(phanteks) / sizeof(*phanteks));
   FastLED.show();
 }
