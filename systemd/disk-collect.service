@@ -4,6 +4,8 @@ Wants=local-fs.target
 Wants=time-sync.target
 
 [Service]
+# needs be root to run nvme
+User=root
 Type=simple
 ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/disk-collect
 NoNewPrivileges=yes
