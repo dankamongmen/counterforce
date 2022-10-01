@@ -10,13 +10,13 @@ const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 50;
 const int UartTX = 17;
 const int UartRX = 36;
-int ReportedPwm = -1;
 int Pwm = -1;
 int Red = -1;
 int Green = -1;
 int Blue = -1;
 int RPM = INT_MAX;
 float Therm = FLT_MAX;
+int ReportedPwm = INT_MAX;
 
 HardwareSerial UART(1);
 
