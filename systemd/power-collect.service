@@ -1,0 +1,18 @@
+[Unit]
+Description=Linux power tracker
+Wants=local-fs.target
+Wants=time-sync.target
+
+[Service]
+# need root for powercap-info / pwrstat
+User=root
+Type=simple
+ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/power-collect
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+WorkingDirectory=/home/dank/src/dankamongmen/counterforce
+
+[Install]
+WantedBy=default.target
