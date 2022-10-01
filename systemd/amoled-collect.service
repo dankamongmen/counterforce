@@ -4,6 +4,7 @@ Wants=local-fs.target
 Wants=time-sync.target
 
 [Service]
+User=dank
 Type=simple
 ExecStart=/home/dank/counterforce/pi/amoled-collect
 NoNewPrivileges=yes

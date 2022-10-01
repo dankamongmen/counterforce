@@ -4,6 +4,8 @@ Wants=local-fs.target
 Wants=time-sync.target
 
 [Service]
+# need root for powercap-info / pwrstat
+User=root
 Type=simple
 ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/sensors-collect
 NoNewPrivileges=yes
