@@ -19,7 +19,7 @@ while true ; do
 
   # NVMe disks
   for i in /dev/nvme? ; do
-    TEMP=$(sudo nvme smart-log $i | grep temperature | cut -d: -f2 | cut -dC -f1 | tr -d [:space:])
+    TEMP=$(nvme smart-log $i | grep temperature | cut -d: -f2 | cut -dC -f1 | tr -d [:space:])
     S=$(echo $i | cut -d/ -f3)
     "$MQTT" -t "$TOPIC/$S"temp -m "{\"$S""temp\":$TEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
   done
