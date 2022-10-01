@@ -8,7 +8,7 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, 6>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
 }
 
-// largely ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
+// ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
 #define animation_speed 5.0
 #define color_rotation_speed 10.0
 #define spacing 2.0
