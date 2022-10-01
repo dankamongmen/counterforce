@@ -22,7 +22,7 @@ cache:
  # Timeout. Each received metric will be presented for this time if no update is send via MQTT.
  # Set the timeout to -1 to disable the deletion of metrics from the cache. The exporter presents the ingest timestamp
  # to prometheus.
- timeout: 24h
+ timeout: 1h
 json_parsing:
  # Separator. Used to split path to elements when accessing json fields.
  # You can access json fields with dots in it. F.E. {"key.name": {"nested": "value"}}
@@ -39,23 +39,23 @@ metrics:
    help: Microphone levels
    type: gauge
  - prom_name: nvme0temp
-   mqtt_name: nvme0
+   mqtt_name: nvme0temp
    help: NVMe disk 0 temperature
    type: gauge
  - prom_name: nvme1temp
-   mqtt_name: nvme1
+   mqtt_name: nvme1temp
    help: NVMe disk 1 temperature
    type: gauge
  - prom_name: nvme2temp
-   mqtt_name: nvme2
+   mqtt_name: nvme2temp
    help: NVMe disk 2 temperature
    type: gauge
  - prom_name: nvme3temp
-   mqtt_name: nvme3
+   mqtt_name: nvme3temp
    help: NVMe disk 3 temperature
    type: gauge
  - prom_name: nvme4temp
-   mqtt_name: nvme4
+   mqtt_name: nvme4temp
    help: NVMe disk 4 temperature
    type: gauge
  - prom_name: sata0temp
