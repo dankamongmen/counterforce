@@ -1,0 +1,89 @@
+---
+name: Windows
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  tests:
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      COLORTERM: truecolor
+      TERM: xterm
+    name: 🏁 build, test, & install
+    runs-on: windows-2022
+
+    steps:
+
+      - name: Install tools and libraries via MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >
+            base-devel
+            git
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-doctest
+            mingw-w64-ucrt-x86_64-ilmbase
+            mingw-w64-ucrt-x86_64-openimageio
+            mingw-w64-ucrt-x86_64-libdeflate
+            mingw-w64-ucrt-x86_64-libunistring
+            mingw-w64-ucrt-x86_64-ncurses
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-ninja
+
+      - uses: actions/checkout@v2
+
+      - name: Build libqrcodegen
+        run: |
+          mkdir "${HOME}/repos" && cd "${HOME}/repos"
+          git clone https://github.com/nayuki/QR-Code-generator.git
+          cd QR-Code-generator/c
+          make
+          cd /ucrt64/include && \
+            ln -s "${HOME}/repos/QR-Code-generator/c" ./qrcodegen
+          cd /ucrt64/lib && \
+            ln -s "${HOME}/repos/QR-Code-generator/c/libqrcodegen.a" ./libqrcodegen.a
+
+      - name: config
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_MULTIMEDIA=oiio \
+            -DUSE_PANDOC=off \
+            -DUSE_QRCODEGEN=on \
+            -DUSE_STATIC=off
+
+      - name: build
+        run: |
+          cd build
+          ninja
+
+      # this is not going to work until we have a ConPTY CI environment
+      # - name: test
+        #run: |
+          #cd build
+          #ctest --output-on-failure
+
+          # - name: install
+          #run: |
+          #cd build
+          #ninja install
+
+          #- name: python wrappers
+          #run: |
+          #python3 -m pip install --upgrade pip
+          #pip install pypandoc
+          #cd cffi
+          #python3 setup.py sdist build
+          #python3 setup.py install
+          #notcurses-pydemo > /dev/null
+          #ncdirect-pydemo > /dev/null
