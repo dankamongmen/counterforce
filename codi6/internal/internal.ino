@@ -1,8 +1,8 @@
 #include <FastLED.h>
  
-CRGB lianliA[37];   // Lian Li LAN2-2X strips 
+CRGB lianliA[40];   // Lian Li LAN2-2X strips 
 CRGB lianliB[40];   // Lian Li Infinity fan
-CRGB lianliC[37];   // Lian Li LAN2-2X strips
+CRGB lianliC[40];   // Lian Li LAN2-2X strips
 CRGB phanteksA[38]; // Phanteks NEON strips
 CRGB phanteksB[38]; // Phanteks NEON strips
 CRGB phanteksC[38]; // Phanteks NEON strips
@@ -20,8 +20,8 @@ void setup() {
 #define animation_speed 10.0
 #define color_rotation_speed 10.0
 #define spacing 1.0
-#define thickness 1.0
-#define Speed 60
+#define thickness 2.0
+#define Speed 50
 #define FPS 60
 
 double progress = 1000;
@@ -37,6 +37,7 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing)  + progress);
 
   int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
+  //hue = (hue % 60) + 90;
   CHSV hsv =
     CHSV(hue, 255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
 
