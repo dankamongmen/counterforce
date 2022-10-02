@@ -8,12 +8,18 @@ TOPIC=sensors
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
+# arguments: topic (key), message. swallow errors so we don't exit.
+mqtt() {
+  "$MQTT" -t "$TOPIC/$1" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing to mqtt" >&2 ; }
+}
+
 while true ; do
   # SATA disks
   DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
   DIDX=0
   for i in $DISKTEMPS ; do
-    "$MQTT" -t "$TOPIC/sata$DIDX" -m "{\"sata$DIDX\":$i}" -u "$MQTTUSER" -P "$MQTTPASS"
+    mqtt sata$DIDX $i
     DIDX=$((DIDX + 1))
   done
 
@@ -21,7 +27,7 @@ while true ; do
   for i in /dev/nvme? ; do
     TEMP=$(nvme smart-log $i | grep temperature | cut -d: -f2 | cut -dC -f1 | tr -d [:space:])
     S=$(echo $i | cut -d/ -f3)
-    "$MQTT" -t "$TOPIC/$S"temp -m "{\"$S""temp\":$TEMP}" -u "$MQTTUSER" -P "$MQTTPASS"
+    mqtt "$S"temp $TEMP
   done
 
   # fs availability
@@ -30,7 +36,7 @@ while true ; do
     TOTAL=$(df $i --output=size | sed -e 1d)
     PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
     NAME="fs`basename $i | sed -e 's/\//root/'`"
-    "$MQTT" -t "$TOPIC/$NAME" -m "{\"$NAME\":$PCENT}" -u "$MQTTUSER" -P "$MQTTPASS"
+    mqtt "$NAME" $PCENT
   done
 
   sleep 15
