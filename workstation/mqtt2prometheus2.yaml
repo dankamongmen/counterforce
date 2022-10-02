@@ -1,8 +1,6 @@
 mqtt:
  server: tcp://127.0.0.1:1883
  # username and password come from systemd override
- user: mora3
- password: mora3
  # Optional: for TLS client certificates
  #ca_cert: certs/AmazonRootCA1.pem
  #client_cert: certs/xxxxx-certificate.pem.crt
