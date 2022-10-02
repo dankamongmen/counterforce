@@ -95,7 +95,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Raspberry Pi 4B"
+                "value": "RPi4B"
               }
             ]
           },
@@ -107,7 +107,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "NVIDIA 2080 Ti"
+                "value": "2080 Ti"
               }
             ]
           },
@@ -119,7 +119,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "AMD 3970X Tctl"
+                "value": "3970X Tctl"
               }
             ]
           }
@@ -281,6 +281,7 @@
             }
           },
           "mappings": [],
+          "min": 20,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -356,7 +357,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Ambient at exhaust"
+                "value": "Exhaust"
               }
             ]
           },
@@ -381,7 +382,7 @@
               {
                 "id": "color",
                 "value": {
-                  "mode": "continuous-BlPu"
+                  "mode": "continuous-GrYlRd"
                 }
               }
             ]
@@ -399,6 +400,32 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 50
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-purples"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "G"
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "ΔT"
               }
             ]
           }
@@ -498,9 +525,372 @@
           "legendFormat": "__auto",
           "range": true,
           "refId": "F"
+        },
+        {
+          "datasource": {
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "expression": "$A - $F",
+          "hide": false,
+          "refId": "G",
+          "type": "math"
         }
       ],
       "title": "Coolant/ambient temperatures",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 50,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"upswatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"upswatts\", topic=\"sensors/upswatts\"}"
+            },
+            "properties": [
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "group": "A",
+                  "mode": "none"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "UPS (system + all peripherals)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"pkgwatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"pkgwatts\", topic=\"sensors/pkgwatts\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "3970X"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"gpuwatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"gpuwatts\", topic=\"sensors/gpuwatts\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "2080 Ti"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "last",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "upswatts",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "gpuwatts",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "pkgwatts",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Power draw",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-YlBl"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 1200,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "rotrpm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"aquaflow\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"aquaflow\", topic=\"sensors/aquaflow\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "flowlpm"
+              },
+              {
+                "id": "min"
+              },
+              {
+                "id": "displayName",
+                "value": "Coolant (Corsair Hydro X) flow"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 50
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"xtop0rpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpu0rpm\", topic=\"sensors/cpu0rpm\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "XTOP Dual pump #1"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-reds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"xtop1rpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpu1rpm\", topic=\"sensors/cpu1rpm\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "XTOP Dual pump #2 (currently non-functional)"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "xtop0rpm",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "xtop1rpm",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "aquaflow",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Pump speeds and coolant flow",
       "transparent": true,
       "type": "timeseries"
     },
@@ -642,7 +1032,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 25,
       "options": {
@@ -922,441 +1312,6 @@
         "type": "prometheus",
         "uid": "Vku949nVz"
       },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-YlBl"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 1200,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "rotrpm"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"aquaflow\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"aquaflow\", topic=\"sensors/aquaflow\"}"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "unit",
-                "value": "flowlpm"
-              },
-              {
-                "id": "min"
-              },
-              {
-                "id": "displayName",
-                "value": "Coolant (Corsair Hydro X) flow"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"xtop0rpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpu0rpm\", topic=\"sensors/cpu0rpm\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "XTOP Dual pump #1"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"xtop1rpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpu1rpm\", topic=\"sensors/cpu1rpm\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "XTOP Dual pump #2 (currently non-functional)"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "id": 21,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "xtop0rpm",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "xtop1rpm",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "aquaflow",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "C"
-        }
-      ],
-      "title": "Pump speeds and coolant flow",
-      "transparent": true,
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Vku949nVz"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
-      "id": 27,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "loadavg1min",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "One-minute load average",
-      "transparent": true,
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Vku949nVz"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 50,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "watt"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"upswatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"upswatts\", topic=\"sensors/upswatts\"}"
-            },
-            "properties": [
-              {
-                "id": "custom.stacking",
-                "value": {
-                  "group": "A",
-                  "mode": "none"
-                }
-              },
-              {
-                "id": "displayName",
-                "value": "UPS (system + all peripherals)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"pkgwatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"pkgwatts\", topic=\"sensors/pkgwatts\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "3970X"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"gpuwatts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"gpuwatts\", topic=\"sensors/gpuwatts\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "2080 Ti"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
-      },
-      "id": 35,
-      "options": {
-        "legend": {
-          "calcs": [
-            "min",
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "pkgwatts",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "upswatts",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "gpuwatts",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "C"
-        }
-      ],
-      "title": "Power draw",
-      "transparent": true,
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Vku949nVz"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1534,15 +1489,17 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 24
+        "x": 12,
+        "y": 16
       },
       "id": 19,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true
         },
         "tooltip": {
@@ -1683,6 +1640,99 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "loadavg1min",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "One-minute load average",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "continuous-reds"
           },
           "custom": {
@@ -1730,7 +1780,22 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-RdYlGr"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -1764,7 +1829,7 @@
           "refId": "A"
         }
       ],
-      "title": "Ambient noise",
+      "title": "Ambient noise (5V KY-037)",
       "transparent": true,
       "type": "timeseries"
     },
@@ -1776,7 +1841,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "continuous-GrYlRd",
+            "seriesBy": "last"
           },
           "custom": {
             "axisCenteredZero": false,
@@ -1785,14 +1851,17 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -1821,59 +1890,9 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "percent"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsroot\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsroot\", topic=\"sensors/fsroot\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fshome\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fshome\", topic=\"sensors/fshome\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/home"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsqwop\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwop\", topic=\"sensors/fsqwop\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/media/qwopa"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsqwopino\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwopino\", topic=\"sensors/fsqwopino\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/media/qwopb"
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -1881,13 +1900,13 @@
         "x": 0,
         "y": 32
       },
-      "id": 33,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "single",
@@ -1901,49 +1920,13 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "fsroot",
+          "expr": "geiger",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fshome",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fsqwop",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fsqwopino",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "D"
         }
       ],
-      "title": "Filesystem utilization",
+      "title": "Geiger–Müller events (per 15s)",
       "transparent": true,
       "type": "timeseries"
     },
@@ -2110,8 +2093,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd",
-            "seriesBy": "last"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisCenteredZero": false,
@@ -2120,17 +2102,14 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
+            "fillOpacity": 0,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
-            "lineStyle": {
-              "fill": "solid"
-            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -2159,9 +2138,59 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsroot\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsroot\", topic=\"sensors/fsroot\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fshome\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fshome\", topic=\"sensors/fshome\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/home"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsqwop\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwop\", topic=\"sensors/fsqwop\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/media/qwopa"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsqwopino\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwopino\", topic=\"sensors/fsqwopino\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/media/qwopb"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -2169,13 +2198,13 @@
         "x": 0,
         "y": 40
       },
-      "id": 15,
+      "id": 33,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "mode": "single",
@@ -2189,18 +2218,54 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "geiger",
+          "expr": "fsroot",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fshome",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fsqwop",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fsqwopino",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
         }
       ],
-      "title": "Geiger–Müller events (per 15s)",
+      "title": "Filesystem utilization",
       "transparent": true,
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
+  "refresh": "15s",
   "schemaVersion": 37,
   "style": "dark",
   "tags": [],
@@ -2228,6 +2293,6 @@
   "timezone": "",
   "title": "Schwarzgerät III",
   "uid": "HvEh2NnVk",
-  "version": 70,
+  "version": 81,
   "weekStart": ""
 }
