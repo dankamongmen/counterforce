@@ -8,32 +8,33 @@ TOPIC=sensors
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
+# arguments: topic (key), message. swallow errors so we don't exit.
+mqtt() {
+  "$MQTT" -t "$TOPIC/$1" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing to mqtt" >&2 ; }
+}
+
 while true ; do
   # these require root, ugh--set powercap-info suid root, or something similar =\.
   UPSW=$(pwrstat -status | grep Load | cut -d\  -f2) || UPSW=""
   if [ -n "$UPSW" ] ; then
-    "$MQTT" -t "$TOPIC/upswatts" -m "{\"upswatts\":$UPSW}" -u "$MQTTUSER" -P "$MQTTPASS"
+    mqtt upswatts $UPSW
   else
     echo "couldn't read UPS power" >&2
   fi
-  #CORE1W=$(powercap-info -z 0:0 intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
-  #sleep 1
-  #CORE2W=$(powercap-info -z 0:0 intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
-  #COREW=`jq -n \($CORE2W-$CORE1W\)/100000`
-  #"$MQTT" -t "$TOPIC/corewatts" -m "{\"corewatts\":$COREW}" -u "$MQTTUSER" -P "$MQTTPASS"
-  while :
-  do
-    PKG1W=$(powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
-    sleep 1
-    PKG2W=$(powercap-info -z 0: intel-rapl | grep energy_uj | cut -d: -f2 | tr -d [:space:])
-    if [ $PKG2W -ge $PKG1W ] ; then
-      PKGW=`jq -n \($PKG2W-$PKG1W\)/1000000`
-      "$MQTT" -t "$TOPIC/pkgwatts" -m "{\"pkgwatts\":$PKGW}" -u "$MQTTUSER" -P "$MQTTPASS"
-      break
-    else
-      echo "powercap went backwards $PKG1W $PKG2W" >&2
-    fi
-  done
 
-  sleep 10
+  # we get our delay from this turbostat invocation
+  TURBS=$(sudo turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | sed -n 3p)
+  # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt
+  AVGKHZ=$(echo $TURBS | cut -d\  -f1)
+  AVGKHZ=$((AVGKHZ * 1000))
+  BPCENT=$(echo $TURBS | cut -d\  -f2)
+  BKHZ=$(echo $TURBS | cut -d\  -f3)
+  BKHZ=$((BKHZ * 1000))
+  PWATTS=$(echo $TURBS | cut -d\  -f7)
+  mqtt pkgwatts $PWATTS
+  mqtt cpuavgkhz $AVGKHZ
+  mqtt cpubzykhz $BKHZ
+  mqtt cpubpcent $BPCENT
+
 done

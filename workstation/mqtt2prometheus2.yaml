@@ -272,3 +272,15 @@ metrics:
    mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
+ - prom_name: cpuavgkhz
+   mqtt_name: cpuavgkhz
+   help: Average CPU megahertz
+   type: gauge
+ - prom_name: cpubzykhz
+   mqtt_name: cpubzykhz
+   help: Average frequency when busy
+   type: gauge
+ - prom_name: cpubpcent
+   mqtt_name: cpubpcent
+   help: Percent of time CPU was busy
+   type: gauge
