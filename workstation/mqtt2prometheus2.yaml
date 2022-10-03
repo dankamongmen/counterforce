@@ -284,3 +284,7 @@ metrics:
    mqtt_name: cpubpcent
    help: Percent of time CPU was busy
    type: gauge
+ - prom_name: gpupcent
+   mqtt_name: gpupcent
+   help: Percent of time GPU was busy
+   type: gauge

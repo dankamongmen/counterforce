@@ -70,6 +70,8 @@ while true ; do
   mqtt gpuactmem $GPUMEM
   GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits)
   mqtt gpuwatts $GPUW
+  GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
+  mqtt gpupcent $GPCENT
 
   # aquacomputer
   COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
