@@ -14,7 +14,7 @@ HFLOW=$(sensors | grep ^highflownext-hid)
 # arguments: topic (key), message. swallow errors so we don't exit.
 mqtt() {
   "$MQTT" -t "$TOPIC/$1" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
-    { echo "error publishing to mqtt" >&2 ; }
+    { echo "error publishing $1 to mqtt" >&2 ; }
 }
 
 # FIXME terrible, truly terrible
