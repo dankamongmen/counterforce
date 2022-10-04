@@ -19,12 +19,12 @@ mqtt() {
 
 # prints bytes RX from a /proc/net/dev line provided as $*
 procnetdevrx() {
-  echo $* | cut -d\  -f2
+  echo $* | sed -e 's/ *//' | cut -d\  -f2
 }
 
 # prints bytes TX from a /proc/net/dev line provided as $*
 procnetdevtx() {
-  echo $* | cut -d\  -f9
+  echo $* | sed -e 's/ *//' | cut -d\  -f10
 }
 
 # FIXME terrible, truly terrible

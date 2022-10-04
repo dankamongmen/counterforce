@@ -291,32 +291,32 @@ metrics:
  - prom_name: nicrxbixgbe0
    mqtt_name: nicrxbixgbe0
    help: Bytes received by ixgbe0
-   type: gauge
+   type: counter
  - prom_name: nicrxbixgbe1
    mqtt_name: nicrxbixgbe1
    help: Bytes received by ixgbe1
-   type: gauge
+   type: counter
  - prom_name: nicrxbsmsc75usb
    mqtt_name: nicrxbsmsc75usb
    help: Bytes received by smsc75usb
-   type: gauge
+   type: counter
  - prom_name: nicrxbax200
    mqtt_name: nicrxbax200
    help: Bytes received by ax200
-   type: gauge
+   type: counter
  - prom_name: nictxbixgbe0
    mqtt_name: nictxbixgbe0
    help: Bytes sent by ixgbe0
-   type: gauge
+   type: counter
  - prom_name: nictxbixgbe1
    mqtt_name: nictxbixgbe1
    help: Bytes sent by ixgbe1
-   type: gauge
+   type: counter
  - prom_name: nictxbsmsc75usb
    mqtt_name: nictxbsmsc75usb
    help: Bytes sent by smsc75usb
-   type: gauge
+   type: counter
  - prom_name: nictxbax200
    mqtt_name: nictxbax200
    help: Bytes sent by ax200
-   type: gauge
+   type: counter
