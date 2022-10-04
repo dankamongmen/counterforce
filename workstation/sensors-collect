@@ -17,6 +17,16 @@ mqtt() {
     { echo "error publishing $1 to mqtt" >&2 ; }
 }
 
+# prints bytes RX from a /proc/net/dev line provided as $*
+procnetdevrx() {
+  echo $* | cut -d\  -f2
+}
+
+# prints bytes TX from a /proc/net/dev line provided as $*
+procnetdevtx() {
+  echo $* | cut -d\  -f9
+}
+
 # FIXME terrible, truly terrible
 while true ; do
   # k10 temp sensors
@@ -100,6 +110,17 @@ while true ; do
   CACHEMEM=$(cat /proc/meminfo | grep ^Cached: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
   CACHEMEM=$((CACHEMEM * 1024))
   mqtt cachemem $CACHEMEM
+
+  # network
+  for i in ax200 ixgbe1 ixgbe0 smsc75usb ; do
+    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
 
   sleep 10
 done
