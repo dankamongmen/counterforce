@@ -52,11 +52,11 @@ while true ; do
   mqtt psuchamber $AMBPSU
 
   # secondary it87 sensors
-  HDPSURPM=$(sensors -j | jq '."it8688-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
+  HDPSURPM=$(sensors -j | jq '."it8792-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
   mqtt psuhdrpm $HDPSURPM
-  TOPRPM=$(sensors -j | jq '."it8688-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
+  TOPRPM=$(sensors -j | jq '."it8792-isa-0a60"."sys4 (mobo top)".fan3_input') 2> /dev/null
   mqtt toprpm $TOPRPM
-  AMBMOBO=$(sensors -j | jq '."it8688-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
+  AMBMOBO=$(sensors -j | jq '."it8792-isa-0a60"."ec2 (ambient)".temp2_input') 2> /dev/null
   mqtt mobochamber $AMBMOBO
 
   # corsair commander core xt
