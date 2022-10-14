@@ -216,6 +216,14 @@ metrics:
    mqtt_name: aquaflow
    help: Deciliters per hour
    type: gauge
+ - prom_name: vrmmos
+   mqtt_name: vrmmos
+   help: VRM/MOS temperature
+   type: gauge
+ - prom_name: pch
+   mqtt_name: pch
+   help: PCH temperature
+   type: gauge
  - prom_name: psuchamber
    mqtt_name: psuchamber
    help: PSU chamber temperature
@@ -320,3 +328,27 @@ metrics:
    mqtt_name: nictxbax200
    help: Bytes sent by ax200
    type: counter
+ - prom_name: vcore
+   mqtt_name: vcore
+   help: CPU VCore
+   type: gauge
+ - prom_name: v12
+   mqtt_name: v12
+   help: +12V
+   type: gauge
+ - prom_name: v5
+   mqtt_name: v5
+   help: +5V
+   type: gauge
+ - prom_name: v5usb
+   mqtt_name: v5usb
+   help: USB +5V
+   type: gauge
+ - prom_name: v33
+   mqtt_name: v33
+   help: +3.3V
+   type: gauge
+ - prom_name: vdram
+   mqtt_name: vdram
+   help: DRAM voltage
+   type: gauge

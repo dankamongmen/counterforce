@@ -41,15 +41,29 @@ while true ; do
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
   mqtt tccd4 $Tccd4
 
-  # it87 rpm sensors
+  # it87 primary sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
   mqtt cpu0rpm $CPU0RPM
   CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
   mqtt cpu1rpm $CPU1RPM
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
   mqtt mobohdrpm $HDRPM
+  VRMMOS=$(sensors -j | jq '."it8688-isa-0a40"."vrmmos".temp2_input') 2> /dev/null
+  mqtt vrmmos $VRMMOS
+  PCH=$(sensors -j | jq '."it8688-isa-0a40"."pch".temp3_input') 2> /dev/null
+  mqtt pch $PCH
   AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
   mqtt psuchamber $AMBPSU
+  VCORE=$(sensors -j | jq '."it8688-isa-0a40"."CPU Vcore".in0_input') 2> /dev/null
+  mqtt vcore $VCORE
+  V33=$(sensors -j | jq '."it8688-isa-0a40"."+3.3V".in1_input') 2> /dev/null
+  mqtt v33 $V33
+  V12=$(sensors -j | jq '."it8688-isa-0a40"."+12V".in2_input') 2> /dev/null
+  mqtt v12 $V12
+  V5=$(sensors -j | jq '."it8688-isa-0a40"."+5V".in3_input') 2> /dev/null
+  mqtt v5 $V5
+  VDRAM=$(sensors -j | jq '."it8688-isa-0a40"."DRAM".in6_input') 2> /dev/null
+  mqtt vdram $VDRAM
 
   # secondary it87 sensors
   HDPSURPM=$(sensors -j | jq '."it8792-isa-0a60"."pump5a (psu hds)".fan1_input') 2> /dev/null
@@ -97,6 +111,10 @@ while true ; do
     # convert deciliters-per-hour to liters-per-minute
     FLOW=$(jq -n $FLOW/60/10)
     mqtt aquaflow $FLOW
+  fi
+  USB5V=$(sensors -j | jq .\"$HFLOW\".\"+5V\ USB\ voltage\".in1_input) 2> /dev/null
+  if [ "$USB5V" != "null" ] ; then
+    mqtt v5usb $USB5V
   fi
 
   # load average
