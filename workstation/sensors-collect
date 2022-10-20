@@ -9,8 +9,6 @@ TOPIC=sensors
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
-HFLOW=$(sensors | grep ^highflownext-hid)
-
 # arguments: topic (key), message. swallow errors so we don't exit.
 mqtt() {
   "$MQTT" -t "$TOPIC/$1" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
@@ -29,6 +27,10 @@ procnetdevtx() {
 
 # FIXME terrible, truly terrible
 while true ; do
+  if [ -z "$HFLOW" ] ; then
+    HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
+  fi
+
   # k10 temp sensors
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
@@ -111,10 +113,6 @@ while true ; do
     # convert deciliters-per-hour to liters-per-minute
     FLOW=$(jq -n $FLOW/60/10)
     mqtt aquaflow $FLOW
-  fi
-  USB5V=$(sensors -j | jq .\"$HFLOW\".\"+5V\ USB\ voltage\".in1_input) 2> /dev/null
-  if [ "$USB5V" != "null" ] ; then
-    mqtt v5usb $USB5V
   fi
 
   # load average
