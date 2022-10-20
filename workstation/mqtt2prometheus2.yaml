@@ -244,6 +244,10 @@ metrics:
    mqtt_name: rpi4temp
    help: Raspberry Pi 4B temperature
    type: gauge
+ - prom_name: rpi4volts
+   mqtt_name: rpi4volts
+   help: Raspberry Pi 4B voltage
+   type: gauge
  - prom_name: mobohdrpm
    mqtt_name: mobohdrpm
    help: Mobo-side hard drive fan RPMs
