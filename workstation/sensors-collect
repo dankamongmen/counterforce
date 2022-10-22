@@ -114,6 +114,10 @@ while true ; do
     FLOW=$(jq -n $FLOW/60/10)
     mqtt aquaflow $FLOW
   fi
+  V5USB=$(sensors -j | jq .\"$HFLOW\".\"+5V\ USB\ voltage\".in1_input) 2> /dev/null
+  if [ "$V5USB" != "null" ] ; then
+    mqtt v5usb $V5USB
+  fi
 
   # load average
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
