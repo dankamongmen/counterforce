@@ -25,7 +25,8 @@ while true ; do
 
   # NVMe disks
   for i in /dev/nvme? ; do
-    TEMP=$(nvme smart-log $i | grep temperature | cut -d: -f2 | cut -dC -f1 | tr -d [:space:])
+    # text looks like: "temperature				: 50°C (323 Kelvin)"
+    TEMP=$(nvme smart-log $i | grep ^temperature | cut -d\( -f1 | tr -d -c .[:digit:])
     S=$(echo $i | cut -d/ -f3)
     mqtt "$S"temp $TEMP
   done
