@@ -281,7 +281,7 @@ static int maketimestr(char *timestr, unsigned long m){
   epoch /= 24;
   if(t > epoch){
     word h = t / epoch;
-    off += sprintf(timestr + off, "%ud", h);
+    off += sprintf(timestr + off, "%uh", h);
   }
   t %= epoch;
   epoch /= 60;
