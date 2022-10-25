@@ -216,9 +216,12 @@ float readThermistor(void){
 const unsigned long LOOPUS = 1000000;
 
 void loop (){
-  unsigned long m = micros();
+  static unsigned long m = 0;
   unsigned long cur;
 
+  if(m == 0){
+    m = micros();
+  }
   do{
     cur = micros();
     // handle micros() overflow...
@@ -269,4 +272,5 @@ void loop (){
   Serial.print("P");
   Serial.println(Pwm);
   check_pwm_update();
+  m = cur;
 }
