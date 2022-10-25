@@ -147,7 +147,6 @@ static void check_state_update(void){
   static int int_ongoing;
   static float float_ongoing;
   static int divisor_exponent; // used for float mantissa
-  int last = -1;
   int in;
   while((in = UART.read()) != -1){
     Serial.print("read byte from UART!!! ");
@@ -389,7 +388,7 @@ static int maketimestr(char *timestr, unsigned long m){
     off += sprintf(timestr + off, "%um", m);
   }
   t %= epoch;
-  off += sprintf(timestr + off, "%us", t);
+  off += sprintf(timestr + off, "%lus", t);
   return 0;
 }
 
