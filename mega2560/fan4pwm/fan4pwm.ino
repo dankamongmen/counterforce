@@ -5,10 +5,16 @@ const unsigned long SERIALSPEED = 115200;
 const unsigned long UARTSPEED = 9600;
 
 volatile unsigned Pulses; // counter for input events, reset each second
+volatile unsigned XTOPPulsesA; // counter for Dual XTOP Pump 1
+volatile unsigned XTOPPulsesB; // counter for Dual XTOP Pump 2
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
 const int RPMPIN = 2; // pin connected to tachometer
+
+// tachometers for the two D5 pumps of the Dual XTOP
+const int XTOPPINA = 20;
+const int XTOPPINB = 21;
 
 // we'll use two pins for UART communication with the ESP32, based
 // atop a serial pair. Serial2 is RX on 17, TX on 16.
@@ -51,6 +57,18 @@ static void rpm(void){
   }
 }
 
+static void xtopa(void){
+  if(XTOPPulsesA < 65535){
+    ++XTOPPulsesA;
+  }
+}
+
+static void xtopb(void){
+  if(XTOPPulsesB < 65535){
+    ++XTOPPulsesB;
+  }
+}
+
 static void setup_timers(void){
   TCCR4A = 0;
   TCCR4B = 0;
@@ -84,8 +102,15 @@ void setup(){
   Pulses = 0;
   pinMode(RPMPIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
-  Serial.print("tachometer read on ");
+  Serial.print("fan tachometer read on ");
   Serial.println(RPMPIN);
+
+  XTOPPulsesA = 0;
+  XTOPPulsesB = 0;
+  pinMode(XTOPPINA, INPUT_PULLUP);
+  pinMode(XTOPPINB, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(XTOPPINA), xtopa, RISING);
+  attachInterrupt(digitalPinToInterrupt(XTOPPINB), xtopb, RISING);
 
   pinMode(TEMPPIN, INPUT);
   // we'll get better thermistor readings if we use the cleaner
@@ -236,7 +261,15 @@ void loop (){
   noInterrupts();
   unsigned p = Pulses;
   Pulses = 0;
+  unsigned xa = XTOPPulsesA;
+  XTOPPulsesA = 0;
+  unsigned xb = XTOPPulsesB;
+  XTOPPulsesB = 0;
   interrupts();
+  Serial.print("XTOPA: ");
+  Serial.println(xa);
+  Serial.print("XTOPB: ");
+  Serial.println(xb);
   if((unsigned long)p * 30 > 65535){
     Serial.print("invalid RPM read: ");
     Serial.print(p);
