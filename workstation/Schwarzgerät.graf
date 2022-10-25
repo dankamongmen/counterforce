@@ -34,42 +34,12 @@
         "type": "prometheus",
         "uid": "Vku949nVz"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "continuous-GrYlRd"
           },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "displayName": "${__field.labels.__name__}",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -80,7 +50,7 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": ""
               }
             ]
           },
@@ -89,37 +59,77 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "G"
+              "id": "byName",
+              "options": "{__name__=\"tctl\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"tctl\", topic=\"sensors/tctl\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "RPi4B"
+                "value": "Tctl"
               }
             ]
           },
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
+              "id": "byName",
+              "options": "{__name__=\"gputemp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"gputemp\", topic=\"sensors/gputemp\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "2080 Ti"
+                "value": "GPU"
               }
             ]
           },
           {
             "matcher": {
-              "id": "byFrameRefID",
-              "options": "B"
+              "id": "byName",
+              "options": "{__name__=\"aquacool\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"aquacool\", topic=\"sensors/aquacool\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "3970X Tctl"
+                "value": "Coolant"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 40
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairtemp1\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsairtemp1\", topic=\"sensors/corsairtemp1\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ambient"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ΔT"
               }
             ]
           }
@@ -131,23 +141,21 @@
         "x": 0,
         "y": 0
       },
-      "id": 17,
+      "id": 41,
       "options": {
-        "legend": {
+        "orientation": "auto",
+        "reduceOptions": {
           "calcs": [
-            "min",
-            "last",
-            "max"
+            "lastNotNull"
           ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "text": {}
       },
+      "pluginVersion": "9.2.0",
       "targets": [
         {
           "datasource": {
@@ -155,7 +163,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "gputemp",
+          "expr": "tctl",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -166,7 +174,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "tctl",
+          "expr": "gputemp",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -178,7 +186,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "tccd1",
+          "expr": "aquacool",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -190,7 +198,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "tccd2",
+          "expr": "corsairtemp1",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -198,44 +206,19 @@
         },
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
+            "name": "Expression",
+            "type": "__expr__",
+            "uid": "__expr__"
           },
-          "editorMode": "builder",
-          "expr": "tccd3",
+          "expression": "$C - $D",
           "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "tccd4",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "F"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "rpi4temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "G"
+          "refId": "E",
+          "type": "math"
         }
       ],
-      "title": "Processing element temperatures",
+      "title": "Temperatures at a glance",
       "transparent": true,
-      "type": "timeseries"
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -281,7 +264,6 @@
             }
           },
           "mappings": [],
-          "min": 20,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -559,6 +541,663 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "${__field.labels.__name__}",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "G"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "RPi4B"
+              },
+              {
+                "id": "displayName",
+                "value": "RPi4B"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "2080 Ti"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "3970X Tctl"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "H"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SN750 1TB"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "F"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SN750 1TB"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Optane 16GB"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "970 EVO 2TB"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "970 EVO 2TB"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "I"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PCH"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "J"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "VRM"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "last",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "gputemp",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "tctl",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rpi4temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "pch",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "vrmmos",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "J"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "nvme0temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "nvme1temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "nvme2temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "nvme3temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "nvme4temp",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "H"
+        }
+      ],
+      "title": "Processor and controller temperatures",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "rotrpm"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"mobohdrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"mobohdrpm\", topic=\"sensors/mobohdrpm\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mobo disks (2x NF-A8)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"psuhdrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"psuhdrpm\", topic=\"sensors/psuhdrpm\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PSU disks (2x iPPC-2000, T-30)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"toprpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"toprpm\", topic=\"sensors/toprpm\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Top radiators (3x NF-A12x25, 6x T-30)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm0\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair0\", topic=\"sensors/corsair0\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mobo bottom (2x T-30)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm1\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair1\", topic=\"sensors/corsair1\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mobo bottom (2x NF-A12x25)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm3\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair3\", topic=\"sensors/corsair3\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PSU bottom bay NF-A14"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm2\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair2\", topic=\"sensors/corsair2\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PSU bottom (2x T-30)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm4\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair4\", topic=\"sensors/corsair4\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PSU bottom  (2x NF-P12)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"mora3fanrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"mora3\", topic=\"sensors/mora3\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "MO-RA3 (10x P-14, 3x NF-A14)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"corsairfanrpm5\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair5\", topic=\"sensors/corsair5\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mobo bottom bay Lian Li"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm0",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm1",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm2",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm3",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm4",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "corsairfanrpm5",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "mora3fanrpm",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "mobohdrpm",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "psuhdrpm",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "toprpm",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "J"
+        }
+      ],
+      "title": "Fan speeds",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
             "fillOpacity": 50,
             "gradientMode": "opacity",
             "hideFrom": {
@@ -649,7 +1288,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 35,
       "options": {
@@ -686,11 +1325,11 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "gpuwatts",
+          "expr": "pkgwatts",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "B"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -698,11 +1337,11 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "pkgwatts",
+          "expr": "gpuwatts",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "C"
+          "refId": "B"
         }
       ],
       "title": "Power draw",
@@ -819,18 +1458,6 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"xtop1rpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpu1rpm\", topic=\"sensors/cpu1rpm\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "XTOP Dual pump #2 (currently non-functional)"
-              }
-            ]
           }
         ]
       },
@@ -838,12 +1465,16 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 16
       },
       "id": 21,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "min",
+            "last",
+            "max"
+          ],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
@@ -864,18 +1495,6 @@
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "xtop1rpm",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B"
         },
         {
           "datasource": {
@@ -956,66 +1575,6 @@
         "overrides": [
           {
             "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"nvme0temp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nvme0temp\", topic=\"sensors/nvme0temp\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "970 EVO Plus 2TB"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"nvme1temp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nvme1temp\", topic=\"sensors/nvme1temp\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "970 EVO Plus 2TB"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"nvme2temp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nvme2temp\", topic=\"sensors/nvme2temp\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Optane 16GB"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"nvme3temp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nvme3temp\", topic=\"sensors/nvme3temp\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "SN750 1TB"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"nvme4temp\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nvme4temp\", topic=\"sensors/nvme4temp\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "SN750 1TB"
-              }
-            ]
-          },
-          {
-            "matcher": {
               "id": "byRegexp",
               "options": "/sata/"
             },
@@ -1032,12 +1591,13 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 25,
       "options": {
         "legend": {
           "calcs": [
+            "min",
             "last",
             "max"
           ],
@@ -1241,69 +1801,9 @@
           "legendFormat": "__auto",
           "range": true,
           "refId": "P"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "nvme0temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "Q"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "nvme1temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "R"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "nvme2temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "S"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "nvme3temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "T"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "nvme4temp",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "U"
         }
       ],
-      "title": "Spinning disk/flash temperatures",
+      "title": "Spinning disk temperatures",
       "transparent": true,
       "type": "timeseries"
     },
@@ -1312,6 +1812,7 @@
         "type": "prometheus",
         "uid": "Vku949nVz"
       },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1361,126 +1862,90 @@
               }
             ]
           },
-          "unit": "rotrpm"
+          "unit": "volt"
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"mobohdrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"mobohdrpm\", topic=\"sensors/mobohdrpm\"}"
+              "options": "{__name__=\"vcore\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"vcore\", topic=\"sensors/vcore\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Mobo disks (2x NF-A8)"
+                "value": "VCore"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"psuhdrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"psuhdrpm\", topic=\"sensors/psuhdrpm\"}"
+              "options": "{__name__=\"v12\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"v12\", topic=\"sensors/v12\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "PSU disks (2x iPPC-2000, T-30)"
+                "value": "+12V"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"toprpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"toprpm\", topic=\"sensors/toprpm\"}"
+              "options": "{__name__=\"v5\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"v5\", topic=\"sensors/v5\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Top radiators (3x NF-A12x25, 6x T-30)"
+                "value": "+5V"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"corsairfanrpm0\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair0\", topic=\"sensors/corsair0\"}"
+              "options": "{__name__=\"v33\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"v33\", topic=\"sensors/v33\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Mobo bottom (2x T-30)"
+                "value": "+3.3V"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"corsairfanrpm1\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair1\", topic=\"sensors/corsair1\"}"
+              "options": "{__name__=\"vdram\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"vdram\", topic=\"sensors/vdram\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "Mobo bottom (2x NF-A12x25)"
+                "value": "DRAM"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"corsairfanrpm3\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair3\", topic=\"sensors/corsair3\"}"
+              "options": "{__name__=\"v5usb\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"v5usb\", topic=\"sensors/v5usb\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "PSU bottom bay NF-A14"
+                "value": "USB"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"corsairfanrpm2\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair2\", topic=\"sensors/corsair2\"}"
+              "options": "{__name__=\"rpi4volts\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"rpi4volts\", topic=\"sensors/rpi4volts\"}"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "PSU bottom (2x T-30)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"corsairfanrpm4\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair4\", topic=\"sensors/corsair4\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "PSU bottom  (2x NF-P12)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"mora3fanrpm\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"mora3\", topic=\"sensors/mora3\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "MO-RA3 (10x P-14, 3x NF-A14)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"corsairfanrpm5\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"corsair5\", topic=\"sensors/corsair5\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Mobo bottom bay Lian Li"
+                "value": "RPi4B"
               }
             ]
           }
@@ -1490,15 +1955,17 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 24
       },
-      "id": 19,
+      "id": 43,
       "options": {
         "legend": {
           "calcs": [
-            "last"
+            "min",
+            "last",
+            "max"
           ],
-          "displayMode": "table",
+          "displayMode": "list",
           "placement": "right",
           "showLegend": true
         },
@@ -1514,18 +1981,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "corsairfanrpm0",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "corsairfanrpm1",
+          "expr": "v12",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1537,7 +1993,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "corsairfanrpm2",
+          "expr": "v5",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1549,31 +2005,7 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "corsairfanrpm3",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "corsairfanrpm4",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "corsairfanrpm5",
+          "expr": "v5usb",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -1585,50 +2017,49 @@
             "uid": "Vku949nVz"
           },
           "editorMode": "builder",
-          "expr": "mora3fanrpm",
+          "expr": "v33",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "vdram",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "vcore",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rpi4volts",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "G"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "mobohdrpm",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "H"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "psuhdrpm",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "I"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "toprpm",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "J"
         }
       ],
-      "title": "Fan speeds",
+      "title": "Voltages",
       "transparent": true,
       "type": "timeseries"
     },
@@ -1687,21 +2118,81 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"cpubpcent\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpubpcent\", topic=\"sensors/cpubpcent\"}"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "displayName",
+                "value": "3970X utilization"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"gpupcent\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"gpupcent\", topic=\"sensors/gpupcent\"}"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "displayName",
+                "value": "2080 Ti utilization"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"loadavg1min\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"loadavg\", topic=\"sensors/loadavg\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "One-minute load average"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "id": 27,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "last",
+            "max"
+          ],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "mode": "single",
@@ -1719,9 +2210,33 @@
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "cpubpcent",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "gpupcent",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "title": "One-minute load average",
+      "title": "One-minute load average / processor utilization",
       "transparent": true,
       "type": "timeseries"
     },
@@ -1792,6 +2307,10 @@
                 "value": {
                   "mode": "continuous-RdYlGr"
                 }
+              },
+              {
+                "id": "displayName",
+                "value": "5V KY-037"
               }
             ]
           }
@@ -1801,7 +2320,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 32
       },
       "id": 13,
       "options": {
@@ -1829,7 +2348,7 @@
           "refId": "A"
         }
       ],
-      "title": "Ambient noise (5V KY-037)",
+      "title": "Ambient noise",
       "transparent": true,
       "type": "timeseries"
     },
@@ -1892,21 +2411,39 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"geiger\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"geiger\", topic=\"sensors/geiger\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PSU chamber"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 40
       },
       "id": 15,
       "options": {
         "legend": {
-          "calcs": [],
+          "calcs": [
+            "min",
+            "mean",
+            "last",
+            "max"
+          ],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "mode": "single",
@@ -1927,6 +2464,656 @@
         }
       ],
       "title": "Geiger–Müller events (per 15s)",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"tccd1\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"tccd1\", topic=\"sensors/tccd1\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "CCD1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"tccd2\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"tccd2\", topic=\"sensors/tccd2\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "CCD2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"tccd3\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"tccd3\", topic=\"sensors/tccd3\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "CCD3"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"tccd4\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"tccd4\", topic=\"sensors/tccd4\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "CCD4"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"cpubzykhz\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"cpubzykhz\", topic=\"sensors/cpubzykhz\"}"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "hertz"
+              },
+              {
+                "id": "displayName",
+                "value": "Busy frequency"
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 37,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "last",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "tccd1",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "tccd2",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "tccd3",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "tccd4",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "cpubzykhz",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "AMD Threadripper 3970X details",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsroot\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsroot\", topic=\"sensors/fsroot\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fshome\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fshome\", topic=\"sensors/fshome\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/home"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsqwop\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwop\", topic=\"sensors/fsqwop\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/media/qwopa"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{__name__=\"fsqwopino\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwopino\", topic=\"sensors/fsqwopino\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "/media/qwopb"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fsroot",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fshome",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fsqwop",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "fsqwopino",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Filesystem utilization",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Vku949nVz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nicrxbixgbe1\", topic=\"sensors/nicrxbixgbe1\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ixgbe1 rx"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nictxbixgbe1\", topic=\"sensors/nictxbixgbe1\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ixgbe1 tx"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nicrxbax200\", topic=\"sensors/nicrxbax200\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ax200 rx"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nictxbax200\", topic=\"sensors/nictxbax200\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ax200 tx"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nictxbsmsc75usb\", topic=\"sensors/nictxbsmsc75usb\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "smsc75usb tx"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"nicrxbsmsc75usb\", topic=\"sensors/nicrxbsmsc75usb\"}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "smsc75usb rx"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nicrxbixgbe1[$__rate_interval])",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nictxbixgbe1[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nicrxbax200[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nictxbax200[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nictxbsmsc75usb[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Vku949nVz"
+          },
+          "editorMode": "builder",
+          "expr": "rate(nicrxbsmsc75usb[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "F"
+        }
+      ],
+      "title": "Networking",
       "transparent": true,
       "type": "timeseries"
     },
@@ -2029,7 +3216,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 56
       },
       "id": 31,
       "options": {
@@ -2084,185 +3271,6 @@
       "title": "Used memory",
       "transparent": true,
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Vku949nVz"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsroot\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsroot\", topic=\"sensors/fsroot\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fshome\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fshome\", topic=\"sensors/fshome\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/home"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsqwop\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwop\", topic=\"sensors/fsqwop\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/media/qwopa"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"fsqwopino\", instance=\"localhost:9642\", job=\"mqtt2\", sensor=\"fsqwopino\", topic=\"sensors/fsqwopino\"}"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "/media/qwopb"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 40
-      },
-      "id": 33,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fsroot",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fshome",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fsqwop",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Vku949nVz"
-          },
-          "editorMode": "builder",
-          "expr": "fsqwopino",
-          "hide": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "D"
-        }
-      ],
-      "title": "Filesystem utilization",
-      "transparent": true,
-      "type": "timeseries"
     }
   ],
   "refresh": "15s",
@@ -2293,6 +3301,6 @@
   "timezone": "",
   "title": "Schwarzgerät III",
   "uid": "HvEh2NnVk",
-  "version": 81,
+  "version": 108,
   "weekStart": ""
 }
