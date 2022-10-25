@@ -28,18 +28,14 @@ void setup(){
 }
 
 void loop(){
-  static float maxvolquant = FLT_MIN;
-  static float minvolquant = FLT_MAX;
+  static float voltotal = 0;
+  static unsigned volsamples = 0;
   unsigned long now = millis();
   // need to keep everything unsigned long so that we properly
   // handle overflow of millis() at ~50 days
   float candvol = analogRead(MICPIN);
-  if(candvol > maxvolquant){
-    maxvolquant = candvol;
-  }
-  if(candvol < minvolquant){
-    minvolquant = candvol;
-  }
+  voltotal += candvol;
+  ++volsamples;
   if(now - previousMillis > SAMPLEMS){
     noInterrupts();
     previousMillis = now;
@@ -52,9 +48,9 @@ void loop(){
     Serial.println(thiscount);
 
     Serial.print("Mic: ");
-    float peakpeak = maxvolquant - minvolquant;
-    Serial.println(peakpeak);
-    maxvolquant = FLT_MIN;
-    minvolquant = FLT_MAX;
+    voltotal /= volsamples;
+    Serial.println(voltotal);
+    voltotal = 0;
+    volsamples = 0;
   }
 }
