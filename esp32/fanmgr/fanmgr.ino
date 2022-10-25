@@ -6,6 +6,7 @@
 #include "EspMQTTClient.h"
 #include <ArduinoJson.h>
 
+const unsigned long RPM_CUTOFF = 10000;
 const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 128;
 const int UartTX = 17;
@@ -375,7 +376,9 @@ void loop(){
   if(lastRPM != RPM || broadcast){
     lastRPM = RPM;
     if(RPM != INT_MAX){
-      mqttPublish(client, "rpm", RPM);
+      if(RPM < RPM_CUTOFF){ // filter out obviously incorrect values
+        mqttPublish(client, "rpm", RPM);
+      }
     }else{
       Serial.println("don't have an rpm sample");
     }
