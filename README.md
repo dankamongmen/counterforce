@@ -10,6 +10,10 @@ draws to the AMOLED. it is necessary that it run in some manner of
 attract mode, as the AMOLED is susceptible to burnin. we currently run
 xscreensaver, but ideally we would not.
 
+## resources
+
+* Board definitions for Heltec ESP32 LoRa32 v2: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
 ## UI
 
 right now only a monitoring screen and a plot screen are available. later,
