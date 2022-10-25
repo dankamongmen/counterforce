@@ -10,12 +10,14 @@ const unsigned long RPM_CUTOFF = 10000;
 const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 128;
 const int UartTX = 17;
-const int UartRX = 36;
+const int UartRX = 37;
 int Pwm = -1;
 int Red = -1;
 int Green = -1;
 int Blue = -1;
 int RPM = INT_MAX;
+int XTopRPMA = INT_MAX;
+int XTopRPMB = INT_MAX;
 float Therm = FLT_MAX;
 int ReportedPwm = INT_MAX;
 
@@ -124,14 +126,21 @@ static int setPWM(int pwm){
 
 // simple state machine around protocol of:
 // top: { stat }*
-// state: [T] float | [R] posint | [P] ubyte
-// float: digit+.digit+
+// state: [T] float | [R] posint | [A] posint | [B] posint | [P] ubyte
+//  float: digit+.digit+
+// t: coolant temp
+// r: fan rpm based off previous second
+// a: xtop pump 1 rpm
+// b: xtop pump 2 rpm
+// p: pwm
 // all exceptions return to top
 static void check_state_update(void){
   static enum {
     STATE_BEGIN,
     STATE_PWM,
     STATE_RPM,
+    STATE_XTOPA,
+    STATE_XTOPB,
     STATE_TEMP,
     STATE_TEMP_MANTISSA,
   } state = STATE_BEGIN;
@@ -151,8 +160,11 @@ static void check_state_update(void){
         }else if(in == 'R'){
           state = STATE_RPM;
           int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          int_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
           int_ongoing = 0;
         }else{
           Serial.print("unexpected stat prefix: ");
@@ -163,6 +175,20 @@ static void check_state_update(void){
         if(isdigit(in)){
           int_ongoing *= 10;
           int_ongoing += in - '0';
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          ReportedPwm = int_ongoing;
+          if(Pwm != ReportedPwm){
+            send_pwm();
+          }
+          float_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
+          ReportedPwm = int_ongoing;
+          if(Pwm != ReportedPwm){
+            send_pwm();
+          }
+          float_ongoing = 0;
         }else if(in == 'T'){
           state = STATE_TEMP;
           ReportedPwm = int_ongoing;
@@ -181,6 +207,54 @@ static void check_state_update(void){
           state = STATE_BEGIN;
         }
         break;
+      case STATE_XTOPA:
+        if(isdigit(in)){
+          int_ongoing *= 10;
+          int_ongoing += in - '0';
+        }else if(in == 'T'){
+          state = STATE_TEMP;
+          XTopRPMA = int_ongoing;
+          float_ongoing = 0;
+        }else if(in == 'R'){
+          state = STATE_RPM;
+          XTopRPMA = int_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
+          XTopRPMA = int_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+          XTopRPMA = int_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
+        break;
+      case STATE_XTOPB:
+        if(isdigit(in)){
+          int_ongoing *= 10;
+          int_ongoing += in - '0';
+        }else if(in == 'T'){
+          state = STATE_TEMP;
+          XTopRPMB = int_ongoing;
+          float_ongoing = 0;
+        }else if(in == 'R'){
+          state = STATE_RPM;
+          XTopRPMB = int_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          XTopRPMB = int_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'P'){
+          state = STATE_PWM;
+          XTopRPMB = int_ongoing;
+          int_ongoing = 0;
+        }else{
+          state = STATE_BEGIN;
+        }
+        break;
       case STATE_RPM:
         if(isdigit(in)){
           int_ongoing *= 10;
@@ -189,6 +263,14 @@ static void check_state_update(void){
           state = STATE_TEMP;
           RPM = int_ongoing;
           float_ongoing = 0;
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          RPM = int_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
+          RPM = int_ongoing;
+          int_ongoing = 0;
         }else if(in == 'P'){
           state = STATE_PWM;
           RPM = int_ongoing;
@@ -209,6 +291,14 @@ static void check_state_update(void){
           state = STATE_RPM;
           Therm = float_ongoing;
           int_ongoing = 0;
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          Therm = float_ongoing;
+          int_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
+          Therm = float_ongoing;
+          int_ongoing = 0;
         }else if(in == 'P'){
           state = STATE_PWM;
           Therm = float_ongoing;
@@ -224,6 +314,14 @@ static void check_state_update(void){
           ++divisor_exponent;
         }else if(in == 'R'){
           state = STATE_RPM;
+          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
+          int_ongoing = 0;
+        }else if(in == 'A'){
+          state = STATE_XTOPA;
+          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
+          int_ongoing = 0;
+        }else if(in == 'B'){
+          state = STATE_XTOPB;
           Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
           int_ongoing = 0;
         }else if(in == 'P'){
