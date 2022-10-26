@@ -12,7 +12,9 @@ xscreensaver, but ideally we would not.
 
 ## resources
 
-* Board definitions for Heltec ESP32 LoRa32 v2: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+* Board definitions for Heltec ESP32 LoRa32 v2:
+  * https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+  * https://github.com/Heltec-Aaron-Lee/WiFi_Kit_series/releases/download/0.0.7/package_heltec_esp32_index.json
 
 ## UI
 

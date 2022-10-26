@@ -4,6 +4,9 @@
 const unsigned long SERIALSPEED = 115200;
 const unsigned long UARTSPEED = 9600;
 
+// artificial ceiling enforced for fans and pumps
+const unsigned long MAXRPM = 6000;
+
 volatile unsigned Pulses; // counter for input events, reset each second
 volatile unsigned XTOPPulsesA; // counter for Dual XTOP Pump 1
 volatile unsigned XTOPPulsesB; // counter for Dual XTOP Pump 2
@@ -238,6 +241,26 @@ float readThermistor(void){
   return t;
 }
 
+static void printRPMSample(unsigned long val, const char* proto,
+                           const char* desc, int pin){
+  if(val * 30 > MAXRPM){
+    Serial.print("invalid read ");
+    Serial.print(val);
+  }else{
+    unsigned c = val * 30;
+    UART.print(proto);
+    UART.print(c);
+    Serial.print(pin, DEC);
+    Serial.print(" ");
+    Serial.print(val, DEC);
+    Serial.print(" ");
+    Serial.print(c, DEC);
+  }
+  Serial.print(" ");
+  Serial.print(desc);
+  Serial.print(' ');
+}
+
 const unsigned long LOOPUS = 1000000;
 
 void loop (){
@@ -270,21 +293,9 @@ void loop (){
   Serial.println(xa);
   Serial.print("XTOPB: ");
   Serial.println(xb);
-  if((unsigned long)p * 30 > 65535){
-    Serial.print("invalid RPM read: ");
-    Serial.print(p);
-  }else{
-    unsigned c = p * 30;
-    UART.print("R");
-    UART.print(c);
-    Serial.print(RPMPIN, DEC);
-    Serial.print(" ");
-    Serial.print(p, DEC);
-    Serial.print(" ");
-    Serial.print(c, DEC);
-    Serial.print(" rpm");
-  }
-  Serial.print(' ');
+  printRPMSample(p, "R", "fans", RPMPIN);
+  printRPMSample(xa, "A", "XtopA", XTOPPINA);
+  printRPMSample(xb, "B", "XtopB", XTOPPINB);
   Serial.print(cur - m, DEC);
   Serial.println("µs");
   Serial.println("");
