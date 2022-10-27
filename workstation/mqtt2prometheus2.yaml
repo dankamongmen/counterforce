@@ -284,6 +284,14 @@ metrics:
    mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
+ - prom_name: moraxtop0rpm
+   mqtt_name: moraxtop0rpm
+   help: MO-RA3 Dual XTOP pump 1 RPM
+   type: gauge
+ - prom_name: moraxtop1rpm
+   mqtt_name: moraxtop1rpm
+   help: MO-RA3 Dual XTOP pump 2 RPM
+   type: gauge
  - prom_name: cpuavgkhz
    mqtt_name: cpuavgkhz
    help: Average CPU megahertz
