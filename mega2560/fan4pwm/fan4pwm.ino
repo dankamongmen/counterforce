@@ -37,8 +37,6 @@ const int BRESPIN = 5;
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
 
-const int TEMPPIN = A0;
-
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
@@ -114,11 +112,6 @@ void setup(){
   pinMode(XTOPPINB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(XTOPPINA), xtopa, RISING);
   attachInterrupt(digitalPinToInterrupt(XTOPPINB), xtopb, RISING);
-
-  pinMode(TEMPPIN, INPUT);
-  // we'll get better thermistor readings if we use the cleaner
-  // 3.3V line. connect 3.3V to AREF.
-  analogReference(EXTERNAL);
 
   pinMode(RRGBPIN, OUTPUT);
   pinMode(GRGBPIN, OUTPUT);
@@ -221,26 +214,6 @@ static void check_pwm_update(void){
   apply_pwm(last);
 }
 
-float readThermistor(void){
-  const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
-  const float NOMINAL = 25;
-  const float R1 = 10000;
-  const float VREF = 3.3;
-  float v0 = analogRead(TEMPPIN);
-  Serial.print("read raw voltage: ");
-  Serial.print(v0);
-  float scaled = v0 * (VREF / 1023.0);
-  Serial.print(" scaled: ");
-  Serial.print(scaled);
-  float R = ((scaled * R1) / (VREF - scaled)) / R1;
-  Serial.print(" R: ");
-  Serial.println(R);
-  float t = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
-  Serial.print("read raw temp: ");
-  Serial.println(t);
-  return t;
-}
-
 static void printRPMSample(unsigned long val, const char* proto,
                            const char* desc, int pin){
   if(val * 30 > MAXRPM){
@@ -299,11 +272,6 @@ void loop (){
   Serial.print(cur - m, DEC);
   Serial.println("µs");
   Serial.println("");
-  float therm = readThermistor();
-  UART.print("T");
-  UART.print(therm);
-  Serial.print("Thermistor: ");
-  Serial.print(therm);
   UART.print("P");
   UART.print(Pwm);
   Serial.print(" PWM output: ");
@@ -311,8 +279,6 @@ void loop (){
   Serial.println();
   Serial.print("R");
   Serial.print(p * 30);
-  Serial.print("T");
-  Serial.print(therm);
   Serial.print("P");
   Serial.println(Pwm);
   check_pwm_update();

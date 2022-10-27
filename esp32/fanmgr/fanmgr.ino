@@ -11,6 +11,7 @@ const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 128;
 const int UartTX = 17;
 const int UartRX = 37;
+const int TEMPPIN = 38;
 int Pwm = -1;
 int Red = -1;
 int Green = -1;
@@ -27,6 +28,26 @@ EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
 
+float readThermistor(void){
+  const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
+  const float NOMINAL = 25;
+  const float R1 = 10000;
+  const float VREF = 3.3;
+  float v0 = analogRead(TEMPPIN);
+  Serial.print("read raw voltage: ");
+  Serial.print(v0);
+  float scaled = v0 * (VREF / 1023.0);
+  Serial.print(" scaled: ");
+  Serial.print(scaled);
+  float R = ((scaled * R1) / (VREF - scaled)) / R1;
+  Serial.print(" R: ");
+  Serial.println(R);
+  float t = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
+  Serial.print("read raw temp: ");
+  Serial.println(t);
+  return t;
+}
+
 void setup(){
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
@@ -34,6 +55,7 @@ void setup(){
   client.enableMQTTPersistence();
   UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   setPWM(INITIAL_PWM);
+  pinMode(38, INPUT);
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
@@ -126,7 +148,7 @@ static int setPWM(int pwm){
 
 // simple state machine around protocol of:
 // top: { stat }*
-// state: [T] float | [R] posint | [A] posint | [B] posint | [P] ubyte
+// state: [R] posint | [A] posint | [B] posint | [P] ubyte
 //  float: digit+.digit+
 // t: coolant temp
 // r: fan rpm based off previous second
@@ -141,8 +163,6 @@ static void check_state_update(void){
     STATE_RPM,
     STATE_XTOPA,
     STATE_XTOPB,
-    STATE_TEMP,
-    STATE_TEMP_MANTISSA,
   } state = STATE_BEGIN;
   static int int_ongoing;
   static float float_ongoing;
@@ -153,10 +173,7 @@ static void check_state_update(void){
     Serial.println(in, HEX);
     switch(state){
       case STATE_BEGIN:
-        if(in == 'T'){
-          state = STATE_TEMP;
-          float_ongoing = 0;
-        }else if(in == 'R'){
+        if(in == 'R'){
           state = STATE_RPM;
           int_ongoing = 0;
         }else if(in == 'A'){
@@ -188,13 +205,6 @@ static void check_state_update(void){
             send_pwm();
           }
           float_ongoing = 0;
-        }else if(in == 'T'){
-          state = STATE_TEMP;
-          ReportedPwm = int_ongoing;
-          if(Pwm != ReportedPwm){
-            send_pwm();
-          }
-          float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
           ReportedPwm = int_ongoing;
@@ -210,10 +220,6 @@ static void check_state_update(void){
         if(isdigit(in)){
           int_ongoing *= 10;
           int_ongoing += in - '0';
-        }else if(in == 'T'){
-          state = STATE_TEMP;
-          XTopRPMA = int_ongoing;
-          float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
           XTopRPMA = int_ongoing;
@@ -234,10 +240,6 @@ static void check_state_update(void){
         if(isdigit(in)){
           int_ongoing *= 10;
           int_ongoing += in - '0';
-        }else if(in == 'T'){
-          state = STATE_TEMP;
-          XTopRPMB = int_ongoing;
-          float_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
           XTopRPMB = int_ongoing;
@@ -258,10 +260,6 @@ static void check_state_update(void){
         if(isdigit(in)){
           int_ongoing *= 10;
           int_ongoing += in - '0';
-        }else if(in == 'T'){
-          state = STATE_TEMP;
-          RPM = int_ongoing;
-          float_ongoing = 0;
         }else if(in == 'A'){
           state = STATE_XTOPA;
           RPM = int_ongoing;
@@ -273,59 +271,6 @@ static void check_state_update(void){
         }else if(in == 'P'){
           state = STATE_PWM;
           RPM = int_ongoing;
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      case STATE_TEMP:
-        if(isdigit(in)){
-          float_ongoing *= 10;
-          float_ongoing += in - '0';
-        }else if(in == '.'){
-          int_ongoing = 0;
-          divisor_exponent = 0;
-          state = STATE_TEMP_MANTISSA;
-        }else if(in == 'R'){
-          state = STATE_RPM;
-          Therm = float_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          Therm = float_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          Therm = float_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
-          Therm = float_ongoing;
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      case STATE_TEMP_MANTISSA:
-        if(isdigit(in)){
-          int_ongoing *= 10;
-          int_ongoing += in - '0';
-          ++divisor_exponent;
-        }else if(in == 'R'){
-          state = STATE_RPM;
-          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
-          int_ongoing = 0;
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
-          int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
-          Therm = float_ongoing + int_ongoing / pow(10, divisor_exponent);
           int_ongoing = 0;
         }else{
           state = STATE_BEGIN;
@@ -449,6 +394,7 @@ void loop(){
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
   m = millis();
+  Therm = readThermistor();
   updateDisplay(m);
   bool broadcast = false;
   if(m < last_broadcast || m - last_broadcast > 1000){
