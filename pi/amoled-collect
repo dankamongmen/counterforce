@@ -12,12 +12,12 @@ SERV=10.128.0.1
 while true ; do
   # rpi temp sensor
   TCTL=$(sensors -j | jq '."cpu_thermal-virtual-0".temp1[]') 2> /dev/null
-  "$MQTT" -h "$SERV" -t "$TOPIC"/rpi4temp -m "{\"rpi4temp\":\"$TCTL\"}" -u "$MQTTUSER" -P "$MQTTPASS" \
+  "$MQTT" -h "$SERV" -t "$TOPIC"/rpi4temp -m "{\"rpi4temp\":$TCTL}" -u "$MQTTUSER" -P "$MQTTPASS" \
     || { echo "Failed publishing to MQTT" >&2 ; }
 
   # rpi voltage
   PIVOLTS=$(vcgencmd measure_volts | cut -d= -f2 | cut -dV -f1)
-  "$MQTT" -h "$SERV" -t "$TOPIC"/rpi4volts -m "{\"rpi4volts\":\"$PIVOLTS\"}" -u "$MQTTUSER" -P "$MQTTPASS" \
+  "$MQTT" -h "$SERV" -t "$TOPIC"/rpi4volts -m "{\"rpi4volts\":$PIVOLTS}" -u "$MQTTUSER" -P "$MQTTPASS" \
     || { echo "Failed publishing to MQTT" >&2 ; }
 
   sleep 15
