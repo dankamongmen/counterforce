@@ -298,9 +298,9 @@ static void displayConnectionStatus(int y){
 }
 
 // up to 2 digits of years, up to 3 digits of days, up to 2 digits of
-// hours, up to 2 digits of minutes, up to 2 digits of seconds, and up
-// to 5 units, plus null == 17 bytes
-#define MAXTIMELEN 17
+// hours, up to 2 digits of minutes, up to 2 digits of seconds, up
+// to 5 units, and up to five spaces, plus null == 22 bytes
+#define MAXTIMELEN 22
 
 // timestr needs be MAXTIMELEN bytes or more
 static int maketimestr(char *timestr, unsigned long m){
@@ -312,28 +312,28 @@ static int maketimestr(char *timestr, unsigned long m){
     if(years > 99){
       return -1; // whatever bro
     }
-    off = sprintf(timestr, "%uy", years);
+    off = sprintf(timestr, "%uy ", years);
   }
   t %= epoch;
   epoch /= 365;
   if(t > epoch){
     word d = t / epoch;
-    off += sprintf(timestr + off, "%ud", d);
+    off += sprintf(timestr + off, "%ud ", d);
   }
   t %= epoch;
   epoch /= 24;
   if(t > epoch){
     word h = t / epoch;
-    off += sprintf(timestr + off, "%uh", h);
+    off += sprintf(timestr + off, "%uh ", h);
   }
   t %= epoch;
   epoch /= 60;
   if(t > epoch){
     word m = t / epoch;
-    off += sprintf(timestr + off, "%um", m);
+    off += sprintf(timestr + off, "%um ", m);
   }
   t %= epoch;
-  off += sprintf(timestr + off, "%lus", t);
+  off += sprintf(timestr + off, "%lus ", t);
   return 0;
 }
 
