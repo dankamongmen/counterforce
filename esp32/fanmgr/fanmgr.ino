@@ -28,7 +28,7 @@ EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
 
-float readThermistor(void){
+void readThermistor(float* t){
   const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 25;
   const float R1 = 10000;
@@ -36,16 +36,20 @@ float readThermistor(void){
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw voltage: ");
   Serial.print(v0);
+  if(v0 == 0){
+    Serial.println(", throwing it out");
+    return;
+  }
   float scaled = v0 * (VREF / 1023.0);
   Serial.print(" scaled: ");
   Serial.print(scaled);
   float R = ((scaled * R1) / (VREF - scaled)) / R1;
   Serial.print(" R: ");
   Serial.println(R);
-  float t = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
+  float tn = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
   Serial.print("read raw temp: ");
-  Serial.println(t);
-  return t;
+  Serial.println(tn);
+  *t = tn;
 }
 
 void setup(){
@@ -406,7 +410,7 @@ void loop(){
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
   m = millis();
-  Therm = readThermistor();
+  readThermistor(&Therm);
   updateDisplay(m);
   bool broadcast = false;
   if(m < last_broadcast || m - last_broadcast > 1000){
@@ -433,7 +437,7 @@ void loop(){
   rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
-    if(Therm != FLT_MAX && !isnan(Therm)u){
+    if(Therm != FLT_MAX && !isnan(Therm)){
       mqttPublish(client, "therm", Therm);
     }else{
       Serial.println("don't have a therm sample");
