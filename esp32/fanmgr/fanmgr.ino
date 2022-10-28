@@ -348,6 +348,18 @@ int mqttPublish(EspMQTTClient& mqtt, const char* key, const T& value){
   return 0;
 }
 
+int rpmPublish(EspMQTTClient& mqtt, const char* key, int val, int* lastval,
+               bool broadcast){
+  if(*lastval != val || broadcast){
+    *lastval = val;
+    if(val < RPM_CUTOFF){ // filter out obviously incorrect values
+      return mqttPublish(client, key, val);
+    }
+    Serial.println("don't have a valid rpm sample");
+  }
+  return 0;
+}
+
 // m is millis()
 static void updateDisplay(unsigned long m){
   char timestr[MAXTIMELEN];
@@ -383,6 +395,8 @@ void loop(){
   static unsigned long last_broadcast = 0;
   static int lastRPM = INT_MAX;
   static int lastReportedPWM = INT_MAX;
+  static int lastReportedXA = INT_MAX;
+  static int lastReportedXB = INT_MAX;
   static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
   // FIXME we can remove this updateDisplay/millis() once the client.loop()
@@ -416,16 +430,9 @@ void loop(){
       Serial.println("don't have a pwm report");
     }
   }
-  if(lastRPM != RPM || broadcast){
-    lastRPM = RPM;
-    if(RPM != INT_MAX){
-      if(RPM < RPM_CUTOFF){ // filter out obviously incorrect values
-        mqttPublish(client, "rpm", RPM);
-      }
-    }else{
-      Serial.println("don't have an rpm sample");
-    }
-  }
+  rpmPublish(client, "moraxtop0rpm", XTopRPMA, &lastReportedXA, broadcast);
+  rpmPublish(client, "moraxtop1rpm", XTopRPMB, &lastReportedXB, broadcast);
+  rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
     if(Therm != FLT_MAX){
