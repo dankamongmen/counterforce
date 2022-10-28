@@ -5,13 +5,18 @@
 #include <float.h>
 #include "EspMQTTClient.h"
 #include <ArduinoJson.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 const unsigned long RPM_CUTOFF = 10000;
 const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 0;
 const int UartTX = 17;
 const int UartRX = 36;
+// coolant thermistor (2-wire)
 const int TEMPPIN = 39;
+// ambient temperature (digital thermometer, Dallas 1-wire)
+const int AMBIENTPIN = 23;
 int Pwm = -1;
 int Red = -1;
 int Green = -1;
@@ -27,6 +32,9 @@ HardwareSerial UART(1);
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
 );
+
+OneWire twire(AMBIENTPIN);
+DallasTemperature digtemp(&twire);
 
 void readThermistor(float* t){
   const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
@@ -61,6 +69,7 @@ void setup(){
   UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   setPWM(INITIAL_PWM);
   pinMode(TEMPPIN, INPUT);
+  digtemp.begin();
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
@@ -411,6 +420,12 @@ void loop(){
   check_state_update();
   m = millis();
   readThermistor(&Therm);
+
+  digtemp.requestTemperatures();
+  float digiC = digtemp.getTempCByIndex(0);
+  Serial.print("AMBIENT: ");
+  Serial.println(digiC);
+
   updateDisplay(m);
   bool broadcast = false;
   if(m < last_broadcast || m - last_broadcast > 1000){
