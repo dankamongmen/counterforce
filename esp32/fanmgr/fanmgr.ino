@@ -400,7 +400,6 @@ void loop(){
   static int lastReportedPWM = INT_MAX;
   static int lastReportedXA = INT_MAX;
   static int lastReportedXB = INT_MAX;
-  static float lastTherm = FLT_MAX;
   static int lastPWM = -1;
   // FIXME we can remove this updateDisplay/millis() once the client.loop()
   // below is bounded
@@ -436,8 +435,7 @@ void loop(){
   rpmPublish(client, "moraxtop0rpm", XTopRPMA, &lastReportedXA, broadcast);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB, &lastReportedXB, broadcast);
   rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
-  if(lastTherm != Therm || broadcast){
-    lastTherm = Therm;
+  if(broadcast){
     if(Therm != FLT_MAX && !isnan(Therm)){
       mqttPublish(client, "therm", Therm);
     }else{
