@@ -8,7 +8,7 @@
 
 const unsigned long RPM_CUTOFF = 10000;
 const unsigned long UARTSPEED = 9600;
-const int INITIAL_PWM = 128;
+const int INITIAL_PWM = 0;
 const int UartTX = 17;
 const int UartRX = 37;
 const int TEMPPIN = 38;
