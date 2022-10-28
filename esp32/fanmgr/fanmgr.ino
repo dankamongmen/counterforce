@@ -59,7 +59,7 @@ void setup(){
   client.enableMQTTPersistence();
   UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   setPWM(INITIAL_PWM);
-  pinMode(38, INPUT);
+  pinMode(TEMPPIN, INPUT);
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
