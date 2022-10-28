@@ -40,7 +40,8 @@ void readThermistor(float* t){
     Serial.println(", throwing it out");
     return;
   }
-  float scaled = v0 * (VREF / 1023.0);
+  // 12-bit ADC on the ESP32
+  float scaled = v0 * (VREF / 4095.0);
   Serial.print(" scaled: ");
   Serial.print(scaled);
   float R = ((scaled * R1) / (VREF - scaled)) / R1;
