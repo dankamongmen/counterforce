@@ -421,10 +421,12 @@ void loop(){
   m = millis();
   readThermistor(&Therm);
 
-  digtemp.requestTemperatures();
-  float digiC = digtemp.getTempCByIndex(0);
-  Serial.print("AMBIENT: ");
-  Serial.println(digiC);
+  float digiC = FLT_MAX;
+  if(digtemp.requestTemperatures()){
+    digiC = digtemp.getTempCByIndex(0);
+    Serial.print("AMBIENT: ");
+    Serial.println(digiC);
+  }
 
   updateDisplay(m);
   bool broadcast = false;
@@ -455,6 +457,11 @@ void loop(){
       mqttPublish(client, "therm", Therm);
     }else{
       Serial.println("don't have a therm sample");
+    }
+    if(digiC != FLT_MAX && !isnan(digiC)){
+      mqttPublish(client, "moraambient", digiC);
+    }else{
+      Serial.println("don't have an ambient sample");
     }
   }
 }
