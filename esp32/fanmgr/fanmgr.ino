@@ -165,8 +165,6 @@ static void check_state_update(void){
     STATE_XTOPB,
   } state = STATE_BEGIN;
   static int int_ongoing;
-  static float float_ongoing;
-  static int divisor_exponent; // used for float mantissa
   int in;
   while((in = UART.read()) != -1){
     Serial.print("read byte from UART!!! ");
@@ -197,14 +195,14 @@ static void check_state_update(void){
           if(Pwm != ReportedPwm){
             send_pwm();
           }
-          float_ongoing = 0;
+          int_ongoing = 0;
         }else if(in == 'B'){
           state = STATE_XTOPB;
           ReportedPwm = int_ongoing;
           if(Pwm != ReportedPwm){
             send_pwm();
           }
-          float_ongoing = 0;
+          int_ongoing = 0;
         }else if(in == 'R'){
           state = STATE_RPM;
           ReportedPwm = int_ongoing;
@@ -435,7 +433,7 @@ void loop(){
   rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
   if(lastTherm != Therm || broadcast){
     lastTherm = Therm;
-    if(Therm != FLT_MAX){
+    if(Therm != FLT_MAX && !isnan(Therm)u){
       mqttPublish(client, "therm", Therm);
     }else{
       Serial.println("don't have a therm sample");
