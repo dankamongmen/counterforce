@@ -422,11 +422,11 @@ void loop(){
   readThermistor(&Therm);
 
   float digiC = FLT_MAX;
-  if(digtemp.requestTemperatures()){
-    digiC = digtemp.getTempCByIndex(0);
-    Serial.print("AMBIENT: ");
-    Serial.println(digiC);
-  }
+  // FIXME need some error litmus
+  digtemp.requestTemperatures( );
+  digiC = digtemp.getTempCByIndex(0);
+  Serial.print("AMBIENT: ");
+  Serial.println(digiC);
 
   updateDisplay(m);
   bool broadcast = false;
