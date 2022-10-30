@@ -31,7 +31,10 @@ while true ; do
     HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
   fi
 
-  # k10 temp sensors
+  # k10 temp sensors. TCtl is offset for a "consistent fan policy across
+  # all AMD Ryzen processors", i.e. as input to a fan management scheme.
+  # we want the unoffset values, though we also report TCtl for
+  # completion. submit the average as well.
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
   Tccd1=$(sensors -j | jq '."k10temp-pci-00c3".Tccd1[]') 2> /dev/null
@@ -42,6 +45,8 @@ while true ; do
   mqtt tccd3 $Tccd3
   Tccd4=$(sensors -j | jq '."k10temp-pci-00c3".Tccd7[]') 2> /dev/null
   mqtt tccd4 $Tccd4
+  TAVG=$(jq -n \($Tccd1+$Tccd2+$Tccd3+$Tccd4\)/4)
+  mqtt tavg $TAVG
 
   # it87 primary sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
