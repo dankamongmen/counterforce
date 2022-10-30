@@ -200,6 +200,10 @@ metrics:
    mqtt_name: tccd4
    help: Tccd4 temperature
    type: gauge
+ - prom_name: tavg
+   mqtt_name: tavg
+   help: Average CCD temperature
+   type: gauge
  - prom_name: loadavg1min
    mqtt_name: loadavg
    help: One-minute load average
