@@ -35,6 +35,7 @@ const int PWMPIN = 8;
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
+// initialize to white so we can immediately diagnose any missing colors
 byte Red = 0;
 byte Green = 255;
 byte Blue = 255;
@@ -183,12 +184,10 @@ static void handle_uart(int in){
 }
 
 // read bytes from UART/USB, using the global references.
-// each byte is interpreted as a PWM level, and ought be between [0..255].
-// we act on the last byte available. USB has priority over UART.
+// each USB byte is interpreted as a PWM level, and ought be between [0..255].
+// UART bytes move through a state machine, with state preserved across calls.
 static void check_pwm_update(void){
-  int last = -1;
   int in;
-  // only apply the last in a sequence
   while((in = UART.read()) != -1){
     Serial.print("read byte from uart: ");
     Serial.println(in);
@@ -197,9 +196,8 @@ static void check_pwm_update(void){
   while((in = Serial.read()) != -1){
     Serial.print("read byte from usb: ");
     Serial.println(in);
-    last = in;
+    apply_pwm(in);
   }
-  apply_pwm(last);
 }
 
 static void printRPMSample(unsigned long val, const char* proto,
@@ -228,6 +226,8 @@ void loop (){
   static unsigned long m = 0;
   unsigned long cur;
 
+  apply_rgb();
+  apply_pwm(Pwm);
   if(m == 0){
     m = micros();
   }
@@ -260,14 +260,10 @@ void loop (){
   Serial.print("XTOPA: ");
   Serial.print(xa);
   Serial.print(" XTOPB: ");
-  Serial.println(xb);
+  Serial.print(xb);
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
   Serial.println();
-  Serial.print("R");
-  Serial.print(p * 30);
-  Serial.print("P");
-  Serial.println(Pwm);
   check_pwm_update();
   m = cur;
 }
