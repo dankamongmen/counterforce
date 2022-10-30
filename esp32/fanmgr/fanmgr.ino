@@ -17,14 +17,20 @@ const int UartRX = 36;
 const int TEMPPIN = 39;
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 23;
-int Pwm = -1;
-int Red = -1;
-int Green = -1;
-int Blue = -1;
+
+// RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
+int Red = 0;
+int Green = 0xff;
+int Blue = 0;
+
+// RPMs as reported to us by the client for fans and the two XTop Dual pumps.
+// we only get the RPM count from one of our fans; it stands for all.
 int RPM = INT_MAX;
 int XTopRPMA = INT_MAX;
 int XTopRPMB = INT_MAX;
-float Therm = FLT_MAX;
+// PWM we want the client to run at (initialized to 0, read from MQTT)
+int Pwm = 0;
+// PWM as reported to us by the client (ought match what we request)
 int ReportedPwm = INT_MAX;
 
 HardwareSerial UART(1);
@@ -373,7 +379,7 @@ int rpmPublish(EspMQTTClient& mqtt, const char* key, int val, int* lastval,
 }
 
 // m is millis()
-static void updateDisplay(unsigned long m){
+static void updateDisplay(unsigned long m, float therm){
   char timestr[MAXTIMELEN];
   // dump information to OLED
   Heltec.display->clear();
@@ -387,10 +393,10 @@ static void updateDisplay(unsigned long m){
   Heltec.display->drawString(0, 11, "PWM: ");
   Heltec.display->drawString(33, 11, String(Pwm));
   Heltec.display->drawString(0, 21, "Temp: ");
-  if(Therm == FLT_MAX){
+  if(therm == FLT_MAX){
     Heltec.display->drawString(35, 21, "n/a");
   }else{
-    Heltec.display->drawString(35, 21, String(Therm));
+    Heltec.display->drawString(35, 21, String(therm));
   }
   Heltec.display->drawString(0, 31, "Uptime: ");
   Heltec.display->drawString(41, 31, maketimestr(timestr, m) ?
@@ -410,55 +416,54 @@ void loop(){
   static int lastReportedXA = INT_MAX;
   static int lastReportedXB = INT_MAX;
   static int lastPWM = -1;
+  float therm = FLT_MAX;
+  readThermistor(&therm);
   // FIXME we can remove this updateDisplay/millis() once the client.loop()
   // below is bounded
   unsigned long m = millis();
-  updateDisplay(m);
+  updateDisplay(m, therm);
   // FIXME use the enqueue work version of this, as client.loop() can
   // block for arbitrary amounts of time
   client.loop(); // handle any necessary wifi/mqtt
   check_state_update();
   m = millis();
-  readThermistor(&Therm);
 
   float digiC = FLT_MAX;
   // FIXME need some error litmus
-  digtemp.requestTemperatures( );
+  digtemp.requestTemperatures();
   digiC = digtemp.getTempCByIndex(0);
   Serial.print("AMBIENT: ");
   Serial.println(digiC);
 
-  updateDisplay(m);
+  updateDisplay(m, therm);
   bool broadcast = false;
-  if(m < last_broadcast || m - last_broadcast > 1000){
+  if(m - last_broadcast >= 3000){
     broadcast = true;
     last_broadcast = m;
     lastPWM = Pwm;
     send_pwm();
-    send_rgb();
   }else if(lastPWM != Pwm){
     lastPWM = Pwm;
     last_broadcast = m;
     send_pwm();
   }
-  if(lastReportedPWM != ReportedPwm || broadcast){
-    lastReportedPWM = ReportedPwm;
-    if(ReportedPwm != INT_MAX){
-      mqttPublish(client, "pwm", ReportedPwm);
-    }else{
-      Serial.println("don't have a pwm report");
-    }
-  }
+  // we send reported values to MQTT as soon as they change, and also as
+  // part of any broadcast. this relies on infrequent value reports; we
+  // implement no ratelimiting atop receipt.
+  rpmPublish(client, "pwm", ReportedPwm, &lastReportedPWM, broadcast);
   rpmPublish(client, "moraxtop0rpm", XTopRPMA, &lastReportedXA, broadcast);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB, &lastReportedXB, broadcast);
   rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
   if(broadcast){
-    if(Therm != FLT_MAX && !isnan(Therm)){
-      mqttPublish(client, "therm", Therm);
+    // send RGB regularly in case device resets (RGB isn't reported to us,
+    // unlike PWM, so we can't merely send on unexpected read).
+    send_rgb();
+    if(therm != FLT_MAX && !isnan(therm)){
+      mqttPublish(client, "therm", therm);
     }else{
       Serial.println("don't have a therm sample");
     }
-    if(digiC != FLT_MAX && !isnan(digiC)){
+    if(digiC != FLT_MAX && !isnan(digiC) && digiC != -127){
       mqttPublish(client, "moraambient", digiC);
     }else{
       Serial.println("don't have an ambient sample");
