@@ -76,6 +76,10 @@ void setup(){
   setPWM(INITIAL_PWM);
   pinMode(TEMPPIN, INPUT);
   digtemp.begin();
+  Serial.print("1-Wire devices: ");
+  Serial.println(digtemp.getDeviceCount());
+  Serial.print("DS18xxx devices: ");
+  Serial.println(digtemp.getDS18Count());
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
@@ -463,7 +467,11 @@ void loop(){
     }else{
       Serial.println("don't have a therm sample");
     }
-    if(digiC != FLT_MAX && !isnan(digiC) && digiC != -127){
+    // there are several error codes returned by DallasTermperature, all of
+    // them equal to or less than DEVICE_DISCONNECTED_C (there are also
+    // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
+    // DEVICE_FAULT_SHORTVDD_C).
+    if(digiC != FLT_MAX && !isnan(digiC) && digiC > DEVICE_DISCONNECTED_C){
       mqttPublish(client, "moraambient", digiC);
     }else{
       Serial.println("don't have an ambient sample");
