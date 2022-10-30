@@ -29,20 +29,15 @@ const int RRGBPIN = 11;
 const int GRGBPIN = 10;
 const int BRGBPIN = 9;
 
-// fixed 12V LEDs in the reservoir atop the MO-RA3
-const int RRESPIN = 7;
-const int GRESPIN = 6;
-const int BRESPIN = 5;
-
 // we need a digital output pin for PWM.
 const int PWMPIN = 8;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
 
-byte Red = 32;
-byte Green = 64;
-byte Blue = 128;
+byte Red = 0;
+byte Green = 255;
+byte Blue = 255;
 
 unsigned Pwm;
 // on mega:
@@ -117,14 +112,6 @@ void setup(){
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
   apply_rgb();
-
-  // the reservoir color is fixed; just set it once here
-  pinMode(RRESPIN, OUTPUT);
-  pinMode(GRESPIN, OUTPUT);
-  pinMode(BRESPIN, OUTPUT);
-  analogWrite(RRESPIN, 0);
-  analogWrite(GRESPIN, 0);
-  analogWrite(BRESPIN, 255);
 }
 
 void setPWM(byte pwm){
