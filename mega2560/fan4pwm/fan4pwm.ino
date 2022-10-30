@@ -70,8 +70,9 @@ static void setup_timers(void){
   TCCR4A = 0;
   TCCR4B = 0;
   TCNT4  = 0;
-  // Mode 10: phase correct PWM with ICR4 as Top
-  // OC4C as Non-Inverted PWM output
+  // Mode 10: phase correct PWM with ICR4 as Top (phase-correct needs a
+  // factor of 2 in division below). OC4C as Non-Inverted PWM output.
+  // 16MHz / (25KHz * 2) == 320 cycles per interrupt.
   ICR4 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
@@ -90,8 +91,8 @@ void setup(){
   while(!Serial); // only necessary/meaningful for boards with native USB
   UART.begin(UARTSPEED);
 
-  setup_timers();
   pinMode(PWMPIN, OUTPUT);
+  setup_timers();
   Serial.print("pwm write on ");
   Serial.println(PWMPIN);
   setPWM(INITIAL_PWM);
