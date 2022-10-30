@@ -139,13 +139,14 @@ void setPWM(byte pwm){
 // apply a PWM value between 0 and 255, inclusive.
 static int apply_pwm(int in){
   if(in >= 0){
-    if(in > 255){
-      Serial.print("invalid PWM level: ");
-      Serial.println(in);
-    }else{
+    if(in <= 255){
       setPWM(in);
+      return 0;
     }
   }
+  Serial.print("invalid PWM level: ");
+  Serial.println(in);
+  return -1;
 }
 
 // handle a byte read from the UART
