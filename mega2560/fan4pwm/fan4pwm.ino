@@ -89,7 +89,7 @@ static void apply_rgb(void){
 }
 
 void setup(){
-  const byte INITIAL_PWM = 128;
+  const byte INITIAL_PWM = 0;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
   UART.begin(UARTSPEED);
@@ -152,7 +152,7 @@ static int apply_pwm(int in){
 static void handle_uart(int in){
   static enum {
     STATE_BEGIN,
-    STATE_PWM, // got a 'P'
+    STATE_PWM,  // got a 'P'
     STATE_RRGB, // got a 'C'
     STATE_GRGB, // got a Red
     STATE_BRGB, // got a Green
