@@ -1,11 +1,15 @@
 #include <FastLED.h>
  
 CRGB flt[15];    // Quantum FLT
-CRGB diyfab[30]; // EZDIY-FAB LED strips
+CRGB diyfab[10]; // EZDIY-FAB LED strips
  
 void setup() {
   FastLED.addLeds<NEOPIXEL, 3>(flt, 0, sizeof(flt) / sizeof(*flt));
+  FastLED.addLeds<NEOPIXEL, 5>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
   FastLED.addLeds<NEOPIXEL, 6>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
+  FastLED.addLeds<NEOPIXEL, 9>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
+  FastLED.addLeds<NEOPIXEL, 10>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
+  FastLED.addLeds<NEOPIXEL, 11>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
@@ -53,7 +57,7 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 }
 
 void loop() {
-  for(int i = 0 ; i < sizeof(flt) / sizeof(*flt) ; ++i){
+  for(unsigned i = 0 ; i < sizeof(flt) / sizeof(*flt) ; ++i){
     flt[i] = CRGB::Cyan;
   }
   StepEffect(diyfab, sizeof(diyfab) / sizeof(*diyfab));

@@ -115,9 +115,9 @@ void setup(){
   apply_rgb();
 }
 
-void setPWM(byte pwm){
+void setPWM(unsigned pwm){
   Pwm = pwm;
-  OCR4C = pwm;
+  OCR4C = ICR4 * (unsigned long)(pwm + 1) / 256;
   Serial.print("PWM to ");
   Serial.print(pwm);
   Serial.print(" OCR4C to ");
