@@ -34,7 +34,11 @@ metrics:
    type: gauge
  - prom_name: mic
    mqtt_name: mic
-   help: Microphone levels
+   help: Microphone average (1s)
+   type: gauge
+ - prom_name: micmax
+   mqtt_name: micmax
+   help: Microphone maximum (1s)
    type: gauge
  - prom_name: nvme0temp
    mqtt_name: nvme0temp
