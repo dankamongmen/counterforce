@@ -29,12 +29,16 @@ void setup(){
 
 void loop(){
   static float voltotal = 0;
+  static float volmax = FLT_MIN;
   static unsigned volsamples = 0;
   unsigned long now = millis();
   // need to keep everything unsigned long so that we properly
   // handle overflow of millis() at ~50 days
   float candvol = analogRead(MICPIN);
   voltotal += candvol;
+  if(candvol > volmax){
+    volmax = candvol;
+  }
   ++volsamples;
   if(now - previousMillis > SAMPLEMS){
     noInterrupts();
@@ -47,9 +51,12 @@ void loop(){
     Serial.print("Count: ");
     Serial.println(thiscount);
 
-    Serial.print("Mic: ");
     voltotal /= volsamples;
+    Serial.print("Mic: ");    // average sample over the quantum
     Serial.println(voltotal);
+    Serial.print("Micmax: "); // maximum sample over the quantum
+    Serial.println(volmax);
+    volmax = FLT_MIN;
     voltotal = 0;
     volsamples = 0;
   }
