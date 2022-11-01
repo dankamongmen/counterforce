@@ -1,0 +1,10 @@
+[Unit]
+Description=Bind workstation USB devices
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/usbip attach -r10.128.0.1 -b9-4.3.4
+
+[Install]
+WantedBy=multi-user.target
