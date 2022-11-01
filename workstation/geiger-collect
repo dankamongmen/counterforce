@@ -35,7 +35,7 @@ do
       VAL=`jq -n $M/$MSAMPS`
       "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/mic" -m "{\"mic\":$VAL}" || \
         { echo "Error publishing mic average" >&2 ; }
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/micmax" -m "{\"mic\":$MICMAX}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/micmax" -m "{\"micmax\":$MICMAX}" || \
         { echo "Error publishing mic maximum" >&2 ; }
       M=0
       MSAMPS=0
