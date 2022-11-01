@@ -16,6 +16,7 @@ G=0
 M=0
 MSAMPS=0
 GSAMPS=0
+MICMAX=0 # FIXME can we get negative samples?
 exec cat < /dev/tty-geiger | while read line
 do
   # all reported values are integers or floats with a mantissa of 0
@@ -33,9 +34,16 @@ do
     if [ $MSAMPS -ge 15 ] ; then
       VAL=`jq -n $M/$MSAMPS`
       "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/mic" -m "{\"mic\":$VAL}" || \
-        { echo "Error publishing mic sample" >&2 ; }
+        { echo "Error publishing mic average" >&2 ; }
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/micmax" -m "{\"mic\":$MICMAX}" || \
+        { echo "Error publishing mic maximum" >&2 ; }
       M=0
       MSAMPS=0
+      MICMAX=0
+    fi
+  elif echo "$line" | grep '^Micmax: ' > /dev/null ; then
+    if [ $VAL -gt $MICMAX ] ; then
+      MICMAX=$VAL
     fi
   fi
 done
