@@ -36,7 +36,7 @@ const int PWMPIN = 8;
 const word PWM_FREQ_HZ = 25000;
 
 // initialize to white so we can immediately diagnose any missing colors
-byte Red = 0;
+byte Red = 255;
 byte Green = 255;
 byte Blue = 255;
 
