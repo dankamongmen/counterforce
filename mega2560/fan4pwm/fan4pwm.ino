@@ -203,11 +203,13 @@ static void check_pwm_update(void){
 
 static void printRPMSample(unsigned long val, const char* proto,
                            const char* desc, int pin){
-  if(val * 30 > MAXRPM){
+  // we call this once every 5s, each rotation is two tach signals,
+  // and RPM is reported per minutes: 60 / 2 / 5 == 6.
+  unsigned c = val * 6;
+  if(c > MAXRPM){
     Serial.print("invalid read ");
     Serial.print(val);
   }else{
-    unsigned c = val * 30;
     UART.print(proto);
     UART.print(c);
     Serial.print(pin, DEC);
@@ -221,7 +223,8 @@ static void printRPMSample(unsigned long val, const char* proto,
   Serial.print(' ');
 }
 
-const unsigned long LOOPUS = 1000000;
+// record and report a sample per quantum (5s)
+const unsigned long QUANTUMUS = 5000000;
 
 void loop (){
   static unsigned long m = 0;
@@ -234,15 +237,8 @@ void loop (){
   }
   do{
     cur = micros();
-    // handle micros() overflow...
-    if(cur < m){
-      if(m + LOOPUS > m){
-        break;
-      }else if(cur > m + LOOPUS){
-        break;
-      }
-    }
-  }while(cur - m < LOOPUS);
+    check_pwm_update();
+  }while(cur - m < QUANTUMUS); // handles overflow implicitly
   noInterrupts();
   unsigned p = Pulses;
   Pulses = 0;
@@ -265,6 +261,5 @@ void loop (){
   Serial.print(" PWM output: ");
   Serial.print(Pwm);
   Serial.println();
-  check_pwm_update();
   m = cur;
 }
