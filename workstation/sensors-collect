@@ -25,6 +25,9 @@ procnetdevtx() {
   echo $* | sed -e 's/ *//' | cut -d\  -f10
 }
 
+# this isn't going to change over our run
+#mqtt kernelver "\"`uname -r`\""
+
 # FIXME terrible, truly terrible
 while true ; do
   if [ -z "$HFLOW" ] ; then
@@ -51,8 +54,9 @@ while true ; do
   # it87 primary sensors
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
   mqtt cpu0rpm $CPU0RPM
-  CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
-  mqtt cpu1rpm $CPU1RPM
+  # tach on XTOP #1 B is not currently functional
+  #CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
+  #mqtt cpu1rpm $CPU1RPM
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
   mqtt mobohdrpm $HDRPM
   VRMMOS=$(sensors -j | jq '."it8688-isa-0a40"."vrmmos".temp2_input') 2> /dev/null
@@ -146,6 +150,9 @@ while true ; do
       mqtt nictxb$i $TX
     fi
   done
+
+  UPSEC=$(cut -d\  -f1 < /proc/uptime)
+  mqtt uptimesec $UPSEC
 
   sleep 10
 done
