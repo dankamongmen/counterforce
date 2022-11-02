@@ -22,7 +22,7 @@ void setup(){
   pinMode(RADPIN, INPUT_PULLUP); // set pin INT4 input for capturing GM Tube events
   //digitalWrite(RADPIN, HIGH); // turn on internal pullup resistors, solder C-INT on the PCB
   attachInterrupt(digitalPinToInterrupt(RADPIN), tube_impulse, FALLING); // define external interrupts
-  pinMode(MICPIN, INPUT);
+  pinMode(MICPIN, INPUT_PULLUP);
   previousMillis = millis();
   totalCount = 0;
 }
@@ -34,12 +34,20 @@ void loop(){
   unsigned long now = millis();
   // need to keep everything unsigned long so that we properly
   // handle overflow of millis() at ~50 days
-  float candvol = analogRead(MICPIN);
+  unsigned long candvol = analogRead(MICPIN);
   voltotal += candvol;
   if(candvol > volmax){
     volmax = candvol;
   }
   ++volsamples;
+
+  Serial.print("c: ");
+  Serial.print(candvol);
+  Serial.print(" v: ");
+  Serial.println(voltotal);
+
+delay(1000);
+
   if(now - previousMillis > SAMPLEMS){
     noInterrupts();
     previousMillis = now;
@@ -53,9 +61,12 @@ void loop(){
 
     voltotal /= volsamples;
     Serial.print("Mic: ");    // average sample over the quantum
-    Serial.println(voltotal);
+    Serial.print(voltotal);
+    Serial.print(" samp: ");
+    Serial.println(volsamples);
     Serial.print("Micmax: "); // maximum sample over the quantum
     Serial.println(volmax);
+
     volmax = FLT_MIN;
     voltotal = 0;
     volsamples = 0;
