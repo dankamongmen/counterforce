@@ -1,6 +1,8 @@
 #include <SoftwareSerial.h>
 // requires an Arduino Mega2560, possibly rev3, possibly only the authentic one.
 
+#define INITIAL_PWM 0
+
 // we average tach signals over this many quanta, if we have them. we track
 // the samples in a ringbuffer.
 #define TACHQUANTA 5
@@ -27,27 +29,48 @@ update_tach_samples(unsigned pulses, unsigned long tick){
     tachidx = 0;
   }
   unsigned idx = tachidx++; // where we're writing to
-  // first, we subtract any samples which are no longer valid from tachtotal.
-  // they're all zero at the beginning and thus not a problem. any non-zero
-  // values must have been added to tachtotal at some point, so they can be
-  // safely subtracted away once expired without going negative.
+  // first, we subtract any samples which are no longer valid from tachtotal
+  // (aside from any we're about to overwrite). they're all zero at the
+  // beginning and thus not a problem. any non-zero values must have been
+  // added to tachtotal at some point, so they can be safely subtracted away
+  // once expired without going negative.
   unsigned expired = (tick - lasttachtick) / QUANTUMUS;
-  if(expired > TACHQUANTA){
-    expired = TACHQUANTA;
+  if(expired && --expired){
+    Serial.print("expired: ");
+    Serial.println(expired);
+    if(expired > TACHQUANTA - 1){
+      expired = TACHQUANTA - 1;
+    }
   }
   unsigned expidx = idx; // where we're writing must be the oldest
   while(expired-- && tachsamplecount){
-    tachtotal -= tachsamples[expidx];
+    Serial.print("subtracting at ");
+    Serial.print(expidx);
+    Serial.print(": ");
+    Serial.println(tachsamples[expidx]);
     if(++expidx == TACHQUANTA){
       expidx = 0;
     }
+    tachtotal -= tachsamples[expidx];
     tachsamples[expidx] = 0;
     --tachsamplecount;
+  }
+  Serial.print("adding at ");
+  Serial.print(idx);
+  Serial.print(": ");
+  Serial.println(pulses);
+  tachtotal -= tachsamples[idx];
+  if(tachsamplecount == TACHQUANTA){
+    --tachsamplecount; // for the one we just knocked out
   }
   tachtotal += pulses;
   tachsamples[idx] = pulses;
   ++tachsamplecount;
   lasttachtick = tick;
+  Serial.print("total: ");
+  Serial.print(tachtotal);
+  Serial.print(" samples: ");
+  Serial.println(tachsamplecount);
   return tachtotal / tachsamplecount;
 }
 
@@ -141,7 +164,6 @@ static void apply_rgb(void){
 }
 
 void setup(){
-  const byte INITIAL_PWM = 0;
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
   UART.begin(UARTSPEED);
