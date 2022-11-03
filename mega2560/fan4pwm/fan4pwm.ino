@@ -1,15 +1,61 @@
 #include <SoftwareSerial.h>
 // requires an Arduino Mega2560, possibly rev3, possibly only the authentic one.
 
+// we average tach signals over this many quanta, if we have them. we track
+// the samples in a ringbuffer.
+#define TACHQUANTA 5
+
+static unsigned tachsamples[TACHQUANTA];
+static unsigned long tachtotal; // sum of elements in tachsamples
+static unsigned tachidx; // next position to write in tachsamples
+static unsigned long lasttachtick; // last micros() tick for which we saved samples
+static unsigned tachsamplecount; // [0..5], saturates at 5
+
+// currently tracked tach values for this quantum, reset at each tick
+volatile unsigned Pulses; // counter for input events, reset each second
+volatile unsigned XTOPPulsesA; // counter for Dual XTOP Pump 1
+volatile unsigned XTOPPulsesB; // counter for Dual XTOP Pump 2
+
+const unsigned long QUANTUMUS = 1000000;
+
+// pulses is the tack count sampled in this last quantum. tick is the
+// micros() value that ended the quantum. returns the average over
+// valid tracked samples (i.e. up to TACHQUANTA seconds' worth).
+static unsigned long
+update_tach_samples(unsigned pulses, unsigned long tick){
+  if(tachidx == TACHQUANTA){
+    tachidx = 0;
+  }
+  unsigned idx = tachidx++; // where we're writing to
+  // first, we subtract any samples which are no longer valid from tachtotal.
+  // they're all zero at the beginning and thus not a problem. any non-zero
+  // values must have been added to tachtotal at some point, so they can be
+  // safely subtracted away once expired without going negative.
+  unsigned expired = (tick - lasttachtick) / QUANTUMUS;
+  if(expired > TACHQUANTA){
+    expired = TACHQUANTA;
+  }
+  unsigned expidx = idx; // where we're writing must be the oldest
+  while(expired-- && tachsamplecount){
+    tachtotal -= tachsamples[expidx];
+    if(++expidx == TACHQUANTA){
+      expidx = 0;
+    }
+    tachsamples[expidx] = 0;
+    --tachsamplecount;
+  }
+  tachtotal += pulses;
+  tachsamples[idx] = pulses;
+  ++tachsamplecount;
+  lasttachtick = tick;
+  return tachtotal / tachsamplecount;
+}
+
 const unsigned long SERIALSPEED = 115200;
 const unsigned long UARTSPEED = 9600;
 
 // artificial ceiling enforced for fans and pumps
 const unsigned long MAXRPM = 6000;
-
-volatile unsigned Pulses; // counter for input events, reset each second
-volatile unsigned XTOPPulsesA; // counter for Dual XTOP Pump 1
-volatile unsigned XTOPPulsesB; // counter for Dual XTOP Pump 2
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
@@ -221,9 +267,9 @@ static void check_pwm_update(void){
 
 static void printRPMSample(unsigned long val, const char* proto,
                            const char* desc, int pin){
-  // we call this once every 5s, each rotation is two tach signals,
-  // and RPM is reported per minutes: 60 / 2 / 5 == 6.
-  unsigned c = val * 6;
+  // each rotation is two tach signals, and RPM is reported per
+  // minutes: 60 / 2 == 30.
+  unsigned c = val * 30;
   if(c > MAXRPM){
     Serial.print("invalid read ");
     Serial.print(val);
@@ -240,9 +286,6 @@ static void printRPMSample(unsigned long val, const char* proto,
   Serial.print(desc);
   Serial.print(' ');
 }
-
-// record and report a sample per quantum (5s)
-const unsigned long QUANTUMUS = 5000000;
 
 void loop (){
   static unsigned long m = 0;
@@ -265,7 +308,8 @@ void loop (){
   unsigned xb = XTOPPulsesB;
   XTOPPulsesB = 0;
   interrupts();
-  printRPMSample(p, "R", "fans", RPMPIN);
+  unsigned long rpmavg = update_tach_samples(p, cur);
+  printRPMSample(rpmavg, "R", "fans", RPMPIN);
   printRPMSample(xa, "A", "XtopA", XTOPPINA);
   printRPMSample(xb, "B", "XtopB", XTOPPINB);
   Serial.print(cur - m, DEC);
