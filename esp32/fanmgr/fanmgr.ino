@@ -382,9 +382,19 @@ int rpmPublish(EspMQTTClient& mqtt, const char* key, int val, int* lastval,
   return 0;
 }
 
+// at most, two three-digit numbers, two spaces, '/', and null term
+#define MAXPWMSTRLEN 10
+
+// compiler doesn't support static spec =\ pwmstr must be MAXPWMSTRLEN
+static char* makepwmstr(char* pwmstr, unsigned reported, unsigned requested){
+  snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", reported, requested);
+  return pwmstr;
+}
+
 // m is millis()
 static void updateDisplay(unsigned long m, float therm){
   char timestr[MAXTIMELEN];
+  char pwmstr[MAXPWMSTRLEN];
   // dump information to OLED
   Heltec.display->clear();
   Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -395,7 +405,7 @@ static void updateDisplay(unsigned long m, float therm){
     Heltec.display->drawString(31, 0, String(RPM));
   }
   Heltec.display->drawString(0, 11, "PWM: ");
-  Heltec.display->drawString(33, 11, String(Pwm));
+  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, ReportedPwm, Pwm));
   Heltec.display->drawString(0, 21, "Temp: ");
   if(therm == FLT_MAX){
     Heltec.display->drawString(35, 21, "n/a");
