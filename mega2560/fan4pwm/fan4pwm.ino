@@ -155,8 +155,8 @@ static void setup_timers(void){
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
   ICR5 = (F_CPU / PWM_FREQ_HZ) / 2;
-  TCCR5A = _BV(COM4C1) | _BV(WGM41);
-  TCCR5B = _BV(WGM43) | _BV(CS40);
+  TCCR5A = _BV(COM5C1) | _BV(WGM51);
+  TCCR5B = _BV(WGM53) | _BV(CS50);
 }
 
 static void apply_rgb(void){
