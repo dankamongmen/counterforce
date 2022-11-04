@@ -78,7 +78,7 @@ const unsigned long SERIALSPEED = 115200;
 const unsigned long UARTSPEED = 9600;
 
 // artificial ceiling enforced for fans and pumps
-const unsigned long MAXRPM = 6000;
+const unsigned long MAXRPM = 4000;
 
 // tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
