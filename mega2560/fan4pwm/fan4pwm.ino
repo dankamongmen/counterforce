@@ -1,7 +1,14 @@
 #include <SoftwareSerial.h>
 // requires an Arduino Mega2560, possibly rev3, possibly only the authentic one.
 
+const unsigned long SERIALSPEED = 115200;
+const unsigned long UARTSPEED = 9600;
+// we'll use two pins for UART communication with the ESP32, based
+// atop a serial pair. Serial2 is RX on 17, TX on 16.
+#define UART Serial2
+
 #define INITIAL_PWM 0
+unsigned Pwm; // initialized through setPwm
 
 // we average tach signals over this many quanta, if we have them. we track
 // the samples in a ringbuffer.
@@ -19,6 +26,48 @@ volatile unsigned XTOPPulsesA; // counter for Dual XTOP Pump 1
 volatile unsigned XTOPPulsesB; // counter for Dual XTOP Pump 2
 
 const unsigned long QUANTUMUS = 1000000;
+
+// artificial ceiling enforced for fans; if we count above this, we
+// don't send it, as it's likely an error.
+const unsigned long FANMAXRPM = 2000;
+// artificial ceiling enforced for pumps, see above.
+const unsigned long PUMPMAXRPM = 5000;
+
+// tachometer needs an interrupt-capable digital pin. on Mega,
+// this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
+const int RPMPIN = 2; // pin connected to tachometer
+
+// tachometers for the two D5 pumps of the Dual XTOP
+const int XTOPPINA = 20;
+const int XTOPPINB = 21;
+
+// for control of 12V RGB LEDs. we go through 10Kohm resistors on our way
+// to 3 N-MOSFETs (IRLB8721s), and from there emerge 3x 12V signals.
+const int RRGBPIN = 11;
+const int GRGBPIN = 10;
+const int BRGBPIN = 9;
+
+// we need three digital output pins for PWM (one for fans, two for pumps).
+const int PWMPIN = 8;
+const int XTOPPWMPINA = 44;
+const int XTOPPWMPINB = 45;
+
+// Intel spec for PWM fans demands a 25K frequency.
+const word PWM_FREQ_HZ = 25000;
+
+// initialize to white so we can immediately diagnose any missing colors
+byte Red = 255;
+byte Green = 255;
+byte Blue = 255;
+
+// on mega:
+//  pin 13, 4 == timer 0 (used for micros())
+//  pin 12, 11 == timer 1
+//  pin 10, 9 == timer 2
+//  pin 5, 3, 2 == timer 3
+//  pin 8, 7, 6 == timer 4
+//  pin 44, 45, 46 == timer 5
+
 
 // pulses is the tack count sampled in this last quantum. tick is the
 // micros() value that ended the quantum. returns the average over
@@ -73,52 +122,6 @@ update_tach_samples(unsigned pulses, unsigned long tick){
   Serial.println(tachsamplecount);
   return tachtotal / tachsamplecount;
 }
-
-const unsigned long SERIALSPEED = 115200;
-const unsigned long UARTSPEED = 9600;
-
-// artificial ceiling enforced for fans and pumps
-const unsigned long MAXRPM = 4000;
-
-// tachometer needs an interrupt-capable digital pin. on Mega,
-// this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-const int RPMPIN = 2; // pin connected to tachometer
-
-// tachometers for the two D5 pumps of the Dual XTOP
-const int XTOPPINA = 20;
-const int XTOPPINB = 21;
-
-// we'll use two pins for UART communication with the ESP32, based
-// atop a serial pair. Serial2 is RX on 17, TX on 16.
-#define UART Serial2
-
-// for control of 12V RGB LEDs. we go through 10Kohm resistors on our way
-// to 3 N-MOSFETs (IRLB8721s), and from there emerge 3x 12V signals.
-const int RRGBPIN = 11;
-const int GRGBPIN = 10;
-const int BRGBPIN = 9;
-
-// we need three digital output pins for PWM (one for fans, two for pumps).
-const int PWMPIN = 8;
-const int XTOPPWMPINA = 44;
-const int XTOPPWMPINB = 45;
-
-// Intel spec for PWM fans demands a 25K frequency.
-const word PWM_FREQ_HZ = 25000;
-
-// initialize to white so we can immediately diagnose any missing colors
-byte Red = 255;
-byte Green = 255;
-byte Blue = 255;
-
-unsigned Pwm;
-// on mega:
-//  pin 13, 4 == timer 0 (used for micros())
-//  pin 12, 11 == timer 1
-//  pin 10, 9 == timer 2
-//  pin 5, 3, 2 == timer 3
-//  pin 8, 7, 6 == timer 4
-//  pin 44, 45, 46 == timer 5
 
 static void rpm(void){
   if(Pulses < 65535){
@@ -196,7 +199,6 @@ void setup(){
   pinMode(RRGBPIN, OUTPUT);
   pinMode(GRGBPIN, OUTPUT);
   pinMode(BRGBPIN, OUTPUT);
-  apply_rgb();
 }
 
 void setPWM(unsigned pwm){
@@ -287,37 +289,33 @@ static void check_pwm_update(void){
   }
 }
 
-static void printRPMSample(unsigned long val, const char* proto,
-                           const char* desc, int pin){
+static void printRPMSample(unsigned long val, char proto,
+                           const char* desc, int pin,
+                           unsigned long typemax){
+  Serial.print(pin, DEC);
+  Serial.print(" ");
   // each rotation is two tach signals, and RPM is reported per
   // minutes: 60 / 2 == 30.
   unsigned c = val * 30;
-  if(c > MAXRPM){
+  if(c > typemax){
     Serial.print("invalid read ");
-    Serial.print(val);
   }else{
     UART.print(proto);
     UART.print(c);
-    Serial.print(pin, DEC);
-    Serial.print(" ");
-    Serial.print(val, DEC);
-    Serial.print(" ");
-    Serial.print(c, DEC);
   }
+  Serial.print(val, DEC);
   Serial.print(" ");
-  Serial.print(desc);
-  Serial.print(' ');
+  Serial.print(c, DEC);
+  Serial.print(" ");
+  Serial.println(desc);
 }
 
-void loop (){
-  static unsigned long m = 0;
+void loop(){
+  static unsigned long m;
   unsigned long cur;
 
   apply_rgb();
   apply_pwm(Pwm);
-  if(m == 0){
-    m = micros();
-  }
   do{
     cur = micros();
     check_pwm_update();
@@ -331,9 +329,9 @@ void loop (){
   XTOPPulsesB = 0;
   interrupts();
   unsigned long rpmavg = update_tach_samples(p, cur);
-  printRPMSample(rpmavg, "R", "fans", RPMPIN);
-  printRPMSample(xa, "A", "XtopA", XTOPPINA);
-  printRPMSample(xb, "B", "XtopB", XTOPPINB);
+  printRPMSample(rpmavg, 'R', "fans", RPMPIN, FANMAXRPM);
+  printRPMSample(xa, 'A', "XtopA", XTOPPINA, PUMPMAXRPM);
+  printRPMSample(xb, 'B', "XtopB", XTOPPINB, PUMPMAXRPM);
   Serial.print(cur - m, DEC);
   Serial.println("µs");
   UART.print("P");
