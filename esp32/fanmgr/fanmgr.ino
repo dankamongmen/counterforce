@@ -6,6 +6,7 @@
 #include "EspMQTTClient.h"
 #include <ArduinoJson.h>
 #include <OneWire.h>
+#include <driver/ledc.h>
 #include <DallasTemperature.h>
 
 const unsigned long RPM_CUTOFF = 10000;
@@ -17,6 +18,17 @@ const int UartRX = 36;
 const int TEMPPIN = 39;
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 23;
+
+// PWM channels for RGB fans
+const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
+const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
+const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
+const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
+const int FANPWMPIN = 37;
+const int FANTACHPIN = 38;
+const int RGBPINR = 35;
+const int RGBPING = 32;
+const int RGBPINB = 33;
 
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
 int Red = 0;
@@ -30,8 +42,13 @@ int XTopRPMA = INT_MAX;
 int XTopRPMB = INT_MAX;
 // PWM we want the client to run at (initialized to 0, read from MQTT)
 int Pwm = 0;
+int XTopPWMA = 0;
+int XTopPWMB = 0;
 // PWM as reported to us by the client (ought match what we request)
 int ReportedPwm = INT_MAX;
+
+// did we hit an error in initialization? only valid following setup().
+int InitError;
 
 HardwareSerial UART(1);
 
@@ -67,19 +84,56 @@ void readThermistor(float* t){
   *t = tn;
 }
 
+int initialize_pwm(ledc_channel_t channel, int pin, int freq){
+  ledc_channel_config_t conf;
+  memset(&conf, 0, sizeof(conf));
+  conf.gpio_num = pin;
+  conf.speed_mode = LEDC_HIGH_SPEED_MODE;
+  conf.intr_type = LEDC_INTR_DISABLE;
+  conf.timer_sel = LEDC_TIMER_0;
+  conf.duty = 8;
+  conf.channel = channel;
+  Serial.print("setting up pin ");
+  Serial.print(pin);
+  Serial.print(" for ");
+  Serial.print(freq);
+  Serial.print("Hz PWM...");
+  if(ledc_channel_config(&conf) != ESP_OK){
+    Serial.println("error!");
+    return -1;
+  }
+  Serial.println("success!");
+  return 0;
+}
+
+int initialize_rgb_pwm(ledc_channel_t channel, int pin){
+  return initialize_pwm(channel, pin, 5000);
+}
+
+int initialize_fan_pwm(ledc_channel_t channel, int pin){
+  return initialize_pwm(channel, pin, 25000);
+}
+
 void setup(){
+  int error = 0;
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
+  error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
+  error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
+  error |= initialize_rgb_pwm(FANCHANG, RGBPING);
+  error |= initialize_rgb_pwm(FANCHANB, RGBPINB);
   setPWM(INITIAL_PWM);
   pinMode(TEMPPIN, INPUT);
+  pinMode(FANTACHPIN, INPUT);
   digtemp.begin();
   Serial.print("1-Wire devices: ");
   Serial.println(digtemp.getDeviceCount());
   Serial.print("DS18xxx devices: ");
   Serial.println(digtemp.getDS18Count());
+  InitError = error;
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
@@ -96,6 +150,9 @@ static void send_rgb(void){
   UART.write(Red);
   UART.write(Green);
   UART.write(Blue);
+  ledcWrite(FANCHANR, Red);
+  ledcWrite(FANCHANG, Green);
+  ledcWrite(FANCHANB, Blue);
 }
 
 // precondition: isxdigit(c) is true
@@ -309,6 +366,9 @@ static void check_state_update(void){
 
 static void displayConnectionStatus(int y){
   const char* connstr;
+  if(InitError){
+    Heltec.display->drawString(0, y, "Init Error!");
+  }
   if(!client.isWifiConnected()){
     connstr = "No WiFi";
   }else if(!client.isMqttConnected()){
