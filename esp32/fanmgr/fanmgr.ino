@@ -9,9 +9,9 @@
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
 
-const unsigned long RPM_CUTOFF = 10000;
+const unsigned long RPM_CUTOFF = 5000;
 const unsigned long UARTSPEED = 9600;
-const int INITIAL_PWM = 0;
+const int INITIAL_PWM = 128;
 const int UartTX = 17;
 const int UartRX = 36;
 // coolant thermistor (2-wire)
@@ -31,19 +31,19 @@ const int RGBPING = 32;
 const int RGBPINB = 33;
 
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
-int Red = 0;
-int Green = 0xff;
-int Blue = 0;
+int Red = 0x8f;
+int Green = 0x8f;
+int Blue = 0x08;
 
 // RPMs as reported to us by the client for fans and the two XTop Dual pumps.
 // we only get the RPM count from one of our fans; it stands for all.
-int RPM = INT_MAX;
-int XTopRPMA = INT_MAX;
-int XTopRPMB = INT_MAX;
-// PWM we want the client to run at (initialized to 0, read from MQTT)
-int Pwm = 0;
-int XTopPWMA = 0;
-int XTopPWMB = 0;
+unsigned RPM = UINT_MAX;
+unsigned XTopRPMA = UINT_MAX;
+unsigned XTopRPMB = UINT_MAX;
+// PWMs we want to run at (initialized to INITIAL_PWM, read from MQTT)
+int Pwm;
+int XTopPWMA;
+int XTopPWMB;
 // PWM as reported to us by the client (ought match what we request)
 int ReportedPwm = INT_MAX;
 
@@ -137,10 +137,18 @@ void setup(){
 }
 
 // write the desired PWM value over UART (1 byte + label 'P')
-static void send_pwm(void){
+static int send_pwm(void){
   Serial.println("sending PWM over UART");
   UART.write('P');
   UART.write(Pwm); // send as single byte
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, Pwm) != ESP_OK){
+    Serial.println("error setting PWM!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
+    Serial.println("error committing PWM!");
+    return -1;
+  }
+  return 0;
 }
 
 // write the desired RGB values over UART (3 bytes + label 'C');
@@ -430,7 +438,7 @@ int mqttPublish(EspMQTTClient& mqtt, const char* key, const T& value){
   return 0;
 }
 
-int rpmPublish(EspMQTTClient& mqtt, const char* key, int val, int* lastval,
+int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val, unsigned* lastval,
                bool broadcast){
   if(*lastval != val || broadcast){
     *lastval = val;
@@ -442,11 +450,35 @@ int rpmPublish(EspMQTTClient& mqtt, const char* key, int val, int* lastval,
   return 0;
 }
 
+// at most, three five-digit numbers, four spaces, two '/'s, and null term
+#define MAXRPMSTRLEN 22
+
+// compiler doesn't support static spec =\ pwmstr must be MAXRPMSTRLEN
+static char* makerpmstr(char* rpmstr, unsigned fan, unsigned pump1, unsigned pump2){
+  if(fan > 65535){
+    fan = 0;
+  }
+  if(pump1 > 65535){
+    pump1 = 0;
+  }
+  if(pump2 > 65535){
+    pump2 = 0;
+  }
+  snprintf(rpmstr, MAXRPMSTRLEN, "%u / %u / %u", fan, pump1, pump2);
+  return rpmstr;
+}
+
 // at most, two three-digit numbers, two spaces, '/', and null term
 #define MAXPWMSTRLEN 10
 
 // compiler doesn't support static spec =\ pwmstr must be MAXPWMSTRLEN
 static char* makepwmstr(char* pwmstr, unsigned reported, unsigned requested){
+  if(reported > 65535){
+    reported = 0;
+  }
+  if(requested > 65535){
+    requested = 0;
+  }
   snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", reported, requested);
   return pwmstr;
 }
@@ -455,15 +487,12 @@ static char* makepwmstr(char* pwmstr, unsigned reported, unsigned requested){
 static void updateDisplay(unsigned long m, float therm){
   char timestr[MAXTIMELEN];
   char pwmstr[MAXPWMSTRLEN];
+  char rpmstr[MAXRPMSTRLEN];
   // dump information to OLED
   Heltec.display->clear();
   Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
   Heltec.display->drawString(0, 0, "RPM: ");
-  if(RPM == INT_MAX){
-    Heltec.display->drawString(31, 0, "n/a");
-  }else{
-    Heltec.display->drawString(31, 0, String(RPM));
-  }
+  Heltec.display->drawString(31, 0, makerpmstr(rpmstr, RPM, XTopRPMA, XTopRPMB));
   Heltec.display->drawString(0, 11, "PWM: ");
   Heltec.display->drawString(33, 11, makepwmstr(pwmstr, ReportedPwm, Pwm));
   Heltec.display->drawString(0, 21, "Temp: ");
@@ -485,11 +514,11 @@ void loop(){
   // frequently, in case the arduino has only just come online, but we don't
   // want to drown the partner in UART content. 
   static unsigned long last_broadcast = 0;
-  static int lastRPM = INT_MAX;
-  static int lastReportedPWM = INT_MAX;
-  static int lastReportedXA = INT_MAX;
-  static int lastReportedXB = INT_MAX;
-  static int lastPWM = -1;
+  static unsigned lastRPM = UINT_MAX;
+  static unsigned lastReportedPWM = UINT_MAX;
+  static unsigned lastReportedXA = UINT_MAX;
+  static unsigned lastReportedXB = UINT_MAX;
+  static unsigned lastPWM = UINT_MAX;
   float therm = FLT_MAX;
   readThermistor(&therm);
   // FIXME we can remove this updateDisplay/millis() once the client.loop()
