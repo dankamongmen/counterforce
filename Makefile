@@ -25,7 +25,7 @@ $(OUT)/codi6/internal.hex: $(addprefix codi6/internal/, internal.ino)
 
 $(OUT)/esp32/fanmgr.hex: $(addprefix esp32/fanmgr/, EspMQTTConfig.h fanmgr.ino)
 	@mkdir -p $(@D)
-	$(ACLI) compile -b heltec:esp32:wifi_lora_32_V2 -v --output-dir $(@D) esp32/fanmgr
+	$(ACLI) compile -b Heltec-esp32:esp32:wifi_lora_32_V2 -v --output-dir $(@D) esp32/fanmgr
 
 $(OUT)/mega2560/geiger.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
