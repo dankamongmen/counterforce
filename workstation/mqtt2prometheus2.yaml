@@ -298,6 +298,10 @@ metrics:
    mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
+ - prom_name: mora3fanpwm
+   mqtt_name: pwm
+   help: MO-RA3 fan PWM
+   type: gauge
  - prom_name: moraxtop0rpm
    mqtt_name: moraxtop0rpm
    help: MO-RA3 Dual XTOP pump 1 RPM
