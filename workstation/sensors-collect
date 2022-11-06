@@ -52,15 +52,24 @@ while true ; do
   mqtt tavg $TAVG
 
   # it87 primary sensors
+  # PWM: hwmon17/pwm1
   CPU0RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu0.fan1_input') 2> /dev/null
   mqtt cpu0rpm $CPU0RPM
-  # tach on XTOP #1 B is not currently functional
-  #CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
-  #mqtt cpu1rpm $CPU1RPM
+  # tach on XTOP #1 B is not currently functional!
+  # PWM: hwmon17/pwm5
+  CPU1RPM=$(sensors -j | jq '."it8688-isa-0a40".cpu1.fan5_input') 2> /dev/null
+  mqtt cpu1rpm $CPU1RPM
+  # PWM: hwmon17/pwm3
   HDRPM=$(sensors -j | jq '."it8688-isa-0a40"."sys2 (mobo hds)".fan3_input') 2> /dev/null
   mqtt mobohdrpm $HDRPM
+  # PWM: hwmon17/pwm2
+  VRMMOSRPM=$(sensors -j | jq '."it8688-isa-0a40"."mos".fan2_input') 2> /dev/null
+  mqtt vrmmosrpm $VRMMOSRPM
   VRMMOS=$(sensors -j | jq '."it8688-isa-0a40"."vrmmos".temp2_input') 2> /dev/null
   mqtt vrmmos $VRMMOS
+  # PWM: hwmon17/pwm4
+  PCHRPM=$(sensors -j | jq '."it8688-isa-0a40"."pch".fan4_input') 2> /dev/null
+  mqtt pchrpm $PCHRPM
   PCH=$(sensors -j | jq '."it8688-isa-0a40"."pch".temp3_input') 2> /dev/null
   mqtt pch $PCH
   AMBPSU=$(sensors -j | jq '."it8688-isa-0a40"."ec1 (loop)".temp6_input') 2> /dev/null
