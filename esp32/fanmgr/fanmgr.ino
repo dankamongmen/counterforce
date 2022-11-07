@@ -13,6 +13,8 @@ const unsigned long RPM_CUTOFF = 5000;
 const int TEMPPIN = 39; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 17;
+// pressure sensor
+const int PRESSUREPIN = 13;
 
 // PWM channels for RGB fans
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
@@ -66,32 +68,40 @@ void readAmbient(float* t){
     Serial.println("error reading 1-wire temp");
   }else{
     *t = tmp;
-    Serial.print("AMBIENT: ");
+    Serial.print("ambientC: ");
     Serial.println(*t);
   }
 }
 
+void readPressure(float* t){
+  float v0 = analogRead(PRESSUREPIN);
+  Serial.print("read raw V for pressure: ");
+  Serial.println(v0);
+}
+
 void readThermistor(float* t){
-  const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
-  const float NOMINAL = 25;
+  const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
+  const float NOMINAL = 298.15;
+  const float R0 = 10100;
   const float R1 = 10000;
   const float VREF = 3.3;
   float v0 = analogRead(TEMPPIN);
-  Serial.print("read raw voltage: ");
+  Serial.print("read raw V for coolant: ");
   Serial.print(v0);
   if(v0 == 0 || v0 >= 4095){
     Serial.println(" discarding");
     return;
   }
-  // 12-bit ADC on the ESP32
-  float scaled = v0 * (VREF / 4095.0);
+  // 12-bit ADC on the ESP32. get voltage [0..3.3]...
+  float scaled = v0 * VREF / 4095.0;
   Serial.print(" scaled: ");
   Serial.print(scaled);
-  float R = ((scaled * R1) / (VREF - scaled)) / R1;
-  Serial.print(" R: ");
-  Serial.println(R);
-  float tn = 1.0 / ((1.0 / NOMINAL) - ((log(R)) / BETA));
-  Serial.print("read raw temp: ");
+  float Rt = R1 * scaled / (VREF - scaled);
+  Serial.print(" Rt: ");
+  Serial.println(Rt);
+  float tn = 1.0 / ((1.0 / NOMINAL) + log(Rt / R0) / BETA);
+  tn -= 273.15;
+  Serial.print("coolantC: ");
   Serial.println(tn);
   *t = tn;
 }
@@ -166,12 +176,15 @@ void setup(){
   set_pump_pwm(INITIAL_PUMP_PWM);
   set_rgb();
   pinMode(TEMPPIN, INPUT);
+  pinMode(PRESSUREPIN, INPUT);
   pinMode(FANTACHPIN, INPUT);
   pinMode(XTOPATACHPIN, INPUT);
   pinMode(XTOPBTACHPIN, INPUT);
   attachInterrupt(FANTACHPIN, fantach, RISING);
   attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
   attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
+  updateDisplay(0, FLT_MAX, FLT_MAX);
+  // FIXME we ought rerun this until it works, to support hotplug
   digtemp.begin();
   Serial.print("1-Wire devices: ");
   Serial.println(digtemp.getDeviceCount());
@@ -483,9 +496,11 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
 // calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
+  static float pressure = FLT_MAX;
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   readThermistor(&coolant_temp);
+  readPressure(&pressure);
   readAmbient(&ambient_temp);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
