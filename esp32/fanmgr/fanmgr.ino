@@ -10,7 +10,6 @@
 #include <DallasTemperature.h>
 
 const unsigned long RPM_CUTOFF = 5000;
-const int INITIAL_PWM = 128;
 const int TEMPPIN = 39; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 17;
@@ -20,6 +19,8 @@ const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
 const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
+const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
+const int PUMPPWMPIN = 22;
 const int FANPWMPIN = 25;
 const int FANTACHPIN = 38;
 const int XTOPATACHPIN = 36;
@@ -40,10 +41,13 @@ static unsigned XTopRPMA;
 static unsigned XTopRPMB;
 static volatile unsigned long Pulses, XTAPulses, XTBPulses;
 
-// PWMs we want to run at (initialized to INITIAL_PWM, read from MQTT)
-int Pwm;
-int XTopPWMA;
-int XTopPWMB;
+// PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
+#define INITIAL_FAN_PWM  192
+#define INITIAL_PUMP_PWM 128
+static unsigned Pwm;
+static unsigned PumpPwm;
+static unsigned XTopPWMA;
+static unsigned XTopPWMB;
 
 // did we hit an error in initialization? only valid following setup().
 int InitError;
@@ -75,7 +79,7 @@ void readThermistor(float* t){
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw voltage: ");
   Serial.print(v0);
-  if(v0 == 0){
+  if(v0 == 0 || v0 >= 4095){
     Serial.println(" discarding");
     return;
   }
@@ -135,18 +139,6 @@ int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
 
-static int setPWM(int pwm){
-  if(pwm < 0 || pwm > 255){
-    Serial.print("invalid pwm: ");
-    Serial.println(pwm);
-    return -1;
-  }
-  Serial.print("PWM to ");
-  Serial.println(pwm);
-  Pwm = pwm;
-  return 0;
-}
-
 void fantach(void){
   ++Pulses;
 }
@@ -165,11 +157,14 @@ void setup(){
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
+  error |= initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
   error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
   error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
   error |= initialize_rgb_pwm(FANCHANG, RGBPING);
   error |= initialize_rgb_pwm(FANCHANB, RGBPINB);
-  setPWM(INITIAL_PWM);
+  set_pwm(INITIAL_FAN_PWM);
+  set_pump_pwm(INITIAL_PUMP_PWM);
+  set_rgb();
   pinMode(TEMPPIN, INPUT);
   pinMode(FANTACHPIN, INPUT);
   pinMode(XTOPATACHPIN, INPUT);
@@ -183,26 +178,42 @@ void setup(){
   Serial.print("DS18xxx devices: ");
   Serial.println(digtemp.getDS18Count());
   InitError = error;
-  send_pwm();
-  send_rgb();
 }
 
 // set up the desired PWM value
-static int send_pwm(void){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, Pwm) != ESP_OK){
+static int set_pwm(unsigned p){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, p) != ESP_OK){
     Serial.println("error setting PWM!");
     return -1;
   }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
     Serial.println("error committing PWM!");
     return -1;
   }else{
-    Serial.println("configured PWM");
+    Serial.print("configured PWM: ");
+    Serial.println(p);
+    Pwm = p;
   }
   return 0;
 }
 
-// write the desired RGB values over UART (3 bytes + label 'C');
-static int send_rgb(void){
+// set up the desired pump PWM value
+static int set_pump_pwm(unsigned p){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN, p) != ESP_OK){
+    Serial.println("error setting PWM!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN) != ESP_OK){
+    Serial.println("error committing PWM!");
+    return -1;
+  }else{
+    Serial.print("configured pump PWM: ");
+    Serial.println(p);
+    PumpPwm = p;
+  }
+  return 0;
+}
+
+// set up the desired RGB PWM values
+static int set_rgb(void){
   if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANR, Red) != ESP_OK){
     Serial.println("error setting red!");
     return -1;
@@ -262,7 +273,7 @@ void onConnectionEstablished() {
       Red = colors[0];
       Green = colors[1];
       Blue = colors[2];
-      send_rgb();
+      set_rgb();
     }
   );
   client.subscribe("control/mora3/pwm", [](const String &payload){
@@ -282,11 +293,33 @@ void onConnectionEstablished() {
         p *= 10; // FIXME check for overflow
         p += h - '0';
       }
-      setPWM(p);
-      send_pwm();
+      if(p < 256){
+        set_pwm(p);
+      }
     }
   );
-  // FIXME need a pump pwm control
+  client.subscribe("control/mora3/pumppwm", [](const String &payload){
+      Serial.print("received pump PWM via mqtt: ");
+      Serial.println(payload);
+      unsigned long p = 0;
+      if(payload.length() == 0){
+        Serial.println("empty PWM input");
+        return;
+      }
+      for(int i = 0 ; i < payload.length() ; ++i){
+        char h = payload.charAt(i);
+        if(!isdigit(h)){
+          Serial.println("invalid PWM character");
+          return;
+        }
+        p *= 10; // FIXME check for overflow
+        p += h - '0';
+      }
+      if(p < 256){
+        set_pump_pwm(p);
+      }
+    }
+  );
 }
 
 static void displayConnectionStatus(int y){
@@ -384,15 +417,18 @@ static char* makerpmstr(char* rpmstr, unsigned fan, unsigned pump1, unsigned pum
   return rpmstr;
 }
 
-// at most, one three-digit number and null term
-#define MAXPWMSTRLEN 4
+// at most, two three-digit numbers, two spaces, '/', and null term
+#define MAXPWMSTRLEN 10
 
 // compiler doesn't support static spec =\ pwmstr must be MAXPWMSTRLEN
-static char* makepwmstr(char* pwmstr, unsigned requested){
-  if(requested > 65535){
-    requested = 0;
+static char* makepwmstr(char* pwmstr, unsigned fan, unsigned pump){
+  if(fan > 65535){
+    fan = 0;
   }
-  snprintf(pwmstr, MAXPWMSTRLEN, "%u", requested);
+  if(pump > 65535){
+    pump = 0;
+  }
+  snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", fan, pump);
   return pwmstr;
 }
 
@@ -426,7 +462,7 @@ static void updateDisplay(unsigned long m, float therm, float ambient){
   Heltec.display->drawString(0, 0, "RPM: ");
   Heltec.display->drawString(31, 0, makerpmstr(rpmstr, RPM, XTopRPMA, XTopRPMB));
   Heltec.display->drawString(0, 11, "PWM: ");
-  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, Pwm));
+  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, Pwm, PumpPwm));
   Heltec.display->drawString(0, 21, "Temp: ");
   Heltec.display->drawString(35, 21, maketempstr(rpmstr, sizeof(rpmstr), therm, ambient));
   Heltec.display->drawString(0, 31, "Uptime: ");
@@ -479,10 +515,6 @@ void loop(){
   Serial.print(RPM);
   Serial.println(" RPM measured at fan");
   updateDisplay(m, coolant_temp, ambient_temp);
-  send_pwm();
-  // send RGB regularly in case device resets (RGB isn't reported to us,
-  // unlike PWM, so we can't merely send on unexpected read).
-  send_rgb();
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "rpm", RPM);
