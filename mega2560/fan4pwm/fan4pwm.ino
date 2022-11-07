@@ -72,8 +72,7 @@ byte Blue = 255;
 // pulses is the tack count sampled in this last quantum. tick is the
 // micros() value that ended the quantum. returns the average over
 // valid tracked samples (i.e. up to TACHQUANTA seconds' worth).
-static unsigned long
-update_tach_samples(unsigned pulses, unsigned long tick){
+static unsigned long update_tach_samples(unsigned pulses, unsigned long tick){
   if(tachidx == TACHQUANTA){
     tachidx = 0;
   }

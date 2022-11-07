@@ -1,6 +1,6 @@
-// intended for use on a Heltec ESP32LoRav2, this manages (via UART) a device
-// controlling a PWM fan. it receives PWM control messages, and sends RPM and
-// temperature reports, over MQTT.
+// intended for use on a Heltec ESP32LoRav2, this manages a PWM fan and two
+// PWM pumps. it receives PWM control messages, and sends RPM and temperature
+// reports, over MQTT.
 #include "heltec.h"
 #include <float.h>
 #include "EspMQTTClient.h"
@@ -10,23 +10,21 @@
 #include <DallasTemperature.h>
 
 const unsigned long RPM_CUTOFF = 5000;
-const unsigned long UARTSPEED = 9600;
 const int INITIAL_PWM = 128;
-const int UartTX = 17;
-const int UartRX = 36;
-// coolant thermistor (2-wire)
-const int TEMPPIN = 39;
+const int TEMPPIN = 39; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 23;
+const int AMBIENTPIN = 17;
 
 // PWM channels for RGB fans
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
 const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
-const int FANPWMPIN = 37;
+const int FANPWMPIN = 25;
 const int FANTACHPIN = 38;
-const int RGBPINR = 35;
+const int XTOPATACHPIN = 36;
+const int XTOPBTACHPIN = 37;
+const int RGBPINR = 12;
 const int RGBPING = 32;
 const int RGBPINB = 33;
 
@@ -35,22 +33,20 @@ int Red = 0x8f;
 int Green = 0x8f;
 int Blue = 0x08;
 
-// RPMs as reported to us by the client for fans and the two XTop Dual pumps.
+// RPMs as determined by our interrupt handlers.
 // we only get the RPM count from one of our fans; it stands for all.
-unsigned RPM = UINT_MAX;
-unsigned XTopRPMA = UINT_MAX;
-unsigned XTopRPMB = UINT_MAX;
+static unsigned RPM;
+static unsigned XTopRPMA;
+static unsigned XTopRPMB;
+static volatile unsigned long Pulses, XTAPulses, XTBPulses;
+
 // PWMs we want to run at (initialized to INITIAL_PWM, read from MQTT)
 int Pwm;
 int XTopPWMA;
 int XTopPWMB;
-// PWM as reported to us by the client (ought match what we request)
-int ReportedPwm = INT_MAX;
 
 // did we hit an error in initialization? only valid following setup().
 int InitError;
-
-HardwareSerial UART(1);
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
@@ -58,6 +54,18 @@ EspMQTTClient client(
 
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
+
+void readAmbient(float* t){
+  digtemp.requestTemperatures();
+  float tmp = digtemp.getTempCByIndex(0);
+  if(*t <= DEVICE_DISCONNECTED_C){
+    Serial.println("error reading 1-wire temp");
+  }else{
+    *t = tmp;
+    Serial.print("AMBIENT: ");
+    Serial.println(*t);
+  }
+}
 
 void readThermistor(float* t){
   const int BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
@@ -68,7 +76,7 @@ void readThermistor(float* t){
   Serial.print("read raw voltage: ");
   Serial.print(v0);
   if(v0 == 0){
-    Serial.println(", throwing it out");
+    Serial.println(" discarding");
     return;
   }
   // 12-bit ADC on the ESP32
@@ -84,14 +92,17 @@ void readThermistor(float* t){
   *t = tn;
 }
 
+#define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
+#define FANPWM_TIMER LEDC_TIMER_1
+
 int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   ledc_channel_config_t conf;
   memset(&conf, 0, sizeof(conf));
   conf.gpio_num = pin;
   conf.speed_mode = LEDC_HIGH_SPEED_MODE;
   conf.intr_type = LEDC_INTR_DISABLE;
-  conf.timer_sel = LEDC_TIMER_0;
-  conf.duty = 8;
+  conf.timer_sel = FANPWM_TIMER;
+  conf.duty = FANPWM_BIT_NUM;
   conf.channel = channel;
   Serial.print("setting up pin ");
   Serial.print(pin);
@@ -99,7 +110,17 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   Serial.print(freq);
   Serial.print("Hz PWM...");
   if(ledc_channel_config(&conf) != ESP_OK){
-    Serial.println("error!");
+    Serial.println("error (channel config)!");
+    return -1;
+  }
+  ledc_timer_config_t ledc_timer;
+  memset(&ledc_timer, 0, sizeof(ledc_timer));
+  ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
+  ledc_timer.bit_num = FANPWM_BIT_NUM;
+  ledc_timer.timer_num = FANPWM_TIMER;
+  ledc_timer.freq_hz = 25000;
+  if(ledc_timer_config(&ledc_timer) != ESP_OK){
+    Serial.println("error (timer config)!");
     return -1;
   }
   Serial.println("success!");
@@ -114,13 +135,36 @@ int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
 
+static int setPWM(int pwm){
+  if(pwm < 0 || pwm > 255){
+    Serial.print("invalid pwm: ");
+    Serial.println(pwm);
+    return -1;
+  }
+  Serial.print("PWM to ");
+  Serial.println(pwm);
+  Pwm = pwm;
+  return 0;
+}
+
+void fantach(void){
+  ++Pulses;
+}
+
+void xtop1tach(void){
+  ++XTAPulses;
+}
+
+void xtop2tach(void){
+  ++XTBPulses;
+}
+
 void setup(){
   int error = 0;
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  UART.begin(UARTSPEED, SERIAL_8N1, UartRX, UartTX);
   error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
   error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
   error |= initialize_rgb_pwm(FANCHANG, RGBPING);
@@ -128,39 +172,60 @@ void setup(){
   setPWM(INITIAL_PWM);
   pinMode(TEMPPIN, INPUT);
   pinMode(FANTACHPIN, INPUT);
+  pinMode(XTOPATACHPIN, INPUT);
+  pinMode(XTOPBTACHPIN, INPUT);
+  attachInterrupt(FANTACHPIN, fantach, RISING);
+  attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
+  attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
   digtemp.begin();
   Serial.print("1-Wire devices: ");
   Serial.println(digtemp.getDeviceCount());
   Serial.print("DS18xxx devices: ");
   Serial.println(digtemp.getDS18Count());
   InitError = error;
+  send_pwm();
+  send_rgb();
 }
 
-// write the desired PWM value over UART (1 byte + label 'P')
+// set up the desired PWM value
 static int send_pwm(void){
-  Serial.println("sending PWM over UART");
-  UART.write('P');
-  UART.write(Pwm); // send as single byte
   if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, Pwm) != ESP_OK){
     Serial.println("error setting PWM!");
     return -1;
   }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
     Serial.println("error committing PWM!");
     return -1;
+  }else{
+    Serial.println("configured PWM");
   }
   return 0;
 }
 
 // write the desired RGB values over UART (3 bytes + label 'C');
-static void send_rgb(void){
-  Serial.println("sending RGB over UART");
-  UART.write('C');
-  UART.write(Red);
-  UART.write(Green);
-  UART.write(Blue);
-  ledcWrite(FANCHANR, Red);
-  ledcWrite(FANCHANG, Green);
-  ledcWrite(FANCHANB, Blue);
+static int send_rgb(void){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANR, Red) != ESP_OK){
+    Serial.println("error setting red!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANR) != ESP_OK){
+    Serial.println("error committing red!");
+    return -1;
+  }
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANB, Blue) != ESP_OK){
+    Serial.println("error setting blue!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANB) != ESP_OK){
+    Serial.println("error committing blue!");
+    return -1;
+  }
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANG, Green) != ESP_OK){
+    Serial.println("error setting green!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANG) != ESP_OK){
+    Serial.println("error committing green!");
+    return -1;
+  }
+  Serial.println("configured RGB");
+  return 0;
 }
 
 // precondition: isxdigit(c) is true
@@ -221,156 +286,8 @@ void onConnectionEstablished() {
       send_pwm();
     }
   );
+  // FIXME need a pump pwm control
 }
-
-static int setPWM(int pwm){
-  if(pwm < 0 || pwm > 255){
-    Serial.print("invalid pwm: ");
-    Serial.println(pwm);
-    return -1;
-  }
-  Serial.print("PWM to ");
-  Serial.println(pwm);
-  Pwm = pwm;
-  return 0;
-}
-
-// simple state machine around protocol of:
-// top: { stat }*
-// state: [R] posint | [A] posint | [B] posint | [P] ubyte
-//  float: digit+.digit+
-// t: coolant temp
-// r: fan rpm based off previous second
-// a: xtop pump 1 rpm
-// b: xtop pump 2 rpm
-// p: pwm
-// all exceptions return to top
-static void check_state_update(void){
-  static enum {
-    STATE_BEGIN,
-    STATE_PWM,
-    STATE_RPM,
-    STATE_XTOPA,
-    STATE_XTOPB,
-  } state = STATE_BEGIN;
-  static int int_ongoing;
-  int in;
-  while((in = UART.read()) != -1){
-    Serial.print("read byte from UART!!! ");
-    Serial.println(in, HEX);
-    switch(state){
-      case STATE_BEGIN:
-        if(in == 'R'){
-          state = STATE_RPM;
-          int_ongoing = 0;
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          int_ongoing = 0;
-        }else{
-          Serial.print("unexpected stat prefix: ");
-          Serial.println(in, HEX);
-        }
-        break;
-      case STATE_PWM:
-        if(isdigit(in)){
-          int_ongoing *= 10;
-          int_ongoing += in - '0';
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          ReportedPwm = int_ongoing;
-          if(Pwm != ReportedPwm){
-            send_pwm();
-          }
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          ReportedPwm = int_ongoing;
-          if(Pwm != ReportedPwm){
-            send_pwm();
-          }
-          int_ongoing = 0;
-        }else if(in == 'R'){
-          state = STATE_RPM;
-          ReportedPwm = int_ongoing;
-          if(Pwm != ReportedPwm){
-            send_pwm();
-          }
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      case STATE_XTOPA:
-        if(isdigit(in)){
-          int_ongoing *= 10;
-          int_ongoing += in - '0';
-        }else if(in == 'R'){
-          state = STATE_RPM;
-          XTopRPMA = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          XTopRPMA = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
-          XTopRPMA = int_ongoing;
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      case STATE_XTOPB:
-        if(isdigit(in)){
-          int_ongoing *= 10;
-          int_ongoing += in - '0';
-        }else if(in == 'R'){
-          state = STATE_RPM;
-          XTopRPMB = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          XTopRPMB = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
-          XTopRPMB = int_ongoing;
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      case STATE_RPM:
-        if(isdigit(in)){
-          int_ongoing *= 10;
-          int_ongoing += in - '0';
-        }else if(in == 'A'){
-          state = STATE_XTOPA;
-          RPM = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'B'){
-          state = STATE_XTOPB;
-          RPM = int_ongoing;
-          int_ongoing = 0;
-        }else if(in == 'P'){
-          state = STATE_PWM;
-          RPM = int_ongoing;
-          int_ongoing = 0;
-        }else{
-          state = STATE_BEGIN;
-        }
-        break;
-      default:
-        Serial.println("invalid lexer state!");
-        state = STATE_BEGIN;
-        break;
-    }
-  }
-}
-
 
 static void displayConnectionStatus(int y){
   const char* connstr;
@@ -394,7 +311,12 @@ static void displayConnectionStatus(int y){
 
 // timestr needs be MAXTIMELEN bytes or more
 static int maketimestr(char *timestr, unsigned long m){
-  unsigned long t = m / 1000; // FIXME deal with rollover
+  static unsigned rollovercount;
+  static unsigned long last_m;
+  if(m < last_m){ // we rolled over
+    ++rollovercount;
+  }
+  unsigned long t = m / 1000000; // FIXME factor in rollover (~1.1h)
   unsigned long epoch = 365ul * 24 * 60 * 60;
   int off = 0; // write offset
   if(t > epoch){
@@ -427,8 +349,7 @@ static int maketimestr(char *timestr, unsigned long m){
   return 0;
 }
 
-template<typename T>
-int mqttPublish(EspMQTTClient& mqtt, const char* key, const T& value){
+template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
   DynamicJsonDocument doc(BUFSIZ); // FIXME
   doc[key] = value;
   // PubSubClient limits messages to 256 bytes
@@ -438,14 +359,9 @@ int mqttPublish(EspMQTTClient& mqtt, const char* key, const T& value){
   return 0;
 }
 
-int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val, unsigned* lastval,
-               bool broadcast){
-  if(*lastval != val || broadcast){
-    *lastval = val;
-    if(val < RPM_CUTOFF){ // filter out obviously incorrect values
-      return mqttPublish(client, key, val);
-    }
-    Serial.println("don't have a valid rpm sample");
+int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
+  if(val < RPM_CUTOFF){ // filter out obviously incorrect values
+    return mqttPublish(client, key, val);
   }
   return 0;
 }
@@ -468,23 +384,39 @@ static char* makerpmstr(char* rpmstr, unsigned fan, unsigned pump1, unsigned pum
   return rpmstr;
 }
 
-// at most, two three-digit numbers, two spaces, '/', and null term
-#define MAXPWMSTRLEN 10
+// at most, one three-digit number and null term
+#define MAXPWMSTRLEN 4
 
 // compiler doesn't support static spec =\ pwmstr must be MAXPWMSTRLEN
-static char* makepwmstr(char* pwmstr, unsigned reported, unsigned requested){
-  if(reported > 65535){
-    reported = 0;
-  }
+static char* makepwmstr(char* pwmstr, unsigned requested){
   if(requested > 65535){
     requested = 0;
   }
-  snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", reported, requested);
+  snprintf(pwmstr, MAXPWMSTRLEN, "%u", requested);
   return pwmstr;
 }
 
+static inline bool valid_temp(float t){
+  return !(t == FLT_MAX || isnan(t) || t <= DEVICE_DISCONNECTED_C);
+}
+
+static char* maketempstr(char* tempstr, size_t n, float coolant, float ambient){
+  if(!valid_temp(coolant)){
+    if(!valid_temp(ambient)){
+      snprintf(tempstr, n, "n/a / n/a");
+    }else{
+      snprintf(tempstr, n, "%.2f / n/a", ambient);
+    }
+  }else if(!valid_temp(ambient)){
+    snprintf(tempstr, n, "n/a / %.2f", coolant);
+  }else{
+    snprintf(tempstr, n, "%.2f / %.2f", ambient, coolant);
+  }
+  return tempstr;
+}
+
 // m is millis()
-static void updateDisplay(unsigned long m, float therm){
+static void updateDisplay(unsigned long m, float therm, float ambient){
   char timestr[MAXTIMELEN];
   char pwmstr[MAXPWMSTRLEN];
   char rpmstr[MAXRPMSTRLEN];
@@ -494,13 +426,9 @@ static void updateDisplay(unsigned long m, float therm){
   Heltec.display->drawString(0, 0, "RPM: ");
   Heltec.display->drawString(31, 0, makerpmstr(rpmstr, RPM, XTopRPMA, XTopRPMB));
   Heltec.display->drawString(0, 11, "PWM: ");
-  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, ReportedPwm, Pwm));
+  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, Pwm));
   Heltec.display->drawString(0, 21, "Temp: ");
-  if(therm == FLT_MAX){
-    Heltec.display->drawString(35, 21, "n/a");
-  }else{
-    Heltec.display->drawString(35, 21, String(therm));
-  }
+  Heltec.display->drawString(35, 21, maketempstr(rpmstr, sizeof(rpmstr), therm, ambient));
   Heltec.display->drawString(0, 31, "Uptime: ");
   Heltec.display->drawString(41, 31, maketimestr(timestr, m) ?
                              "a long time" : timestr);
@@ -509,71 +437,67 @@ static void updateDisplay(unsigned long m, float therm){
   Heltec.display->display();
 }
 
+static inline float rpm(unsigned long pulses, unsigned long usec){
+  return pulses * 60 / 2 * (1000000.0 / usec);
+}
+
+// we transmit and update the display approximately every 3s, sampling
+// RPM at this time. we continuously sample the temperature, and use the
+// most recent valid read for transmit/display. there are several blocking
+// calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
-  // millis() when we last sent a PWM directive over the UART. we send it
-  // frequently, in case the arduino has only just come online, but we don't
-  // want to drown the partner in UART content. 
-  static unsigned long last_broadcast = 0;
-  static unsigned lastRPM = UINT_MAX;
-  static unsigned lastReportedPWM = UINT_MAX;
-  static unsigned lastReportedXA = UINT_MAX;
-  static unsigned lastReportedXB = UINT_MAX;
-  static unsigned lastPWM = UINT_MAX;
-  float therm = FLT_MAX;
-  readThermistor(&therm);
-  // FIXME we can remove this updateDisplay/millis() once the client.loop()
-  // below is bounded
-  unsigned long m = millis();
-  updateDisplay(m, therm);
-  // FIXME use the enqueue work version of this, as client.loop() can
-  // block for arbitrary amounts of time
+  static unsigned long last_tx; // micros() when we last transmitted to MQTT
+  static float coolant_temp = FLT_MAX;
+  static float ambient_temp = FLT_MAX;
+  readThermistor(&coolant_temp);
+  readAmbient(&ambient_temp);
+  unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
-  check_state_update();
-  m = millis();
 
-  float digiC = FLT_MAX;
-  // FIXME need some error litmus
-  digtemp.requestTemperatures();
-  digiC = digtemp.getTempCByIndex(0);
-  Serial.print("AMBIENT: ");
-  Serial.println(digiC);
-
-  updateDisplay(m, therm);
-  bool broadcast = false;
-  if(m - last_broadcast >= 3000){
-    broadcast = true;
-    last_broadcast = m;
-    lastPWM = Pwm;
-    send_pwm();
-  }else if(lastPWM != Pwm){
-    lastPWM = Pwm;
-    last_broadcast = m;
-    send_pwm();
+  unsigned long diff = m - last_tx;
+  if(diff < 3000000){
+    return;
   }
-  // we send reported values to MQTT as soon as they change, and also as
-  // part of any broadcast. this relies on infrequent value reports; we
-  // implement no ratelimiting atop receipt.
-  rpmPublish(client, "pwm", ReportedPwm, &lastReportedPWM, broadcast);
-  rpmPublish(client, "moraxtop0rpm", XTopRPMA, &lastReportedXA, broadcast);
-  rpmPublish(client, "moraxtop1rpm", XTopRPMB, &lastReportedXB, broadcast);
-  rpmPublish(client, "rpm", RPM, &lastRPM, broadcast);
-  if(broadcast){
-    // send RGB regularly in case device resets (RGB isn't reported to us,
-    // unlike PWM, so we can't merely send on unexpected read).
-    send_rgb();
-    if(therm != FLT_MAX && !isnan(therm)){
-      mqttPublish(client, "therm", therm);
-    }else{
-      Serial.println("don't have a therm sample");
-    }
-    // there are several error codes returned by DallasTermperature, all of
-    // them equal to or less than DEVICE_DISCONNECTED_C (there are also
-    // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
-    // DEVICE_FAULT_SHORTVDD_C).
-    if(digiC != FLT_MAX && !isnan(digiC) && digiC > DEVICE_DISCONNECTED_C){
-      mqttPublish(client, "moraambient", digiC);
-    }else{
-      Serial.println("don't have an ambient sample");
-    }
+  // sample RPM, transmit, and update the display
+  // FIXME replace with MEGA's rolling 5s logic
+  last_tx = m;
+  noInterrupts();
+  unsigned long p = Pulses;
+  Pulses = 0;
+  unsigned long x1p = XTAPulses;
+  XTAPulses = 0;
+  unsigned long x2p = XTBPulses;
+  XTBPulses = 0;
+  interrupts();
+  Serial.print(diff);
+  Serial.println(" µsec expired for cycle");
+  Serial.print(p);
+  Serial.println(" pulses measured at fan");
+  RPM = rpm(p, diff);
+  XTopRPMA = rpm(x1p, diff);
+  XTopRPMB = rpm(x2p, diff);
+  Serial.print(RPM);
+  Serial.println(" RPM measured at fan");
+  updateDisplay(m, coolant_temp, ambient_temp);
+  send_pwm();
+  // send RGB regularly in case device resets (RGB isn't reported to us,
+  // unlike PWM, so we can't merely send on unexpected read).
+  send_rgb();
+  rpmPublish(client, "moraxtop0rpm", XTopRPMA);
+  rpmPublish(client, "moraxtop1rpm", XTopRPMB);
+  rpmPublish(client, "rpm", RPM);
+  if(valid_temp(coolant_temp)){
+    mqttPublish(client, "therm", coolant_temp);
+  }else{
+    Serial.println("don't have a coolant sample");
+  }
+  // there are several error codes returned by DallasTermperature, all of
+  // them equal to or less than DEVICE_DISCONNECTED_C (there are also
+  // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
+  // DEVICE_FAULT_SHORTVDD_C).
+  if(valid_temp(ambient_temp)){
+    mqttPublish(client, "moraambient", ambient_temp);
+  }else{
+    Serial.println("don't have an ambient sample");
   }
 }
