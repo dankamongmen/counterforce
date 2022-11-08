@@ -9,6 +9,8 @@
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
 
+#define VERSION "v2.0.0"
+
 const unsigned long RPM_CUTOFF = 5000;
 const int TEMPPIN = 39; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
@@ -50,9 +52,6 @@ static unsigned Pwm;
 static unsigned PumpPwm;
 static unsigned XTopPWMA;
 static unsigned XTopPWMB;
-
-// did we hit an error in initialization? only valid following setup().
-int InitError;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
@@ -190,7 +189,6 @@ void setup(){
   Serial.println(digtemp.getDeviceCount());
   Serial.print("DS18xxx devices: ");
   Serial.println(digtemp.getDS18Count());
-  InitError = error;
 }
 
 // set up the desired PWM value
@@ -337,9 +335,8 @@ void onConnectionEstablished() {
 
 static void displayConnectionStatus(int y){
   const char* connstr;
-  if(InitError){
-    Heltec.display->drawString(0, y, "Init Error!");
-  }
+  Heltec.display->drawString(0, y, VERSION);
+  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   if(!client.isWifiConnected()){
     connstr = "No WiFi";
   }else if(!client.isMqttConnected()){
@@ -481,7 +478,6 @@ static void updateDisplay(unsigned long m, float therm, float ambient){
   Heltec.display->drawString(0, 31, "Uptime: ");
   Heltec.display->drawString(41, 31, maketimestr(timestr, m) ?
                              "a long time" : timestr);
-  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
   displayConnectionStatus(51);
   Heltec.display->display();
 }
