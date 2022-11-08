@@ -16,7 +16,7 @@ mqtt() {
 
 while true ; do
   # these require root, ugh--set powercap-info suid root, or something similar =\.
-  UPSW=$(pwrstat -status | grep Load | cut -d\  -f2) || UPSW=""
+  UPSW=$(pwrstat -status | grep Load | cut -d\  -f2 || echo "")
   if [ -n "$UPSW" ] ; then
     mqtt upswatts $UPSW
   else
