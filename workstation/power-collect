@@ -24,17 +24,29 @@ while true ; do
   fi
 
   # we get our delay from this turbostat invocation
+  #turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 > /home/dank/turbocrappy
+  #TURBS=$(tail -n 1 < /home/dank/turbocrappy)
   TURBS=$(turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | tail -n 1)
   # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt
-  AVGKHZ=$(echo $TURBS | cut -d\  -f1)
-  AVGKHZ=$((AVGKHZ * 1000))
   BPCENT=$(echo $TURBS | cut -d\  -f2)
-  BKHZ=$(echo $TURBS | cut -d\  -f3)
-  BKHZ=$((BKHZ * 1000))
+  mqtt cpubpcent $BPCENT
   PWATTS=$(echo $TURBS | cut -d\  -f7)
   mqtt pkgwatts $PWATTS
-  mqtt cpuavgkhz $AVGKHZ
-  mqtt cpubzykhz $BKHZ
-  mqtt cpubpcent $BPCENT
+  AVGKHZ=$(echo $TURBS | cut -d\  -f1)
+  BKHZ=$(echo $TURBS | cut -d\  -f3)
+  # we can only do arithmetic ops if the operand is a number,
+  # so test for that. this works in POSIX sh.
+  case "$AVGKHZ" in
+    ''|*[!0-9]*) echo "not a number: $AVGKHZ" ;;
+    *) case "$BKHZ" in
+         ''|*[!0-9]*) echo "not a number: $BKHZ" ;;
+         *)
+          AVGKHZ=$((AVGKHZ * 1000))
+          BKHZ=$((BKHZ * 1000))
+          mqtt cpuavgkhz $AVGKHZ
+          mqtt cpubzykhz $BKHZ
+         ;;
+       esac ;;
+  esac
 
 done
