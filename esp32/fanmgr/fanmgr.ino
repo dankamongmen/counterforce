@@ -442,8 +442,10 @@ static char* makepwmstr(char* pwmstr, unsigned fan, unsigned pump){
   return pwmstr;
 }
 
+// we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
+// is someday eliminated, ensure we filter explicit FLT_MAX!
 static inline bool valid_temp(float t){
-  return !(t == FLT_MAX || isnan(t) || t <= DEVICE_DISCONNECTED_C);
+  return !(t > 60 || isnan(t) || t <= DEVICE_DISCONNECTED_C);
 }
 
 static char* maketempstr(char* tempstr, size_t n, float coolant, float ambient){
@@ -486,7 +488,7 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
   return pulses * 60 / 2 * (1000000.0 / usec);
 }
 
-// we transmit and update the display approximately every 3s, sampling
+// we transmit and update the display approximately every second, sampling
 // RPM at this time. we continuously sample the temperature, and use the
 // most recent valid read for transmit/display. there are several blocking
 // calls (1-wire and MQTT) that can lengthen a given cycle.
@@ -502,7 +504,7 @@ void loop(){
   client.loop(); // handle any necessary wifi/mqtt
 
   unsigned long diff = m - last_tx;
-  if(diff < 3000000){
+  if(diff < 1000000){
     return;
   }
   // sample RPM, transmit, and update the display
