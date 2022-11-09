@@ -148,15 +148,15 @@ int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
 
-void fantach(void){
+void IRAM_ATTR fantach(void){
   ++Pulses;
 }
 
-void xtop1tach(void){
+void IRAM_ATTR xtop1tach(void){
   ++XTAPulses;
 }
 
-void xtop2tach(void){
+void IRAM_ATTR xtop2tach(void){
   ++XTBPulses;
 }
 
