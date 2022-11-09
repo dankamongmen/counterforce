@@ -290,6 +290,10 @@ metrics:
    mqtt_name: fsqwopino
    help: Media utilization
    type: gauge
+ - prom_name: moraambient
+   mqtt_name: moraambient
+   help: Ambient temperature at MO-RA3
+   type: gauge
  - prom_name: mora3coolanttemp
    mqtt_name: therm
    help: Coolant temperature at MO-RA3
