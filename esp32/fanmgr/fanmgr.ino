@@ -60,16 +60,17 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-void readAmbient(float* t){
+static int readAmbient(float* t){
   digtemp.requestTemperatures();
   float tmp = digtemp.getTempCByIndex(0);
   if(*t <= DEVICE_DISCONNECTED_C){
     Serial.println("error reading 1-wire temp");
-  }else{
-    *t = tmp;
-    Serial.print("ambientC: ");
-    Serial.println(*t);
+    return -1;
   }
+  *t = tmp;
+  Serial.print("ambientC: ");
+  Serial.println(*t);
+  return 0;
 }
 
 void readPressure(float* t){
@@ -160,6 +161,28 @@ void IRAM_ATTR xtop2tach(void){
   ++XTBPulses;
 }
 
+static bool ds18b20_connected_p(DallasTemperature* dt){
+  int dcount = dt->getDS18Count();
+  if(dcount == 0){
+    return false;
+  }
+  Serial.print("DS18xxx devices: ");
+  Serial.println(dcount);
+  return true;
+}
+
+// attempt to establish a connection to the DS18B20
+static int connect_onewire(void){
+  digtemp.begin();
+  int devcount = digtemp.getDeviceCount();
+  if(devcount){
+    Serial.print("1-Wire devices: ");
+    Serial.println(devcount);
+    return 0;
+  }
+  return -1;
+}
+
 void setup(){
   int error = 0;
   Heltec.begin(true, false, true);
@@ -183,12 +206,6 @@ void setup(){
   attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
   attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
   updateDisplay(0, FLT_MAX, FLT_MAX);
-  // FIXME we ought rerun this until it works, to support hotplug
-  digtemp.begin();
-  Serial.print("1-Wire devices: ");
-  Serial.println(digtemp.getDeviceCount());
-  Serial.print("DS18xxx devices: ");
-  Serial.println(digtemp.getDS18Count());
 }
 
 // set up the desired PWM value
@@ -493,16 +510,27 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
 // most recent valid read for transmit/display. there are several blocking
 // calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
+  static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   static float pressure = FLT_MAX;
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   readThermistor(&coolant_temp);
   readPressure(&pressure);
-  readAmbient(&ambient_temp);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
 
+  if(!onewire_connected){
+    if(connect_onewire()){
+      onewire_connected = true;
+    }
+  }
+  if(onewire_connected){
+    if(readAmbient(&ambient_temp)){
+      onewire_connected = false;
+      ambient_temp = FLT_MAX;
+    }
+  }
   unsigned long diff = m - last_tx;
   if(diff < 1000000){
     return;
@@ -536,7 +564,7 @@ void loop(){
   }else{
     Serial.println("don't have a coolant sample");
   }
-  // there are several error codes returned by DallasTermperature, all of
+  // there are several error codes returned by DallasTemperature, all of
   // them equal to or less than DEVICE_DISCONNECTED_C (there are also
   // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
   // DEVICE_FAULT_SHORTVDD_C).
