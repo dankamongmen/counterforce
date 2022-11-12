@@ -2,9 +2,10 @@
 
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .hex, fan4pwm geiger))
-ESPHEX:=$(addprefix esp32/, $(addsuffix .hex, fanmgr))
+ESP32HEX:=$(addprefix esp32/, $(addsuffix .hex, fanmgr))
+ESP8266HEX:=$(addprefix esp8266/, $(addsuffix .hex, fanmgr))
 UNOHEX:=$(addprefix codi6/, $(addsuffix .hex, external internal))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESPHEX) $(UNOHEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESP32HEX) $(ESP8266HEX) $(UNOHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=--warnings none
 
@@ -23,6 +24,10 @@ $(OUT)/codi6/external.hex: $(addprefix codi6/external/, external.ino)
 $(OUT)/codi6/internal.hex: $(addprefix codi6/internal/, internal.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/internal
+
+$(OUT)/esp8266/fanmgr.hex: $(addprefix esp8266/fanmgr/, EspMQTTConfig.h fanmgr.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile $(CFLAGS) -b esp8266:esp8266:nodemcuv2 -v --output-dir $(@D) esp8266/fanmgr
 
 $(OUT)/esp32/fanmgr.hex: $(addprefix esp32/fanmgr/, EspMQTTConfig.h fanmgr.ino)
 	@mkdir -p $(@D)
