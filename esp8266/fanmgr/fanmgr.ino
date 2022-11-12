@@ -184,12 +184,12 @@ void setup(){
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
-  pinMode(FANTACHPIN, INPUT);
-  pinMode(XTOPATACHPIN, INPUT);
-  pinMode(XTOPBTACHPIN, INPUT);
-  attachInterrupt(FANTACHPIN, fantach, RISING);
-  attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
-  attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
+  pinMode(FANTACHPIN, INPUT_PULLUP);
+  pinMode(XTOPATACHPIN, INPUT_PULLUP);
+  pinMode(XTOPBTACHPIN, INPUT_PULLUP);
+  attachInterrupt(FANTACHPIN, fantach, FALLING);
+  attachInterrupt(XTOPATACHPIN, xtop1tach, FALLING);
+  attachInterrupt(XTOPBTACHPIN, xtop2tach, FALLING);
 }
 
 // set up the desired PWM value
@@ -280,6 +280,11 @@ template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const
 int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
   if(val < RPM_CUTOFF){ // filter out obviously incorrect values
     return mqttPublish(client, key, val);
+  }else{
+    Serial.print("not publishing ");
+    Serial.print(val);
+    Serial.print(" for ");
+    Serial.println(key);
   }
   return 0;
 }
@@ -343,8 +348,6 @@ void loop(){
   RPM = rpm(p, diff);
   XTopRPMA = rpm(x1p, diff);
   XTopRPMB = rpm(x2p, diff);
-  Serial.print(RPM);
-  Serial.println(" RPM measured at fan");
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "rpm", RPM);
