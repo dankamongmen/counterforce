@@ -1,6 +1,6 @@
 // intended for use on a Hi-LetGo ESP8266, this manages a PWM fan and two
 // PWM pumps. it receives PWM control messages, and sends RPM and temperature
-// reports, over MQTT.
+// reports, over MQTT. unlike the ESP32 version, this doesn't run LEDs.
 #include "ESP8266WiFi.h"
 #include <float.h>
 #include "EspMQTTClient.h"
@@ -8,36 +8,26 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION "v2.0.1"
+#define VERSION "v2.0.2"
 
 const unsigned long RPM_CUTOFF = 5000;
+
+// pressure sensor on D0, the only pin which doesn't support interrupts
+const int PRESSUREPIN = D0;
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = D2;
-// pressure sensor
-const int PRESSUREPIN = D1;
 
-// PWM channels for RGB fans
+// PWM channels for fans and pumps
 /*
-const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
-const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
-const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
 const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
 */
-const int PUMPPWMPIN = 22;
-const int FANPWMPIN = 25;
-const int FANTACHPIN = D0;
+const int PUMPPWMPIN = D5;
+const int FANPWMPIN = D6;
+const int FANTACHPIN = D1;
 const int XTOPATACHPIN = D3;
 const int XTOPBTACHPIN = D4;
-const int RGBPINR = 12;
-const int RGBPING = 32;
-const int RGBPINB = 33;
-
-// RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
-int Red = 0x8f;
-int Green = 0x8f;
-int Blue = 0x08;
 
 // RPMs as determined by our interrupt handlers.
 // we only get the RPM count from one of our fans; it stands for all.
@@ -199,9 +189,6 @@ void setup(){
   /*
   error |= initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
   error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
-  error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
-  error |= initialize_rgb_pwm(FANCHANG, RGBPING);
-  error |= initialize_rgb_pwm(FANCHANB, RGBPINB);
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   set_rgb();
@@ -249,33 +236,6 @@ static int set_pump_pwm(unsigned p){
   }
   return 0;
 }
-
-// set up the desired RGB PWM values
-static int set_rgb(void){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANR, Red) != ESP_OK){
-    Serial.println("error setting red!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANR) != ESP_OK){
-    Serial.println("error committing red!");
-    return -1;
-  }
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANB, Blue) != ESP_OK){
-    Serial.println("error setting blue!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANB) != ESP_OK){
-    Serial.println("error committing blue!");
-    return -1;
-  }
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANG, Green) != ESP_OK){
-    Serial.println("error setting green!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANG) != ESP_OK){
-    Serial.println("error committing green!");
-    return -1;
-  }
-  Serial.println("configured RGB");
-  return 0;
-}
 */
 
 // precondition: isxdigit(c) is true
@@ -289,32 +249,6 @@ static byte getHex(char c){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("control/mora3/rgb", [](const String &payload){
-      Serial.print("received RGB via mqtt: ");
-      Serial.println(payload);
-      byte colors[3]; // rgb
-      if(payload.length() != 2 * sizeof(colors)){
-        Serial.println("RGB wasn't 6 characters");
-        return;
-      }
-      for(int i = 0 ; i < sizeof(colors) ; ++i){
-        char h = payload.charAt(i * 2);
-        char l = payload.charAt(i * 2 + 1);
-        if(!isxdigit(h) || !isxdigit(l)){
-          Serial.println("invalid RGB character");
-          return;
-        }
-        byte hb = getHex(h);
-        byte lb = getHex(l);
-        colors[i] = hb * 16 + lb;
-      }
-      // everything was valid; update globals
-      Red = colors[0];
-      Green = colors[1];
-      Blue = colors[2];
-      //set_rgb();
-    }
-  );
   client.subscribe("control/mora3/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
