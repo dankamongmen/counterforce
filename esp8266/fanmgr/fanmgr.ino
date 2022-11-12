@@ -9,7 +9,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION "v2.0.3"
+#define VERSION "v2.0.4"
 
 const unsigned long RPM_CUTOFF = 5000;
 
@@ -312,6 +312,8 @@ void loop(){
   }else{
     Serial.println("don't have an ambient sample");
   }
+  mqttPublish(client, "morapwm", Pwm);
+  mqttPublish(client, "morapumppwm", PumpPwm);
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
 }
