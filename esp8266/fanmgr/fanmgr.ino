@@ -122,7 +122,6 @@ static int connect_onewire(void){
 }
 
 void setup(){
-  int error = 0;
   Serial.begin(115200);
   Serial.print("booting esp8266 ");
   Serial.println(VERSION);
@@ -140,8 +139,6 @@ void setup(){
   attachInterrupt(FANTACHPIN, fantach, FALLING);
   attachInterrupt(XTOPATACHPIN, xtop1tach, FALLING);
   attachInterrupt(XTOPBTACHPIN, xtop2tach, FALLING);
-  Serial.print("initialization complete ");
-  Serial.println(VERSION);
 }
 
 // set up the desired PWM value
