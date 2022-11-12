@@ -18,11 +18,7 @@ const int TEMPPIN = A0; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = D2;
 
-// PWM channels for fans and pumps
-/*
-const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
-const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
-*/
+// PWM/tach pins for fans and pumps
 const int PUMPPWMPIN = D5;
 const int FANPWMPIN = D6;
 const int FANTACHPIN = D1;
@@ -173,26 +169,19 @@ static int connect_onewire(void){
     Serial.println(devcount);
     return 0;
   }
-  Serial.println("FAILEDDDDDDDDDDDDDDDDDDDDDDDDD");
   return -1;
 }
 
 void setup(){
   int error = 0;
   Serial.begin(115200);
-  /*
-  Heltec.begin(true, false, true);
-  Heltec.display->setFont(ArialMT_Plain_10);
-  */
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  /*
-  error |= initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
-  error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
+  analogWriteFreq(25000);
+  pinMode(PUMPPWMPIN, OUTPUT);
+  pinMode(FANPWMPIN, OUTPUT);
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
-  set_rgb();
-  */
   pinMode(TEMPPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
   pinMode(FANTACHPIN, INPUT);
@@ -201,42 +190,25 @@ void setup(){
   attachInterrupt(FANTACHPIN, fantach, RISING);
   attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
   attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
-  updateDisplay(0, FLT_MAX, FLT_MAX);
 }
 
-/*
 // set up the desired PWM value
 static int set_pwm(unsigned p){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, p) != ESP_OK){
-    Serial.println("error setting PWM!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
-    Serial.println("error committing PWM!");
-    return -1;
-  }else{
-    Serial.print("configured PWM: ");
-    Serial.println(p);
-    Pwm = p;
-  }
+  analogWrite(FANPWMPIN, p);
+  Serial.print("configured fan PWM: ");
+  Serial.println(p);
+  Pwm = p;
   return 0;
 }
 
 // set up the desired pump PWM value
 static int set_pump_pwm(unsigned p){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN, p) != ESP_OK){
-    Serial.println("error setting PWM!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN) != ESP_OK){
-    Serial.println("error committing PWM!");
-    return -1;
-  }else{
-    Serial.print("configured pump PWM: ");
-    Serial.println(p);
-    PumpPwm = p;
-  }
+  analogWrite(PUMPPWMPIN, p);
+  Serial.print("configured pump PWM: ");
+  Serial.println(p);
+  PumpPwm = p;
   return 0;
 }
-*/
 
 // precondition: isxdigit(c) is true
 static byte getHex(char c){
@@ -267,7 +239,7 @@ void onConnectionEstablished() {
         p += h - '0';
       }
       if(p < 256){
-        //set_pwm(p);
+        set_pwm(p);
       }
     }
   );
@@ -289,71 +261,10 @@ void onConnectionEstablished() {
         p += h - '0';
       }
       if(p < 256){
-        //set_pump_pwm(p);
+        set_pump_pwm(p);
       }
     }
   );
-}
-
-  /*
-static void displayConnectionStatus(int y){
-  const char* connstr;
-  Heltec.display->drawString(0, y, VERSION);
-  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
-  if(!client.isWifiConnected()){
-    connstr = "No WiFi";
-  }else if(!client.isMqttConnected()){
-    connstr = "WiFi, no MQTT";
-  }else{
-    connstr = "Connected";
-  }
-  Heltec.display->drawString(120, y, connstr);
-}
-  */
-
-// up to 2 digits of years, up to 3 digits of days, up to 2 digits of
-// hours, up to 2 digits of minutes, up to 2 digits of seconds, up
-// to 5 units, and up to five spaces, plus null == 22 bytes
-#define MAXTIMELEN 22
-
-// timestr needs be MAXTIMELEN bytes or more
-static int maketimestr(char *timestr, unsigned long m){
-  static unsigned rollovercount;
-  static unsigned long last_m;
-  if(m < last_m){ // we rolled over
-    ++rollovercount;
-  }
-  unsigned long t = m / 1000000; // FIXME factor in rollover (~1.1h)
-  unsigned long epoch = 365ul * 24 * 60 * 60;
-  int off = 0; // write offset
-  if(t > epoch){
-    word years = t / epoch;
-    if(years > 99){
-      return -1; // whatever bro
-    }
-    off = sprintf(timestr, "%uy ", years);
-  }
-  t %= epoch;
-  epoch /= 365;
-  if(t > epoch){
-    word d = t / epoch;
-    off += sprintf(timestr + off, "%ud ", d);
-  }
-  t %= epoch;
-  epoch /= 24;
-  if(t > epoch){
-    word h = t / epoch;
-    off += sprintf(timestr + off, "%uh ", h);
-  }
-  t %= epoch;
-  epoch /= 60;
-  if(t > epoch){
-    word m = t / epoch;
-    off += sprintf(timestr + off, "%um ", m);
-  }
-  t %= epoch;
-  off += sprintf(timestr + off, "%lus ", t);
-  return 0;
 }
 
 template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
@@ -373,81 +284,10 @@ int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
   return 0;
 }
 
-// at most, three five-digit numbers, four spaces, two '/'s, and null term
-#define MAXRPMSTRLEN 22
-
-// compiler doesn't support static spec =\ pwmstr must be MAXRPMSTRLEN
-static char* makerpmstr(char* rpmstr, unsigned fan, unsigned pump1, unsigned pump2){
-  if(fan > 65535){
-    fan = 0;
-  }
-  if(pump1 > 65535){
-    pump1 = 0;
-  }
-  if(pump2 > 65535){
-    pump2 = 0;
-  }
-  snprintf(rpmstr, MAXRPMSTRLEN, "%u / %u / %u", fan, pump1, pump2);
-  return rpmstr;
-}
-
-// at most, two three-digit numbers, two spaces, '/', and null term
-#define MAXPWMSTRLEN 10
-
-// compiler doesn't support static spec =\ pwmstr must be MAXPWMSTRLEN
-static char* makepwmstr(char* pwmstr, unsigned fan, unsigned pump){
-  if(fan > 65535){
-    fan = 0;
-  }
-  if(pump > 65535){
-    pump = 0;
-  }
-  snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", fan, pump);
-  return pwmstr;
-}
-
 // we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
 // is someday eliminated, ensure we filter explicit FLT_MAX!
 static inline bool valid_temp(float t){
   return !(t > 60 || isnan(t) || t <= DEVICE_DISCONNECTED_C);
-}
-
-static char* maketempstr(char* tempstr, size_t n, float coolant, float ambient){
-  if(!valid_temp(coolant)){
-    if(!valid_temp(ambient)){
-      snprintf(tempstr, n, "n/a / n/a");
-    }else{
-      snprintf(tempstr, n, "%.2f / n/a", ambient);
-    }
-  }else if(!valid_temp(ambient)){
-    snprintf(tempstr, n, "n/a / %.2f", coolant);
-  }else{
-    snprintf(tempstr, n, "%.2f / %.2f", ambient, coolant);
-  }
-  return tempstr;
-}
-
-// m is millis()
-static void updateDisplay(unsigned long m, float therm, float ambient){
-  /*
-  char timestr[MAXTIMELEN];
-  char pwmstr[MAXPWMSTRLEN];
-  char rpmstr[MAXRPMSTRLEN];
-  // dump information to OLED
-  Heltec.display->clear();
-  Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
-  Heltec.display->drawString(0, 0, "RPM: ");
-  Heltec.display->drawString(31, 0, makerpmstr(rpmstr, RPM, XTopRPMA, XTopRPMB));
-  Heltec.display->drawString(0, 11, "PWM: ");
-  Heltec.display->drawString(33, 11, makepwmstr(pwmstr, Pwm, PumpPwm));
-  Heltec.display->drawString(0, 21, "Temp: ");
-  Heltec.display->drawString(35, 21, maketempstr(rpmstr, sizeof(rpmstr), therm, ambient));
-  Heltec.display->drawString(0, 31, "Uptime: ");
-  Heltec.display->drawString(41, 31, maketimestr(timestr, m) ?
-                             "a long time" : timestr);
-  displayConnectionStatus(51);
-  Heltec.display->display();
-  */
 }
 
 static inline float rpm(unsigned long pulses, unsigned long usec){
@@ -505,7 +345,6 @@ void loop(){
   XTopRPMB = rpm(x2p, diff);
   Serial.print(RPM);
   Serial.println(" RPM measured at fan");
-  updateDisplay(m, coolant_temp, ambient_temp);
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "rpm", RPM);
