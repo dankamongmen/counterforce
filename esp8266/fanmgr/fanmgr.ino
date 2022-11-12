@@ -1,6 +1,7 @@
 // intended for use on a Hi-LetGo ESP8266, this manages a PWM fan and two
-// PWM pumps. it receives PWM control messages, and sends RPM and temperature
-// reports, over MQTT. unlike the ESP32 version, this doesn't run LEDs.
+// PWM pumps, and two thermistors. it receives PWM control messages, and sends
+// RPM and temperature reports, over MQTT. unlike the ESP32 version, this
+// doesn't run LEDs, nor does it support a pressure sensor.
 #include "ESP8266WiFi.h"
 #include <float.h>
 #include "EspMQTTClient.h"
@@ -8,12 +9,11 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION "v2.0.2"
+#define VERSION "v2.0.3"
 
 const unsigned long RPM_CUTOFF = 5000;
 
-// pressure sensor on D0, the only pin which doesn't support interrupts
-const int PRESSUREPIN = D0;
+// only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = D2;
@@ -60,12 +60,6 @@ static int readAmbient(float* t){
   return 0;
 }
 
-void readPressure(float* t){
-  float v0 = analogRead(PRESSUREPIN);
-  Serial.print("read raw V for pressure: ");
-  Serial.println(v0);
-}
-
 void readThermistor(float* t){
   const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 298.15;
@@ -75,12 +69,12 @@ void readThermistor(float* t){
   float v0 = analogRead(TEMPPIN);
   Serial.print("read raw V for coolant: ");
   Serial.print(v0);
-  if(v0 == 0 || v0 >= 4095){
+  if(v0 <= 1 || v0 >= 1023){
     Serial.println(" discarding");
     return;
   }
-  // 12-bit ADC on the ESP32. get voltage [0..3.3]...
-  float scaled = v0 * VREF / 4095.0;
+  // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
+  float scaled = v0 * VREF / 1023.0;
   Serial.print(" scaled: ");
   Serial.print(scaled);
   float Rt = R1 * scaled / (VREF - scaled);
@@ -92,51 +86,6 @@ void readThermistor(float* t){
   Serial.println(tn);
   *t = tn;
 }
-
-#define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
-#define FANPWM_TIMER LEDC_TIMER_1
-
-/*
-int initialize_pwm(ledc_channel_t channel, int pin, int freq){
-  ledc_channel_config_t conf;
-  memset(&conf, 0, sizeof(conf));
-  conf.gpio_num = pin;
-  conf.speed_mode = LEDC_HIGH_SPEED_MODE;
-  conf.intr_type = LEDC_INTR_DISABLE;
-  conf.timer_sel = FANPWM_TIMER;
-  conf.duty = FANPWM_BIT_NUM;
-  conf.channel = channel;
-  Serial.print("setting up pin ");
-  Serial.print(pin);
-  Serial.print(" for ");
-  Serial.print(freq);
-  Serial.print("Hz PWM...");
-  if(ledc_channel_config(&conf) != ESP_OK){
-    Serial.println("error (channel config)!");
-    return -1;
-  }
-  ledc_timer_config_t ledc_timer;
-  memset(&ledc_timer, 0, sizeof(ledc_timer));
-  ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
-  ledc_timer.bit_num = FANPWM_BIT_NUM;
-  ledc_timer.timer_num = FANPWM_TIMER;
-  ledc_timer.freq_hz = 25000;
-  if(ledc_timer_config(&ledc_timer) != ESP_OK){
-    Serial.println("error (timer config)!");
-    return -1;
-  }
-  Serial.println("success!");
-  return 0;
-}
-
-int initialize_rgb_pwm(ledc_channel_t channel, int pin){
-  return initialize_pwm(channel, pin, 5000);
-}
-
-int initialize_fan_pwm(ledc_channel_t channel, int pin){
-  return initialize_pwm(channel, pin, 25000);
-}
-*/
 
 void IRAM_ATTR fantach(void){
   ++Pulses;
@@ -183,7 +132,6 @@ void setup(){
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
-  pinMode(PRESSUREPIN, INPUT);
   pinMode(FANTACHPIN, INPUT_PULLUP);
   pinMode(XTOPATACHPIN, INPUT_PULLUP);
   pinMode(XTOPBTACHPIN, INPUT_PULLUP);
@@ -296,22 +244,22 @@ static inline bool valid_temp(float t){
 }
 
 static inline float rpm(unsigned long pulses, unsigned long usec){
-  return pulses * 60 / 2 * (1000000.0 / usec);
+  return pulses * 60 * 1000000.0 / usec / 2;
 }
 
-// we transmit and update the display approximately every second, sampling
-// RPM at this time. we continuously sample the temperature, and use the
-// most recent valid read for transmit/display. there are several blocking
-// calls (1-wire and MQTT) that can lengthen a given cycle.
+// we transmit approximately every 15 seconds, sampling RPMs at this time.
+// we continuously sample the temperature, and use the most recent valid read
+// for transmit/display. there are several blocking calls (1-wire and MQTT)
+// that can lengthen a given cycle.
 void loop(){
   delay(100);
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
-  static float pressure = FLT_MAX;
+  // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
+  // on error, but instead only on transmission).
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   readThermistor(&coolant_temp);
-  readPressure(&pressure);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
 
@@ -323,11 +271,10 @@ void loop(){
   if(onewire_connected){
     if(readAmbient(&ambient_temp)){
       onewire_connected = false;
-      ambient_temp = FLT_MAX;
     }
   }
   unsigned long diff = m - last_tx;
-  if(diff < 1000000){
+  if(diff < 15000000){
     return;
   }
   // sample RPM, transmit, and update the display
@@ -365,4 +312,6 @@ void loop(){
   }else{
     Serial.println("don't have an ambient sample");
   }
+  coolant_temp = FLT_MAX;
+  ambient_temp = FLT_MAX;
 }
