@@ -1,34 +1,35 @@
-// intended for use on a Heltec ESP32LoRav2, this manages a PWM fan and two
+// intended for use on a Hi-LetGo ESP8266, this manages a PWM fan and two
 // PWM pumps. it receives PWM control messages, and sends RPM and temperature
 // reports, over MQTT.
-#include "heltec.h"
+#include "ESP8266WiFi.h"
 #include <float.h>
 #include "EspMQTTClient.h"
 #include <ArduinoJson.h>
 #include <OneWire.h>
-#include <driver/ledc.h>
 #include <DallasTemperature.h>
 
 #define VERSION "v2.0.1"
 
 const unsigned long RPM_CUTOFF = 5000;
-const int TEMPPIN = 39; // coolant thermistor (2-wire)
+const int TEMPPIN = A0; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 17;
+const int AMBIENTPIN = D2;
 // pressure sensor
-const int PRESSUREPIN = 13;
+const int PRESSUREPIN = D1;
 
 // PWM channels for RGB fans
+/*
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
 const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
 const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
+*/
 const int PUMPPWMPIN = 22;
 const int FANPWMPIN = 25;
-const int FANTACHPIN = 38;
-const int XTOPATACHPIN = 36;
-const int XTOPBTACHPIN = 37;
+const int FANTACHPIN = D0;
+const int XTOPATACHPIN = D3;
+const int XTOPBTACHPIN = D4;
 const int RGBPINR = 12;
 const int RGBPING = 32;
 const int RGBPINB = 33;
@@ -109,6 +110,7 @@ void readThermistor(float* t){
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 #define FANPWM_TIMER LEDC_TIMER_1
 
+/*
 int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   ledc_channel_config_t conf;
   memset(&conf, 0, sizeof(conf));
@@ -148,6 +150,7 @@ int initialize_rgb_pwm(ledc_channel_t channel, int pin){
 int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
+*/
 
 void IRAM_ATTR fantach(void){
   ++Pulses;
@@ -180,15 +183,20 @@ static int connect_onewire(void){
     Serial.println(devcount);
     return 0;
   }
+  Serial.println("FAILEDDDDDDDDDDDDDDDDDDDDDDDDD");
   return -1;
 }
 
 void setup(){
   int error = 0;
+  Serial.begin(115200);
+  /*
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
+  */
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
+  /*
   error |= initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
   error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
   error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
@@ -197,6 +205,7 @@ void setup(){
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   set_rgb();
+  */
   pinMode(TEMPPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
   pinMode(FANTACHPIN, INPUT);
@@ -208,6 +217,7 @@ void setup(){
   updateDisplay(0, FLT_MAX, FLT_MAX);
 }
 
+/*
 // set up the desired PWM value
 static int set_pwm(unsigned p){
   if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, p) != ESP_OK){
@@ -266,6 +276,7 @@ static int set_rgb(void){
   Serial.println("configured RGB");
   return 0;
 }
+*/
 
 // precondition: isxdigit(c) is true
 static byte getHex(char c){
@@ -301,7 +312,7 @@ void onConnectionEstablished() {
       Red = colors[0];
       Green = colors[1];
       Blue = colors[2];
-      set_rgb();
+      //set_rgb();
     }
   );
   client.subscribe("control/mora3/pwm", [](const String &payload){
@@ -322,7 +333,7 @@ void onConnectionEstablished() {
         p += h - '0';
       }
       if(p < 256){
-        set_pwm(p);
+        //set_pwm(p);
       }
     }
   );
@@ -344,12 +355,13 @@ void onConnectionEstablished() {
         p += h - '0';
       }
       if(p < 256){
-        set_pump_pwm(p);
+        //set_pump_pwm(p);
       }
     }
   );
 }
 
+  /*
 static void displayConnectionStatus(int y){
   const char* connstr;
   Heltec.display->drawString(0, y, VERSION);
@@ -363,6 +375,7 @@ static void displayConnectionStatus(int y){
   }
   Heltec.display->drawString(120, y, connstr);
 }
+  */
 
 // up to 2 digits of years, up to 3 digits of days, up to 2 digits of
 // hours, up to 2 digits of minutes, up to 2 digits of seconds, up
@@ -482,6 +495,7 @@ static char* maketempstr(char* tempstr, size_t n, float coolant, float ambient){
 
 // m is millis()
 static void updateDisplay(unsigned long m, float therm, float ambient){
+  /*
   char timestr[MAXTIMELEN];
   char pwmstr[MAXPWMSTRLEN];
   char rpmstr[MAXRPMSTRLEN];
@@ -499,6 +513,7 @@ static void updateDisplay(unsigned long m, float therm, float ambient){
                              "a long time" : timestr);
   displayConnectionStatus(51);
   Heltec.display->display();
+  */
 }
 
 static inline float rpm(unsigned long pulses, unsigned long usec){
@@ -510,6 +525,7 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
 // most recent valid read for transmit/display. there are several blocking
 // calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
+  delay(100);
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   static float pressure = FLT_MAX;
