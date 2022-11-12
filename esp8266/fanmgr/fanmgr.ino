@@ -11,7 +11,7 @@
 
 #define VERSION "v2.0.4"
 
-const unsigned long RPM_CUTOFF = 5000;
+const unsigned long RPM_CUTOFF = 6000;
 
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
@@ -124,6 +124,8 @@ static int connect_onewire(void){
 void setup(){
   int error = 0;
   Serial.begin(115200);
+  Serial.print("booting esp8266 ");
+  Serial.println(VERSION);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   analogWriteFreq(25000);
@@ -138,6 +140,8 @@ void setup(){
   attachInterrupt(FANTACHPIN, fantach, FALLING);
   attachInterrupt(XTOPATACHPIN, xtop1tach, FALLING);
   attachInterrupt(XTOPBTACHPIN, xtop2tach, FALLING);
+  Serial.print("initialization complete ");
+  Serial.println(VERSION);
 }
 
 // set up the desired PWM value
