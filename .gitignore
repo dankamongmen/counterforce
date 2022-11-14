@@ -1,2 +1,2 @@
-esp32/*/EspMQTTConfig.h
+espcommon/*/EspMQTTConfig.h
 out

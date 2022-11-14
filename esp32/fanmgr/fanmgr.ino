@@ -3,11 +3,11 @@
 // reports, over MQTT.
 #include "heltec.h"
 #include <float.h>
-#include "EspMQTTClient.h"
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
+#include "common.h"
 
 #define VERSION "v2.0.5"
 
@@ -60,50 +60,10 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-static int readAmbient(float* t){
-  digtemp.requestTemperatures();
-  float tmp = digtemp.getTempCByIndex(0);
-  if(tmp <= DEVICE_DISCONNECTED_C){
-    Serial.println("error reading 1-wire temp");
-    return -1;
-  }
-  *t = tmp;
-  Serial.print("ambientC: ");
-  Serial.println(*t);
-  return 0;
-}
-
 void readPressure(float* t){
   float v0 = analogRead(PRESSUREPIN);
   Serial.print("read raw V for pressure: ");
   Serial.println(v0);
-}
-
-void readThermistor(float* t){
-  const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
-  const float NOMINAL = 298.15;
-  const float R0 = 10100;
-  const float R1 = 10000;
-  const float VREF = 3.3;
-  float v0 = analogRead(TEMPPIN);
-  Serial.print("read raw V for coolant: ");
-  Serial.print(v0);
-  if(v0 == 0 || v0 >= 4095){
-    Serial.println(" discarding");
-    return;
-  }
-  // 12-bit ADC on the ESP32. get voltage [0..3.3]...
-  float scaled = v0 * VREF / 4095.0;
-  Serial.print(" scaled: ");
-  Serial.print(scaled);
-  float Rt = R1 * scaled / (VREF - scaled);
-  Serial.print(" Rt: ");
-  Serial.println(Rt);
-  float tn = 1.0 / ((1.0 / NOMINAL) + log(Rt / R0) / BETA);
-  tn -= 273.15;
-  Serial.print("coolantC: ");
-  Serial.println(tn);
-  *t = tn;
 }
 
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
@@ -515,7 +475,7 @@ void loop(){
   static float pressure = FLT_MAX;
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
-  readThermistor(&coolant_temp);
+  readThermistor(&coolant_temp, TEMPPIN);
   readPressure(&pressure);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
@@ -526,7 +486,7 @@ void loop(){
     }
   }
   if(onewire_connected){
-    if(readAmbient(&ambient_temp)){
+    if(readAmbient(&ambient_temp, &digtemp)){
       onewire_connected = false;
       ambient_temp = FLT_MAX;
     }

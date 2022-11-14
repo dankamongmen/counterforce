@@ -4,10 +4,10 @@
 // doesn't run LEDs, nor does it support a pressure sensor.
 #include "ESP8266WiFi.h"
 #include <float.h>
-#include "EspMQTTClient.h"
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include "common.h"
 
 #define VERSION "v2.0.5"
 
@@ -47,46 +47,6 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-static int readAmbient(float* t){
-  digtemp.requestTemperatures();
-  float tmp = digtemp.getTempCByIndex(0);
-  if(tmp <= DEVICE_DISCONNECTED_C){
-    Serial.println("error reading 1-wire temp");
-    return -1;
-  }
-  *t = tmp;
-  Serial.print("ambientC: ");
-  Serial.println(*t);
-  return 0;
-}
-
-void readThermistor(float* t){
-  const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
-  const float NOMINAL = 298.15;
-  const float R0 = 10100;
-  const float R1 = 10000;
-  const float VREF = 3.3;
-  float v0 = analogRead(TEMPPIN);
-  Serial.print("read raw V for coolant: ");
-  Serial.print(v0);
-  if(v0 <= 1 || v0 >= 1023){
-    Serial.println(" discarding");
-    return;
-  }
-  // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
-  float scaled = v0 * VREF / 1023.0;
-  Serial.print(" scaled: ");
-  Serial.print(scaled);
-  float Rt = R1 * scaled / (VREF - scaled);
-  Serial.print(" Rt: ");
-  Serial.println(Rt);
-  float tn = 1.0 / ((1.0 / NOMINAL) + log(Rt / R0) / BETA);
-  tn -= 273.15;
-  Serial.print("coolantC: ");
-  Serial.println(tn);
-  *t = tn;
-}
-
 void IRAM_ATTR fantach(void){
   ++Pulses;
 }
@@ -118,6 +78,7 @@ static int connect_onewire(void){
     Serial.println(devcount);
     return 0;
   }
+  Serial.println("error connecting to 1Wire");
   return -1;
 }
 
@@ -260,7 +221,7 @@ void loop(){
   // on error, but instead only on transmission).
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
-  readThermistor(&coolant_temp);
+  readThermistor(&coolant_temp, TEMPPIN);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
 
@@ -270,7 +231,7 @@ void loop(){
     }
   }
   if(onewire_connected){
-    if(readAmbient(&ambient_temp)){
+    if(readAmbient(&ambient_temp, &digtemp)){
       onewire_connected = false;
     }
   }
