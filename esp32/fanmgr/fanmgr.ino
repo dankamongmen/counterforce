@@ -9,9 +9,6 @@
 #include <DallasTemperature.h>
 #include "common.h"
 
-#define VERSION "v2.0.5"
-
-const unsigned long RPM_CUTOFF = 5000;
 const int TEMPPIN = 39; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 17;
@@ -45,9 +42,6 @@ static unsigned XTopRPMA;
 static unsigned XTopRPMB;
 static volatile unsigned long Pulses, XTAPulses, XTBPulses;
 
-// PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
-#define INITIAL_FAN_PWM  192
-#define INITIAL_PUMP_PWM 128
 static unsigned Pwm;
 static unsigned PumpPwm;
 static unsigned XTopPWMA;
@@ -119,28 +113,6 @@ void IRAM_ATTR xtop1tach(void){
 
 void IRAM_ATTR xtop2tach(void){
   ++XTBPulses;
-}
-
-static bool ds18b20_connected_p(DallasTemperature* dt){
-  int dcount = dt->getDS18Count();
-  if(dcount == 0){
-    return false;
-  }
-  Serial.print("DS18xxx devices: ");
-  Serial.println(dcount);
-  return true;
-}
-
-// attempt to establish a connection to the DS18B20
-static int connect_onewire(void){
-  digtemp.begin();
-  int devcount = digtemp.getDeviceCount();
-  if(devcount){
-    Serial.print("1-Wire devices: ");
-    Serial.println(devcount);
-    return 0;
-  }
-  return -1;
 }
 
 void setup(){
@@ -481,7 +453,7 @@ void loop(){
   client.loop(); // handle any necessary wifi/mqtt
 
   if(!onewire_connected){
-    if(connect_onewire() == 0){
+    if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
     }
   }

@@ -1,7 +1,15 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
 #include "EspMQTTClient.h"
 
-int readAmbient(float* t, DallasTemperature *dt){
+#define VERSION "v2.1.0"
+
+const unsigned long RPM_CUTOFF = 5000;
+
+// PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
+#define INITIAL_FAN_PWM  192
+#define INITIAL_PUMP_PWM 128
+
+static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
   if(tmp <= DEVICE_DISCONNECTED_C){
@@ -14,7 +22,7 @@ int readAmbient(float* t, DallasTemperature *dt){
   return 0;
 }
 
-void readThermistor(float* t, int pin){
+static void readThermistor(float* t, int pin){
   const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 298.15;
   const float R0 = 10100;
@@ -39,4 +47,17 @@ void readThermistor(float* t, int pin){
   Serial.print("coolantC: ");
   Serial.println(tn);
   *t = tn;
+}
+
+// attempt to establish a connection to the DS18B20
+static int connect_onewire(DallasTemperature* dt){
+  dt->begin();
+  int devcount = dt->getDeviceCount();
+  if(devcount){
+    Serial.print("1-Wire devices: ");
+    Serial.println(devcount);
+    return 0;
+  }
+  Serial.println("error connecting to 1Wire");
+  return -1;
 }
