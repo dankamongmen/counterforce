@@ -341,23 +341,6 @@ static int maketimestr(char *timestr, unsigned long m){
   return 0;
 }
 
-template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
-  DynamicJsonDocument doc(BUFSIZ); // FIXME
-  doc[key] = value;
-  // PubSubClient limits messages to 256 bytes
-  char buf[257];
-  size_t n = serializeJson(doc, buf);
-  mqtt.publish("sensors/mora3", buf, n);
-  return 0;
-}
-
-int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
-  if(val < RPM_CUTOFF){ // filter out obviously incorrect values
-    return mqttPublish(client, key, val);
-  }
-  return 0;
-}
-
 // at most, three five-digit numbers, four spaces, two '/'s, and null term
 #define MAXRPMSTRLEN 22
 
@@ -389,12 +372,6 @@ static char* makepwmstr(char* pwmstr, unsigned fan, unsigned pump){
   }
   snprintf(pwmstr, MAXPWMSTRLEN, "%u / %u", fan, pump);
   return pwmstr;
-}
-
-// we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
-// is someday eliminated, ensure we filter explicit FLT_MAX!
-static inline bool valid_temp(float t){
-  return !(t > 60 || isnan(t) || t <= DEVICE_DISCONNECTED_C);
 }
 
 static char* maketempstr(char* tempstr, size_t n, float coolant, float ambient){
@@ -431,10 +408,6 @@ static void updateDisplay(unsigned long m, float therm, float ambient){
                              "a long time" : timestr);
   displayConnectionStatus(51);
   Heltec.display->display();
-}
-
-static inline float rpm(unsigned long pulses, unsigned long usec){
-  return pulses * 60 / 2 * (1000000.0 / usec);
 }
 
 // we transmit and update the display approximately every second, sampling

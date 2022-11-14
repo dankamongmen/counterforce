@@ -61,3 +61,35 @@ static int connect_onewire(DallasTemperature* dt){
   Serial.println("error connecting to 1Wire");
   return -1;
 }
+
+template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
+  DynamicJsonDocument doc(BUFSIZ); // FIXME
+  doc[key] = value;
+  // PubSubClient limits messages to 256 bytes
+  char buf[257];
+  size_t n = serializeJson(doc, buf);
+  mqtt.publish("sensors/mora3", buf, n);
+  return 0;
+}
+
+int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
+  if(val < RPM_CUTOFF){ // filter out obviously incorrect values
+    return mqttPublish(mqtt, key, val);
+  }else{
+    Serial.print("not publishing ");
+    Serial.print(val);
+    Serial.print(" for ");
+    Serial.println(key);
+  }
+  return 0;
+}
+
+// we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
+// is someday eliminated, ensure we filter explicit FLT_MAX!
+static inline bool valid_temp(float t){
+  return !(t > 60 || isnan(t) || t <= DEVICE_DISCONNECTED_C);
+}
+
+static inline float rpm(unsigned long pulses, unsigned long usec){
+  return pulses * 60 * 1000000.0 / usec / 2;
+}
