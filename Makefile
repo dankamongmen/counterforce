@@ -8,7 +8,7 @@ ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .hex, external internal))
 HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESP32HEX) $(ESP8266HEX) $(UNOHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
-CFLAGS:=--warnings none
+CFLAGS:=
 
 ACLI:=arduino-cli
 
