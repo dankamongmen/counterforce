@@ -295,11 +295,11 @@ metrics:
    help: Ambient temperature at MO-RA3
    type: gauge
  - prom_name: mora3coolanttemp
-   mqtt_name: therm
+   mqtt_name: moracoolant
    help: Coolant temperature at MO-RA3
    type: gauge
  - prom_name: mora3fanrpm
-   mqtt_name: rpm
+   mqtt_name: morarpm
    help: MO-RA3 fan RPMs
    type: gauge
  - prom_name: mora3fanpwm

@@ -558,9 +558,9 @@ void loop(){
   updateDisplay(m, coolant_temp, ambient_temp);
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
-  rpmPublish(client, "rpm", RPM);
+  rpmPublish(client, "morarpm", RPM);
   if(valid_temp(coolant_temp)){
-    mqttPublish(client, "therm", coolant_temp);
+    mqttPublish(client, "moracoolant", coolant_temp);
   }else{
     Serial.println("don't have a coolant sample");
   }
