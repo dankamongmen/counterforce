@@ -9,7 +9,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION "v2.0.4"
+#define VERSION "v2.0.5"
 
 const unsigned long RPM_CUTOFF = 6000;
 

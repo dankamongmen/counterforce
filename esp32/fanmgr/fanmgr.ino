@@ -9,7 +9,7 @@
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
 
-#define VERSION "v2.0.1"
+#define VERSION "v2.0.5"
 
 const unsigned long RPM_CUTOFF = 5000;
 const int TEMPPIN = 39; // coolant thermistor (2-wire)
