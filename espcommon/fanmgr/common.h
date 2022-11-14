@@ -42,7 +42,7 @@ static void readThermistor(float* t, int pin){
   float Rt = R1 * scaled / (VREF - scaled);
   Serial.print(" Rt: ");
   Serial.println(Rt);
-  float tn = 1.0 / ((1.0 / NOMINAL) + log(Rt / R0) / BETA);
+  float tn = 1.0 / ((1.0 / NOMINAL) + log(R0 / Rt) / BETA);
   tn -= 273.15;
   Serial.print("coolantC: ");
   Serial.println(tn);
