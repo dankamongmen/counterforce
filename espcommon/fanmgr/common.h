@@ -93,3 +93,9 @@ static inline bool valid_temp(float t){
 static inline float rpm(unsigned long pulses, unsigned long usec){
   return pulses * 60 * 1000000.0 / usec / 2;
 }
+
+static void readPressure(float* t, int pin){
+  float v0 = analogRead(pin);
+  Serial.print("read raw V for pressure: ");
+  Serial.println(v0);
+}

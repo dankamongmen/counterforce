@@ -54,12 +54,6 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-void readPressure(float* t){
-  float v0 = analogRead(PRESSUREPIN);
-  Serial.print("read raw V for pressure: ");
-  Serial.println(v0);
-}
-
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 #define FANPWM_TIMER LEDC_TIMER_1
 
@@ -116,16 +110,15 @@ void IRAM_ATTR xtop2tach(void){
 }
 
 void setup(){
-  int error = 0;
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  error |= initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
-  error |= initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
-  error |= initialize_rgb_pwm(FANCHANR, RGBPINR);
-  error |= initialize_rgb_pwm(FANCHANG, RGBPING);
-  error |= initialize_rgb_pwm(FANCHANB, RGBPINB);
+  initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
+  initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
+  initialize_rgb_pwm(FANCHANR, RGBPINR);
+  initialize_rgb_pwm(FANCHANG, RGBPING);
+  initialize_rgb_pwm(FANCHANB, RGBPINB);
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   set_rgb();
@@ -421,7 +414,7 @@ void loop(){
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   readThermistor(&coolant_temp, TEMPPIN);
-  readPressure(&pressure);
+  readPressure(&pressure, PRESSUREPIN);
   unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
 
