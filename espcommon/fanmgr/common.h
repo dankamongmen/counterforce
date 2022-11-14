@@ -99,3 +99,12 @@ static void readPressure(float* t, int pin){
   Serial.print("read raw V for pressure: ");
   Serial.println(v0);
 }
+
+// precondition: isxdigit(c) is true
+static byte getHex(char c){
+  if(isdigit(c)){
+    return c - '0';
+  }
+  c = tolower(c);
+  return c - 'a' + 10;
+}

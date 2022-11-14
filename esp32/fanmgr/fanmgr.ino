@@ -192,15 +192,6 @@ static int set_rgb(void){
   return 0;
 }
 
-// precondition: isxdigit(c) is true
-static byte getHex(char c){
-  if(isdigit(c)){
-    return c - '0';
-  }
-  c = tolower(c);
-  return c - 'a' + 10;
-}
-
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
   client.subscribe("control/mora3/rgb", [](const String &payload){
