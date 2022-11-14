@@ -16,7 +16,7 @@ const unsigned long RPM_CUTOFF = 6000;
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = D2;
+const int AMBIENTPIN = D7;
 
 // PWM/tach pins for fans and pumps
 const int PUMPPWMPIN = D5;
