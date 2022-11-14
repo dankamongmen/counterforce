@@ -18,6 +18,10 @@ $(OUT)/counterforce: pi/counterforce.c
 	@mkdir -p $(@D)
 	$(CC) -o $@ $< -lnotcurses $(shell pkg-config --libs notcurses)
 
+$(OUT)/codi6/mora.hex: $(addprefix codi6/mora/, mora.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/mora
+
 $(OUT)/codi6/external.hex: $(addprefix codi6/external/, external.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/external
