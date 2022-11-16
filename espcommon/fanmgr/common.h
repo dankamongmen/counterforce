@@ -9,6 +9,31 @@ const unsigned long RPM_CUTOFF = 5000;
 #define INITIAL_FAN_PWM  192
 #define INITIAL_PUMP_PWM 128
 
+static volatile unsigned long Pulses;
+static volatile unsigned long XTAPulses;
+static volatile unsigned long XTBPulses;
+
+static void IRAM_ATTR fantach(void){
+  ++Pulses;
+}
+
+static void IRAM_ATTR xtop1tach(void){
+  ++XTAPulses;
+}
+
+static void IRAM_ATTR xtop2tach(void){
+  ++XTBPulses;
+}
+
+static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
+  pinMode(fanpin, INPUT);
+  pinMode(pumppina, INPUT);
+  pinMode(pumppinb, INPUT);
+  attachInterrupt(fanpin, fantach, RISING);
+  attachInterrupt(pumppina, xtop1tach, RISING);
+  attachInterrupt(pumppinb, xtop2tach, RISING);
+}
+
 static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
@@ -107,4 +132,34 @@ static byte getHex(char c){
   }
   c = tolower(c);
   return c - 'a' + 10;
+}
+
+static void publish_temps(EspMQTTClient& client, float amb, float cool){
+  if(valid_temp(cool)){
+    mqttPublish(client, "moracoolant", cool);
+  }else{
+    Serial.println("don't have a coolant sample");
+  }
+  // there are several error codes returned by DallasTemperature, all of
+  // them equal to or less than DEVICE_DISCONNECTED_C (there are also
+  // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
+  // DEVICE_FAULT_SHORTVDD_C).
+  if(valid_temp(amb)){
+    mqttPublish(client, "moraambient", amb);
+  }else{
+    Serial.println("don't have an ambient sample");
+  }
+}
+
+static bool valid_pwm_p(int pwm){
+  return pwm >= 0 && pwm <= 255;
+}
+
+static void publish_pwm(EspMQTTClient& client, int fanpwm, int pumppwm){
+  if(valid_pwm_p(fanpwm)){
+    mqttPublish(client, "morapwm", fanpwm);
+  }
+  if(valid_pwm_p(pumppwm)){
+    mqttPublish(client, "morapumppwm", pumppwm);
+  }
 }

@@ -26,7 +26,6 @@ const int XTOPBTACHPIN = D4;
 static unsigned RPM;
 static unsigned XTopRPMA;
 static unsigned XTopRPMB;
-static volatile unsigned long Pulses, XTAPulses, XTBPulses;
 
 static unsigned Pwm;
 static unsigned PumpPwm;
@@ -40,18 +39,6 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-void IRAM_ATTR fantach(void){
-  ++Pulses;
-}
-
-void IRAM_ATTR xtop1tach(void){
-  ++XTAPulses;
-}
-
-void IRAM_ATTR xtop2tach(void){
-  ++XTBPulses;
-}
-
 void setup(){
   Serial.begin(115200);
   Serial.print("booting esp8266 ");
@@ -64,12 +51,7 @@ void setup(){
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
-  pinMode(FANTACHPIN, INPUT_PULLUP);
-  pinMode(XTOPATACHPIN, INPUT_PULLUP);
-  pinMode(XTOPBTACHPIN, INPUT_PULLUP);
-  attachInterrupt(FANTACHPIN, fantach, FALLING);
-  attachInterrupt(XTOPATACHPIN, xtop1tach, FALLING);
-  attachInterrupt(XTOPBTACHPIN, xtop2tach, FALLING);
+  setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
 }
 
 // set up the desired PWM value
@@ -143,17 +125,14 @@ void onConnectionEstablished() {
 // for transmit/display. there are several blocking calls (1-wire and MQTT)
 // that can lengthen a given cycle.
 void loop(){
-  delay(100);
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
   // on error, but instead only on transmission).
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
-  readThermistor(&coolant_temp, TEMPPIN);
-  unsigned long m = micros();
   client.loop(); // handle any necessary wifi/mqtt
-
+  readThermistor(&coolant_temp, TEMPPIN);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
@@ -164,6 +143,7 @@ void loop(){
       onewire_connected = false;
     }
   }
+  unsigned long m = micros();
   unsigned long diff = m - last_tx;
   if(diff < 15000000){
     return;
@@ -189,22 +169,8 @@ void loop(){
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "morarpm", RPM);
-  if(valid_temp(coolant_temp)){
-    mqttPublish(client, "moracoolant", coolant_temp);
-  }else{
-    Serial.println("don't have a coolant sample");
-  }
-  // there are several error codes returned by DallasTemperature, all of
-  // them equal to or less than DEVICE_DISCONNECTED_C (there are also
-  // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
-  // DEVICE_FAULT_SHORTVDD_C).
-  if(valid_temp(ambient_temp)){
-    mqttPublish(client, "moraambient", ambient_temp);
-  }else{
-    Serial.println("don't have an ambient sample");
-  }
-  mqttPublish(client, "morapwm", Pwm);
-  mqttPublish(client, "morapumppwm", PumpPwm);
+  publish_temps(client, ambient_temp, coolant_temp);
+  publish_pwm(client, Pwm, PumpPwm);
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
 }

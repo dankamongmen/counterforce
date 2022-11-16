@@ -40,12 +40,9 @@ int Blue = 0x08;
 static unsigned RPM;
 static unsigned XTopRPMA;
 static unsigned XTopRPMB;
-static volatile unsigned long Pulses, XTAPulses, XTBPulses;
 
 static unsigned Pwm;
 static unsigned PumpPwm;
-static unsigned XTopPWMA;
-static unsigned XTopPWMB;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h"
@@ -97,18 +94,6 @@ int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
 
-void IRAM_ATTR fantach(void){
-  ++Pulses;
-}
-
-void IRAM_ATTR xtop1tach(void){
-  ++XTAPulses;
-}
-
-void IRAM_ATTR xtop2tach(void){
-  ++XTBPulses;
-}
-
 void setup(){
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
@@ -124,12 +109,7 @@ void setup(){
   set_rgb();
   pinMode(TEMPPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
-  pinMode(FANTACHPIN, INPUT);
-  pinMode(XTOPATACHPIN, INPUT);
-  pinMode(XTOPBTACHPIN, INPUT);
-  attachInterrupt(FANTACHPIN, fantach, RISING);
-  attachInterrupt(XTOPATACHPIN, xtop1tach, RISING);
-  attachInterrupt(XTOPBTACHPIN, xtop2tach, RISING);
+  setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
   updateDisplay(0, FLT_MAX, FLT_MAX);
 }
 
@@ -448,18 +428,6 @@ void loop(){
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "morarpm", RPM);
-  if(valid_temp(coolant_temp)){
-    mqttPublish(client, "moracoolant", coolant_temp);
-  }else{
-    Serial.println("don't have a coolant sample");
-  }
-  // there are several error codes returned by DallasTemperature, all of
-  // them equal to or less than DEVICE_DISCONNECTED_C (there are also
-  // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
-  // DEVICE_FAULT_SHORTVDD_C).
-  if(valid_temp(ambient_temp)){
-    mqttPublish(client, "moraambient", ambient_temp);
-  }else{
-    Serial.println("don't have an ambient sample");
-  }
+  publish_temps(client, ambient_temp, coolant_temp);
+  publish_pwm(client, Pwm, PumpPwm);
 }
