@@ -3,6 +3,12 @@
 
 #define VERSION "v2.1.0"
 
+#ifdef ESP32
+#define ISR IRAM_ATTR
+#else
+#define ISR IRAM_ATTR //ICACHE_RAM_ATRR
+#endif
+
 const unsigned long RPM_CUTOFF = 5000;
 
 // PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
@@ -13,15 +19,15 @@ static volatile unsigned long Pulses;
 static volatile unsigned long XTAPulses;
 static volatile unsigned long XTBPulses;
 
-static void IRAM_ATTR fantach(void){
+static void ISR fantach(void){
   ++Pulses;
 }
 
-static void IRAM_ATTR xtop1tach(void){
+static void ISR xtop1tach(void){
   ++XTAPulses;
 }
 
-static void IRAM_ATTR xtop2tach(void){
+static void ISR xtop2tach(void){
   ++XTBPulses;
 }
 
@@ -29,9 +35,9 @@ static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
   pinMode(fanpin, INPUT);
   pinMode(pumppina, INPUT);
   pinMode(pumppinb, INPUT);
-  attachInterrupt(fanpin, fantach, RISING);
-  attachInterrupt(pumppina, xtop1tach, RISING);
-  attachInterrupt(pumppinb, xtop2tach, RISING);
+  attachInterrupt(digitalPinToInterrupt(fanpin), fantach, RISING);
+  attachInterrupt(digitalPinToInterrupt(pumppina), xtop1tach, RISING);
+  attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, RISING);
 }
 
 static int readAmbient(float* t, DallasTemperature *dt){
