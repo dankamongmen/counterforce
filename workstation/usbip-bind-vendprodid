@@ -1,0 +1,17 @@
+#!/bin/sh
+
+usage() { echo "usage: `basename` VendorID:ProductID" ; }
+
+[ $# -eq 1 ] || { usage >&2 ; exit 1 ; }
+
+# usbip list -p generates a series of lines of the form e.g.:
+#   busid=9-4.3.4#usbid=248a:8367#
+
+# let the output hit stdout for identification purposes
+#if usbip list -r127.0.0.1 | grep "$1" ; then
+#  echo "Already exported USB $1" >&2
+#  exit
+#fi
+
+BUSID=$(usbip list -p -l | grep "#usbid=$1#" | cut -d= -f2 | cut -d# -f1)
+usbip bind -b $BUSID

@@ -3,5 +3,7 @@
 SUBSYSTEM=="tty" ATTRS{idVendor}=="2341" ATTRS{idProduct}=="0042" \
  ATTRS{serial}=="85734323330351D07122" SYMLINK+="tty-geiger"
 
+# can't easily launch a subprocess here to chomp down $devpath,
+# so we've got a custom script, bleh
 SUBSYSTEM=="usb" ATTRS{idVendor}=="248a" ATTRS{idProduct}=="8367" \
- RUN+="/usr/sbin/usbip bind -b $kernel"
+ RUN+="/usr/local/sbin/usbip-bind-vendprodid $env{ID_VENDOR_ID}:$env{ID_MODEL_ID}"
