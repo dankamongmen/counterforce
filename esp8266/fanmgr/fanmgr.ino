@@ -11,15 +11,13 @@
 
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
-// ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = D2;
 
-// PWM/tach pins for fans and pumps
+const int FANTACHPIN = D1;
+const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1-wire)
+const int XTOPATACHPIN = D3;
+const int XTOPBTACHPIN = D4; // connected to LED
 const int PUMPPWMPIN = D5;
 const int FANPWMPIN = D6;
-const int FANTACHPIN = D1;
-const int XTOPATACHPIN = D3;
-const int XTOPBTACHPIN = D4;
 
 // RPMs as determined by our interrupt handlers.
 // we only get the RPM count from one of our fans; it stands for all.
