@@ -89,7 +89,7 @@ void onConnectionEstablished() {
         p *= 10; // FIXME check for overflow
         p += h - '0';
       }
-      if(p < 256){
+      if(valid_pwm_p(p)){
         set_pwm(p);
       }
     }
@@ -111,7 +111,7 @@ void onConnectionEstablished() {
         p *= 10; // FIXME check for overflow
         p += h - '0';
       }
-      if(p < 256){
+      if(valid_pwm_p(p)){
         set_pump_pwm(p);
       }
     }
@@ -146,7 +146,7 @@ void loop(){
   if(diff < 15000000){
     return;
   }
-  // sample RPM, transmit, and update the display
+  // sample RPM and transmit
   // FIXME replace with MEGA's rolling 5s logic
   last_tx = m;
   noInterrupts();

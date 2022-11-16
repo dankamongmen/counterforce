@@ -217,7 +217,7 @@ void onConnectionEstablished() {
         p *= 10; // FIXME check for overflow
         p += h - '0';
       }
-      if(p < 256){
+      if(valid_pwm_p(p)){
         set_pwm(p);
       }
     }
@@ -239,7 +239,7 @@ void onConnectionEstablished() {
         p *= 10; // FIXME check for overflow
         p += h - '0';
       }
-      if(p < 256){
+      if(valid_pwm_p(p)){
         set_pump_pwm(p);
       }
     }
@@ -374,7 +374,7 @@ static void updateDisplay(unsigned long m, float therm, float ambient){
   Heltec.display->display();
 }
 
-// we transmit and update the display approximately every second, sampling
+// we transmit and update the display approximately every 15s, sampling
 // RPM at this time. we continuously sample the temperature, and use the
 // most recent valid read for transmit/display. there are several blocking
 // calls (1-wire and MQTT) that can lengthen a given cycle.
@@ -384,11 +384,9 @@ void loop(){
   static float pressure = FLT_MAX;
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
+  client.loop(); // handle any necessary wifi/mqtt
   readThermistor(&coolant_temp, TEMPPIN);
   readPressure(&pressure, PRESSUREPIN);
-  unsigned long m = micros();
-  client.loop(); // handle any necessary wifi/mqtt
-
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
@@ -400,8 +398,9 @@ void loop(){
       ambient_temp = FLT_MAX;
     }
   }
+  unsigned long m = micros();
   unsigned long diff = m - last_tx;
-  if(diff < 1000000){
+  if(diff < 15000000){
     return;
   }
   // sample RPM, transmit, and update the display
