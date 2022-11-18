@@ -1,6 +1,7 @@
 // intended for use on a Heltec ESP32LoRav2, this manages a PWM fan and two
 // PWM pumps. it receives PWM control messages, and sends RPM and temperature
 // reports, over MQTT.
+#define DEVNAME "esp32"
 #include "heltec.h"
 #include <float.h>
 #include <ArduinoJson.h>
@@ -385,7 +386,7 @@ void loop(){
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   client.loop(); // handle any necessary wifi/mqtt
-  readThermistor(&coolant_temp, TEMPPIN);
+  readThermistor(&coolant_temp, TEMPPIN, 4096);
   readPressure(&pressure, PRESSUREPIN);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){

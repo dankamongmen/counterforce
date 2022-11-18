@@ -3,6 +3,7 @@
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .hex, fan4pwm geiger))
 ESP32HEX:=$(addprefix esp32/, $(addsuffix .hex, fanmgr))
+ESP32WROOM2HEX:=$(addprefix esp32-wroom2/, $(addsuffix .hex, fanmgr))
 ESP8266HEX:=$(addprefix esp8266/, $(addsuffix .hex, fanmgr))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .hex, external internal mora))
@@ -29,6 +30,10 @@ $(OUT)/codi6/external.hex: $(addprefix codi6/external/, external.ino)
 $(OUT)/codi6/internal.hex: $(addprefix codi6/internal/, internal.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/internal
+
+$(OUT)/esp32-wroom2/fanmgr.hex: $(addprefix esp32-wroom2/fanmgr/, fanmgr.ino) $(ESPCOMMON)
+	@mkdir -p $(@D)
+	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wroom2/fanmgr
 
 $(OUT)/esp8266/fanmgr.hex: $(addprefix esp8266/fanmgr/, fanmgr.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
