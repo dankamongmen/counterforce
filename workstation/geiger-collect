@@ -3,7 +3,7 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
-TOPIC=sensors
+TOPIC=sensors/schwarzgerät
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
@@ -24,7 +24,7 @@ do
   if echo "$line" | grep '^Count: ' > /dev/null ; then
     { G=$((G + VAL)) && GSAMPS=$((GSAMPS + 1)) ; } || { echo "Invalid geiger report: $VAL" >&2 ; }
     if [ $GSAMPS -ge 15 ] ; then
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/geiger" -m "{\"geiger\":$G}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"geiger\":$G}" || \
        { echo "Error publishing geiger sample" >&2 ; }
       G=0
       GSAMPS=0
@@ -33,9 +33,9 @@ do
     { M=`jq -n $M+$VAL` && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
     if [ $MSAMPS -ge 15 ] ; then
       VAL=`jq -n $M/$MSAMPS`
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/mic" -m "{\"mic\":$VAL}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":$VAL}" || \
         { echo "Error publishing mic average" >&2 ; }
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC/micmax" -m "{\"micmax\":$MICMAX}" || \
+      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"micmax\":$MICMAX}" || \
         { echo "Error publishing mic maximum" >&2 ; }
       M=0
       MSAMPS=0

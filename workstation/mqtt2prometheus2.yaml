@@ -390,3 +390,31 @@ metrics:
    mqtt_name: vdram
    help: DRAM voltage
    type: gauge
+ - prom_name: fanrpm0
+   mqtt_name: fan0
+   help: Fan 1 RPMs
+   type: gauge
+ - prom_name: fanrpm1
+   mqtt_name: fan1
+   help: Fan 2 RPMs
+   type: gauge
+ - prom_name: fanrpm2
+   mqtt_name: fan2
+   help: Fan 3 RPMs
+   type: gauge
+ - prom_name: fanrpm3
+   mqtt_name: fan3
+   help: Fan 4 RPMs
+   type: gauge
+ - prom_name: fanrpm4
+   mqtt_name: fan4
+   help: Fan 5 RPMs
+   type: gauge
+ - prom_name: fanrpm5
+   mqtt_name: fan5
+   help: Fan 6 RPMs
+   type: gauge
+ - prom_name: fanrpm6
+   mqtt_name: fan5
+   help: Fan 7 RPMs
+   type: gauge

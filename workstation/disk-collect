@@ -3,14 +3,14 @@
 set -e
 
 MQTT=$(which mosquitto_pub)
-TOPIC=sensors
+TOPIC=sensors/schwarzgerät
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
 # arguments: topic (key), message. swallow errors so we don't exit.
 mqtt() {
-  "$MQTT" -t "$TOPIC/$1" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+  "$MQTT" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
     { echo "error publishing to mqtt" >&2 ; }
 }
 
