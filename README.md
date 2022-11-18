@@ -20,6 +20,7 @@ There are several controllers for the inaMORAta:
 * `esp32`: Heltec WiFi LoRa 32 v2
 * `esp32-wroom2`: HiLetGo ESP32
 * `esp8266`: HiLetGo ESP8266
+
 Look at `fanmgr.c` to get the mappings from pins to devices.
 
 There is a MEGA2560 controller for the Geiger counter and sound detector in `mega2560/geiger`.
