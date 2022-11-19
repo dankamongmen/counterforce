@@ -1,7 +1,16 @@
 // intended for use on a HiLetGo ESP32-WROOM2, this manages a PWM fan and two
 // PWM pumps. it receives PWM control messages, and sends RPM and temperature
 // reports, over MQTT.
-#define DEVNAME "wroom2"
+
+// define VERSION12V for the RGB 12V MORA (as opposed to ARGB 5V)
+// #define VERSION12V
+
+#ifdef VERSION12V
+#define DEVNAME "vroom2"
+#else
+#define DEVNAME "mora3"
+#endif
+
 #include <float.h>
 #include <ArduinoJson.h>
 #include <OneWire.h>
@@ -26,10 +35,11 @@ const int FANPWMPIN = 16;
 const int FANTACHPIN = 34;
 const int XTOPATACHPIN = 35;
 const int XTOPBTACHPIN = 32;
+#ifdef VERSION12V
 const int RGBPINR = 27;
 const int RGBPING = 14;
 const int RGBPINB = 12;
-
+#endif
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
 int Red = 0x8f;
 int Green = 0x8f;
@@ -98,15 +108,19 @@ void setup(){
   Serial.begin(115200);
   Serial.println("initializing!");
   pinMode(TEMPPIN, INPUT);
+#ifdef VERSION12V
   pinMode(PRESSUREPIN, INPUT);
+#endif
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
   initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
+#ifdef VERSION12V
   initialize_rgb_pwm(FANCHANR, RGBPINR);
   initialize_rgb_pwm(FANCHANG, RGBPING);
   initialize_rgb_pwm(FANCHANB, RGBPINB);
   set_rgb();
+#endif
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
@@ -174,6 +188,7 @@ static int set_rgb(void){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
+#ifdef VERSION12V
   client.subscribe("control/mora3/rgb", [](const String &payload){
       Serial.print("received RGB via mqtt: ");
       Serial.println(payload);
@@ -200,6 +215,7 @@ void onConnectionEstablished() {
       set_rgb();
     }
   );
+#endif
   client.subscribe("control/mora3/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
@@ -258,7 +274,9 @@ void loop(){
   static float ambient_temp = FLT_MAX;
   client.loop(); // handle any necessary wifi/mqtt
   readThermistor(&coolant_temp, TEMPPIN, 4096);
+#ifdef VERSION12V
   readPressure(&pressure, PRESSUREPIN);
+#endif
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
