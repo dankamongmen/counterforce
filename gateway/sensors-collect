@@ -41,6 +41,17 @@ while true ; do
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
 
+  # network
+  for i in ax88772usb br0 ; do
+    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
+
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
