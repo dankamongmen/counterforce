@@ -8,13 +8,18 @@ CRGB p14[FAN_COUNT * LEDS_PER_FAN];
  
 void setup() {
   Serial.begin(115200);
-  FastLED.addLeds<NEOPIXEL, 3>(p14, 0, sizeof(CRGB) * LEDS_PER_PWM);
-  FastLED.addLeds<NEOPIXEL, 5>(p14 + LEDS_PER_PWM, 0, sizeof(CRGB) * LEDS_PER_PWM);
+  FastLED.addLeds<NEOPIXEL, 3>(p14 + LEDS_PER_PWM * 0, 0, sizeof(CRGB) * LEDS_PER_PWM);
+  FastLED.addLeds<NEOPIXEL, 5>(p14 + LEDS_PER_PWM * 1, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 6>(p14 + LEDS_PER_PWM * 2, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 9>(p14 + LEDS_PER_PWM * 3, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 10>(p14 + LEDS_PER_PWM * 4, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 11>(p14 + LEDS_PER_PWM * 5, 0, sizeof(CRGB) * LEDS_PER_PWM);
   Serial.println("MoRa3 CODI6 online");
+  for(unsigned i = 0 ; i < sizeof(p14) / sizeof(*p14) ; ++i){
+    p14[i] = (i % 2) ? CRGB::Cyan : CRGB::Green;
+  }
+  FastLED.show();
+  Serial.println("MoRa3 CODI6 visible");
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
@@ -62,9 +67,9 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 }
 
 void loop() {
-  for(unsigned i = 0 ; i < sizeof(p14) / sizeof(*p14) / 2 ; ++i){
-    p14[i] = CRGB::Cyan;
-  }
+  StepEffect(p14 + LEDS_PER_PWM * 0, LEDS_PER_PWM);
+  StepEffect(p14 + LEDS_PER_PWM * 1, LEDS_PER_PWM);
+  StepEffect(p14 + LEDS_PER_PWM * 2, LEDS_PER_PWM);
   StepEffect(p14 + LEDS_PER_PWM * 3, LEDS_PER_PWM);
   StepEffect(p14 + LEDS_PER_PWM * 4, LEDS_PER_PWM);
   StepEffect(p14 + LEDS_PER_PWM * 5, LEDS_PER_PWM);
