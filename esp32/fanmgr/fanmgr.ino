@@ -119,14 +119,14 @@ static int set_pwm(unsigned p){
   if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, p) != ESP_OK){
     Serial.println("error setting PWM!");
     return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
+  }
+  if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
     Serial.println("error committing PWM!");
     return -1;
-  }else{
-    Serial.print("configured PWM: ");
-    Serial.println(p);
-    Pwm = p;
   }
+  Serial.print("configured PWM: ");
+  Serial.println(p);
+  Pwm = p;
   return 0;
 }
 
