@@ -60,10 +60,10 @@ static void readThermistor(float* t, int pin, int levels){
   const float R1 = 10000;
   const float VREF = 3.3;
   float v0 = analogRead(pin);
-  Serial.print("read raw V for coolant: ");
+  Serial.print("coolantV: ");
   Serial.print(v0);
   if(v0 <= 1 || v0 >= levels - 1){
-    Serial.println(" discarding");
+    Serial.println(", discarding");
     return;
   }
   // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
@@ -89,7 +89,7 @@ static int connect_onewire(DallasTemperature* dt){
     Serial.println(devcount);
     return 0;
   }
-  Serial.println("error connecting to 1Wire");
+  Serial.println("1Wire conn error");
   return -1;
 }
 

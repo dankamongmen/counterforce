@@ -418,3 +418,19 @@ metrics:
    mqtt_name: fan7
    help: Fan 7 RPMs
    type: gauge
+ - prom_name: nicrxbax88772usb
+   mqtt_name: nicrxbax88772usb
+   help: Bytes received by ax88772usb
+   type: counter
+ - prom_name: nicrxbbr0
+   mqtt_name: nicrxbbr0
+   help: Bytes received by br0
+   type: counter
+ - prom_name: nictxbax88772usb
+   mqtt_name: nictxbax88772usb
+   help: Bytes sent by ax88772usb
+   type: counter
+ - prom_name: nictxbbr0
+   mqtt_name: nictxbbr0
+   help: Bytes sent by br0
+   type: counter
