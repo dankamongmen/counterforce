@@ -31,12 +31,20 @@ static void ISR xtop2tach(void){
   ++XTBPulses;
 }
 
+static void print_int_pin(int pin){
+  Serial.print("setting up interrupt on ");
+  Serial.println(pin);
+}
+
 static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
+  print_int_pin(fanpin);
   pinMode(fanpin, INPUT);
-  pinMode(pumppina, INPUT);
-  pinMode(pumppinb, INPUT);
   attachInterrupt(digitalPinToInterrupt(fanpin), fantach, RISING);
+  print_int_pin(pumppina);
+  pinMode(pumppina, INPUT);
   attachInterrupt(digitalPinToInterrupt(pumppina), xtop1tach, RISING);
+  print_int_pin(pumppinb);
+  pinMode(pumppinb, INPUT);
   attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, RISING);
 }
 
@@ -89,7 +97,7 @@ static int connect_onewire(DallasTemperature* dt){
     Serial.println(devcount);
     return 0;
   }
-  Serial.println("1Wire conn error");
+  Serial.println("1Wire connerr");
   return -1;
 }
 
@@ -99,7 +107,7 @@ template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const
   // PubSubClient limits messages to 256 bytes
   char buf[257];
   size_t n = serializeJson(doc, buf);
-  mqtt.publish("sensors/mora3", buf, n);
+  mqtt.publish("sensors/" DEVNAME, buf, n);
   return 0;
 }
 
