@@ -78,7 +78,7 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
   ledc_timer.bit_num = FANPWM_BIT_NUM;
   ledc_timer.timer_num = FANPWM_TIMER;
-  ledc_timer.freq_hz = 25000;
+  ledc_timer.freq_hz = freq;
   if(ledc_timer_config(&ledc_timer) != ESP_OK){
     Serial.println("error (timer config)!");
     return -1;
