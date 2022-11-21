@@ -1,8 +1,8 @@
 #include <FastLED.h>
  
-#define FAN_COUNT 9
+#define FAN_COUNT 6
 #define LEDS_PER_FAN 12 // Arctic P14 ARGB
-#define LEDS_PER_PWM (FANS_COUNT * LEDS_PER_FAN)
+#define LEDS_PER_PWM (FAN_COUNT * LEDS_PER_FAN)
 #define PWM_CHANNELS 6
 CRGB p14[PWM_CHANNELS * LEDS_PER_PWM];
  
