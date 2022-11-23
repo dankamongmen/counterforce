@@ -148,6 +148,10 @@ static byte getHex(char c){
   return c - 'a' + 10;
 }
 
+static void publish_uptime(EspMQTTClient& client, unsigned long s){
+  mqttPublish(client, "uptime", s);
+}
+
 static void publish_temps(EspMQTTClient& client, float amb, float cool){
   if(valid_temp(cool)){
     mqttPublish(client, "moracoolant", cool);

@@ -170,6 +170,7 @@ void loop(){
   rpmPublish(client, "morarpm", RPM);
   publish_temps(client, ambient_temp, coolant_temp);
   publish_pwm(client, Pwm, PumpPwm);
+  publish_uptime(client, millis()); // FIXME handle overflow
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
 }

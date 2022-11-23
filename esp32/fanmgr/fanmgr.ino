@@ -428,6 +428,7 @@ void loop(){
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "morarpm", RPM);
+  publish_uptime(client, millis()); // FIXME handle overflow
   publish_temps(client, ambient_temp, coolant_temp);
   publish_pwm(client, Pwm, PumpPwm);
 }
