@@ -31,6 +31,7 @@ procnetdevtx() {
 CHIPID=nct6798-isa-0290
 
 while true ; do
+  # SMBus nct6798-isa-0290 SuperIO
   for i in `seq 1 7` ; do
     FAN=$(sensors -j | jq .\"$CHIPID\".\"fan${i}\".fan${i}_input) 2> /dev/null
     mqtt fan$i $FAN
