@@ -68,28 +68,20 @@ static void readThermistor(float* t, int pin, int levels){
   const float R1 = 10000;
   const float VREF = 3.3;
   float v0 = analogRead(pin);
-  Serial.print("coolantV: ");
-  Serial.print(v0);
   if(v0 <= 1 || v0 >= levels - 1){
-    Serial.println(", discarding");
     return;
   }
   // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
   float scaled = v0 * VREF / (levels - 1);
-  Serial.print(" scaled: ");
-  Serial.print(scaled);
   float Rt = R1 * scaled / (VREF - scaled);
-  Serial.print(" Rt: ");
-  Serial.println(Rt);
   float tn = 1.0 / ((1.0 / NOMINAL) + log(R0 / Rt) / BETA);
   tn -= 273.15;
-  Serial.print("coolantC: ");
-  Serial.println(tn);
   *t = tn;
 }
 
 // attempt to establish a connection to the DS18B20
 static int connect_onewire(DallasTemperature* dt){
+  static unsigned long last_error_diag;
   dt->begin();
   int devcount = dt->getDeviceCount();
   if(devcount){
@@ -97,7 +89,11 @@ static int connect_onewire(DallasTemperature* dt){
     Serial.println(devcount);
     return 0;
   }
-  Serial.println("1Wire connerr");
+  unsigned long m = millis();
+  if(last_error_diag + 1000 <= m){
+    Serial.println("1Wire connerr");
+    last_error_diag = m;
+  }
   return -1;
 }
 
@@ -130,6 +126,8 @@ static inline bool valid_temp(float t){
 }
 
 static inline float rpm(unsigned long pulses, unsigned long usec){
+  Serial.print(pulses);
+  Serial.println(" pulses measured");
   return pulses * 60 * 1000000.0 / usec / 2;
 }
 
@@ -149,7 +147,7 @@ static byte getHex(char c){
 }
 
 static void publish_uptime(EspMQTTClient& client, unsigned long s){
-  mqttPublish(client, "uptime", s);
+  mqttPublish(client, "uptimesec", s);
 }
 
 static void publish_temps(EspMQTTClient& client, float amb, float cool){
