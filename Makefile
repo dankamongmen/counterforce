@@ -1,13 +1,13 @@
 .PHONY: all clean
 
 OUT:=out
-MEGAHEX:=$(addprefix mega2560/, $(addsuffix .hex, fan4pwm geiger))
+MEGAHEX:=$(addprefix mega2560/, $(addsuffix .hex, geiger))
 ESP32HEX:=$(addprefix esp32/, $(addsuffix .hex, fanmgr))
 ESP32WROOM2HEX:=$(addprefix esp32-wroom2/, $(addsuffix .hex, fanmgr))
 ESP8266HEX:=$(addprefix esp8266/, $(addsuffix .hex, fanmgr))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
-UNOHEX:=$(addprefix codi6/, $(addsuffix .hex, external internal mora))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESP32HEX) $(ESP8266HEX) $(UNOHEX))
+CODIHEX:=$(addprefix codi6/, $(addsuffix .hex, external internal mora))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESP32HEX) $(ESP8266HEX) $(CODIHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 
@@ -46,10 +46,6 @@ $(OUT)/esp32/fanmgr.hex: $(addprefix esp32/fanmgr/, fanmgr.ino) $(ESPCOMMON)
 $(OUT)/mega2560/geiger.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:mega -v --output-dir $(@D) mega2560/geiger
-
-$(OUT)/mega2560/fan4pwm.hex: $(addprefix mega2560/fan4pwm/, fan4pwm.ino)
-	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b arduino:avr:mega -v --output-dir $(@D) mega2560/fan4pwm
 
 clean:
 	rm -rf $(OUT)
