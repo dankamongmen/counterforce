@@ -11,7 +11,7 @@ MQTTHOST=10.128.0.1
 
 # arguments: topic (key), message. swallow errors so we don't exit.
 mqtt() {
-  "$MQTT" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+  "$MQTT" -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
     { echo "error publishing to mqtt" >&2 ; }
 }
 
