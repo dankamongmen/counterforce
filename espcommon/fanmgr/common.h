@@ -38,14 +38,14 @@ static void print_int_pin(int pin){
 
 static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
   print_int_pin(fanpin);
-  pinMode(fanpin, INPUT);
-  attachInterrupt(digitalPinToInterrupt(fanpin), fantach, RISING);
+  pinMode(fanpin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(fanpin), fantach, FALLING);
   print_int_pin(pumppina);
-  pinMode(pumppina, INPUT);
-  attachInterrupt(digitalPinToInterrupt(pumppina), xtop1tach, RISING);
+  pinMode(pumppina, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(pumppina), xtop1tach, FALLING);
   print_int_pin(pumppinb);
-  pinMode(pumppinb, INPUT);
-  attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, RISING);
+  pinMode(pumppinb, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, FALLING);
 }
 
 static int readAmbient(float* t, DallasTemperature *dt){

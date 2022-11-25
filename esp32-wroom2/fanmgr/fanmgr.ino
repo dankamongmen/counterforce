@@ -33,7 +33,7 @@ const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
 const int PUMPPWMPIN = 17;
 const int FANPWMPIN = 16;
 const int FANTACHPIN = 34;
-const int XTOPATACHPIN = 35;
+const int XTOPATACHPIN = 13;
 const int XTOPBTACHPIN = 32;
 #ifdef VERSION12V
 const int RGBPINR = 27;
