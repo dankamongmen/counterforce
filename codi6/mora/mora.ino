@@ -1,8 +1,8 @@
 #include <FastLED.h>
  
-#define FAN_COUNT 3
+#define FANS_PER_CHAN 3
 #define LEDS_PER_FAN 12 // Arctic P14 ARGB
-#define LEDS_PER_PWM (FAN_COUNT * LEDS_PER_FAN)
+#define LEDS_PER_PWM (FANS_PER_CHAN * LEDS_PER_FAN)
 #define PWM_CHANNELS 6
 CRGB p14[PWM_CHANNELS * LEDS_PER_PWM];
  
@@ -67,11 +67,10 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 }
 
 void loop() {
-  StepEffect(p14 + LEDS_PER_PWM * 0, LEDS_PER_PWM);
-  StepEffect(p14 + LEDS_PER_PWM * 1, LEDS_PER_PWM);
-  StepEffect(p14 + LEDS_PER_PWM * 2, LEDS_PER_PWM);
-  StepEffect(p14 + LEDS_PER_PWM * 3, LEDS_PER_PWM);
-  StepEffect(p14 + LEDS_PER_PWM * 4, LEDS_PER_PWM);
-  StepEffect(p14 + LEDS_PER_PWM * 5, LEDS_PER_PWM);
+  for(int p = 0 ; p < PWM_CHANNELS ; ++p){
+    for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
+      StepEffect(p14 + LEDS_PER_PWM * p + LEDS_PER_FAN * i, LEDS_PER_FAN);
+    }
+  }
   FastLED.show();
 }
