@@ -49,6 +49,9 @@ const int BRGBPIN = 9;
 
 // we need one digital output pins for fan PWM
 const int PWMPIN = 8;
+// and two for pump PWM
+const int XTOPPWMPINA = 44;
+const int XTOPPWMPINB = 45;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
@@ -142,12 +145,18 @@ static void setup_timers(void){
   TCCR4A = 0;
   TCCR4B = 0;
   TCNT4  = 0;
+  TCCR5A = 0;
+  TCCR5B = 0;
+  TCNT5  = 0;
   // Mode 10: phase correct PWM with ICR4 as Top (phase-correct needs a
   // factor of 2 in division below). OCR4C as Non-Inverted PWM output.
   // 16MHz / (25KHz * 2) == 320 cycles per interrupt.
   ICR4 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
+  ICR5 = (F_CPU / PWM_FREQ_HZ) / 2;
+  TCCR5A = _BV(COM5C1) | _BV(WGM51);
+  TCCR5B = _BV(WGM53) | _BV(CS50);
 }
 
 static void apply_rgb(void){
@@ -163,11 +172,17 @@ void setup(){
   UART.begin(UARTSPEED);
 
   pinMode(PWMPIN, OUTPUT);
+  pinMode(XTOPPWMPINA, OUTPUT);
+  pinMode(XTOPPWMPINB, OUTPUT);
   setup_timers();
   Serial.print("pwm write on ");
-  Serial.println(PWMPIN);
-  setPWM(INITIAL_PWM);
-
+  Serial.print(PWMPIN);
+  Serial.print(", ");
+  Serial.print(XTOPPWMPINA);
+  Serial.print(", ");
+  Serial.println(XTOPPWMPINB);
+  setFanPWM(INITIAL_PWM);
+  setPumpPWM(INITIAL_PWM);
   Pulses = 0;
   pinMode(RPMPIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
@@ -186,7 +201,14 @@ void setup(){
   pinMode(BRGBPIN, OUTPUT);
 }
 
-void setPWM(unsigned pwm){
+static void setFanPWM(unsigned pwm){
+  Pwm = pwm;
+  OCR4C = ICR4 * pwm / 256;
+  Serial.print("PWM to ");
+  Serial.println(pwm);
+}
+
+static void setPumpPWM(unsigned pwm){
   Pwm = pwm;
   OCR4C = ICR4 * pwm / 256;
   Serial.print("PWM to ");
@@ -197,7 +219,7 @@ void setPWM(unsigned pwm){
 static int apply_pwm(int in){
   if(in >= 0){
     if(in <= 255){
-      setPWM(in);
+      setFanPWM(in);
       return 0;
     }
   }
