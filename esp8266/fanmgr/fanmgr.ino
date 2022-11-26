@@ -73,7 +73,7 @@ static int set_pump_pwm(unsigned p){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("control/mora3/pwm", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
       unsigned long p = 0;
@@ -95,7 +95,7 @@ void onConnectionEstablished() {
       }
     }
   );
-  client.subscribe("control/mora3/pumppwm", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
       Serial.print("received pump PWM via mqtt: ");
       Serial.println(payload);
       unsigned long p = 0;
