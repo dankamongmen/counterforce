@@ -151,7 +151,7 @@ static void publish_uptime(EspMQTTClient& client, unsigned long s){
 }
 
 static void publish_temps(EspMQTTClient& client, float amb, float cool){
-  if(valid_temp(cool)){
+  if(valid_temp(cool) && cool > 0){
     mqttPublish(client, "moracoolant", cool);
   }else{
     Serial.println("don't have a coolant sample");
