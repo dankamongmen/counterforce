@@ -7,7 +7,7 @@ const unsigned long UARTSPEED = 9600;
 // atop a serial pair. Serial2 is RX on 17, TX on 16.
 #define UART Serial2
 
-#define INITIAL_PWM 0
+#define INITIAL_PWM 128
 unsigned Pwm; // initialized through setPwm
 
 // we average tach signals over this many quanta, if we have them. we track
