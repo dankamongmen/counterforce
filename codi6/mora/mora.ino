@@ -68,9 +68,9 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 
 void loop() {
   for(int p = 0 ; p < PWM_CHANNELS ; ++p){
-    for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
-      StepEffect(p14 + LEDS_PER_PWM * p + LEDS_PER_FAN * i, LEDS_PER_FAN);
-    }
+    //for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
+      StepEffect(p14 + LEDS_PER_PWM * p /*+ LEDS_PER_FAN * i*/, LEDS_PER_PWM);
+    //}
   }
   FastLED.show();
 }
