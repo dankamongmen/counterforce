@@ -16,21 +16,21 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, 11>(p14 + LEDS_PER_PWM * 5, 0, sizeof(CRGB) * LEDS_PER_PWM);
   Serial.println("MoRa3 CODI6 online");
   for(unsigned i = 0 ; i < sizeof(p14) / sizeof(*p14) ; ++i){
-    p14[i] = (i % 2) ? CRGB::Cyan : CRGB::Green;
+    p14[i] = CRGB::Green;//(i % 2) ? CRGB::Cyan : CRGB::Green;
   }
   FastLED.show();
   Serial.println("MoRa3 CODI6 visible");
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
-#define animation_speed 5.0
-#define color_rotation_speed 10.0
-#define spacing 2.0
-#define thickness 2.0
-#define Speed 60
+#define animation_speed 4.0
+#define color_rotation_speed 3.0
+#define spacing 1.0
+#define thickness 3.0
+#define Speed 30
 #define FPS 60
 
-double progress = 1000;
+double progress = 10;
 unsigned cx_shift = 50;
 unsigned cy_shift = 50;
 
