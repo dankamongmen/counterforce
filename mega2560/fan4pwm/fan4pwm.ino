@@ -382,12 +382,12 @@ void loop(){
   unsigned long cur;
 
   apply_rgb();
-  for(int p = 0 ; p < PWM_CHANNELS ; ++p){
-    StepEffect(p14 + LEDS_PER_PWM * p, LEDS_PER_PWM);
-  }
-  FastLED.show();
   apply_pwm(Pwm);
   do{
+    for(int p = 0 ; p < PWM_CHANNELS ; ++p){
+      StepEffect(p14 + LEDS_PER_PWM * p, LEDS_PER_PWM);
+    }
+    FastLED.show();
     cur = micros();
     check_pwm_update();
   }while(cur - m < QUANTUMUS); // handles overflow implicitly
