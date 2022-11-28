@@ -1,4 +1,6 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
+#include "EspMQTTClient.h"
+
 #define VERSION "v2.2.0"
 
 #ifdef ESP32
