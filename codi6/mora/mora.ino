@@ -16,7 +16,7 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, 11>(p14 + LEDS_PER_PWM * 5, 0, sizeof(CRGB) * LEDS_PER_PWM);
   Serial.println("MoRa3 CODI6 online");
   for(unsigned i = 0 ; i < sizeof(p14) / sizeof(*p14) ; ++i){
-    p14[i] = CRGB::Green;//(i % 2) ? CRGB::Cyan : CRGB::Green;
+    p14[i] = (i % 2) ? CRGB::Cyan : CRGB::Green;
   }
   FastLED.show();
   Serial.println("MoRa3 CODI6 visible");
