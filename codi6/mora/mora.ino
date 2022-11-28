@@ -23,14 +23,14 @@ void setup() {
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
-#define animation_speed 5.0
-#define color_rotation_speed 10.0
-#define spacing 2.0
-#define thickness 2.0
-#define Speed 60
+#define animation_speed 4.0
+#define color_rotation_speed 3.0
+#define spacing 1.0
+#define thickness 3.0
+#define Speed 30
 #define FPS 60
 
-double progress = 1000;
+double progress = 10;
 unsigned cx_shift = 50;
 unsigned cy_shift = 50;
 
@@ -68,9 +68,9 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
 
 void loop() {
   for(int p = 0 ; p < PWM_CHANNELS ; ++p){
-    for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
-      StepEffect(p14 + LEDS_PER_PWM * p + LEDS_PER_FAN * i, LEDS_PER_FAN);
-    }
+    //for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
+      StepEffect(p14 + LEDS_PER_PWM * p /*+ LEDS_PER_FAN * i*/, LEDS_PER_PWM);
+    //}
   }
   FastLED.show();
 }

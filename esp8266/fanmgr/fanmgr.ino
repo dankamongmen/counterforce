@@ -8,10 +8,16 @@
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <pwm.h>
+#include <ArduinoOTA.h>
 #include "common.h"
+
+#define PWM_CHANNELS 2
 
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
+
+const int LEDPIN = D0; // fixed for nodemcu
 
 const int FANTACHPIN = D1;
 const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1-wire)
@@ -38,24 +44,60 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
+// esp8266_pwm_new uses 200ns units. we want 25KHz, which is 40us,
+// which is 40k ns, which is 200x 200ns units.
+#define PWMPERIOD 200
+
 void setup(){
   Serial.begin(115200);
   Serial.print("booting esp8266 ");
   Serial.println(VERSION);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  analogWriteFreq(25000);
   pinMode(PUMPPWMPIN, OUTPUT);
   pinMode(FANPWMPIN, OUTPUT);
+  uint32_t cycle = PWMPERIOD / 2; // half duty to start
+  uint32_t cycles[PWM_CHANNELS] = { cycle, cycle, };
+  uint32_t pwms[PWM_CHANNELS][3] = {
+    {PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12, 12},
+	  {PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14, 14},
+  };
+  pwm_init(PWMPERIOD, cycles, sizeof(pwms) / sizeof(*pwms), pwms);
+  pwm_start();
+  /*
+  analogWriteFreq(25000);
+  */
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
+  pinMode(LEDPIN, OUTPUT);
   setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
+  ArduinoOTA.setHostname(DEVNAME);
+  ArduinoOTA.setPassword(DEVNAME); // FIXME
+    ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
 }
 
 // set up the desired PWM value
 static int set_pwm(unsigned p){
-  analogWrite(FANPWMPIN, p);
+  //analogWrite(FANPWMPIN, p);
+  pwm_set_duty(PWMPERIOD * p / 255, 1);
   Serial.print("configured fan PWM: ");
   Serial.println(p);
   Pwm = p;
@@ -64,7 +106,8 @@ static int set_pwm(unsigned p){
 
 // set up the desired pump PWM value
 static int set_pump_pwm(unsigned p){
-  analogWrite(PUMPPWMPIN, p);
+  //analogWrite(PUMPPWMPIN, p);
+  pwm_set_duty(PWMPERIOD * p / 255, 2);
   Serial.print("configured pump PWM: ");
   Serial.println(p);
   PumpPwm = p;
@@ -73,7 +116,7 @@ static int set_pump_pwm(unsigned p){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("control/mora3/pwm", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
       unsigned long p = 0;
@@ -95,7 +138,7 @@ void onConnectionEstablished() {
       }
     }
   );
-  client.subscribe("control/mora3/pumppwm", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
       Serial.print("received pump PWM via mqtt: ");
       Serial.println(payload);
       unsigned long p = 0;
@@ -124,13 +167,17 @@ void onConnectionEstablished() {
 // for transmit/display. there are several blocking calls (1-wire and MQTT)
 // that can lengthen a given cycle.
 void loop(){
+  static bool ledstatus;
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
   // on error, but instead only on transmission).
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
+  ArduinoOTA.handle();
   client.loop(); // handle any necessary wifi/mqtt
+  digitalWrite(LEDPIN, ledstatus);
+  ledstatus = !ledstatus;
   readThermistor(&coolant_temp, TEMPPIN, 1024);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
