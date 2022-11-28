@@ -57,7 +57,7 @@ void setup(){
   setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
   ArduinoOTA.setHostname(DEVNAME);
   ArduinoOTA.setPassword(DEVNAME); // FIXME
-    ArduinoOTA.onStart([]() {
+  ArduinoOTA.onStart([]() {
     Serial.println("Start");
   });
   ArduinoOTA.onEnd([]() {
