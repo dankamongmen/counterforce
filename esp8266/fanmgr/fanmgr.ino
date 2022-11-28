@@ -8,11 +8,8 @@
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <pwm.h>
 #include <ArduinoOTA.h>
 #include "common.h"
-
-#define PWM_CHANNELS 2
 
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
@@ -44,10 +41,6 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
-// esp8266_pwm_new uses 200ns units. we want 25KHz, which is 40us,
-// which is 40k ns, which is 200x 200ns units.
-#define PWMPERIOD 200
-
 void setup(){
   Serial.begin(115200);
   Serial.print("booting esp8266 ");
@@ -56,17 +49,7 @@ void setup(){
   client.enableMQTTPersistence();
   pinMode(PUMPPWMPIN, OUTPUT);
   pinMode(FANPWMPIN, OUTPUT);
-  uint32_t cycle = PWMPERIOD / 2; // half duty to start
-  uint32_t cycles[PWM_CHANNELS] = { cycle, cycle, };
-  uint32_t pwms[PWM_CHANNELS][3] = {
-    {PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12, 12},
-	  {PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14, 14},
-  };
-  pwm_init(PWMPERIOD, cycles, sizeof(pwms) / sizeof(*pwms), pwms);
-  pwm_start();
-  /*
   analogWriteFreq(25000);
-  */
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
@@ -96,8 +79,7 @@ void setup(){
 
 // set up the desired PWM value
 static int set_pwm(unsigned p){
-  //analogWrite(FANPWMPIN, p);
-  pwm_set_duty(PWMPERIOD * p / 255, 1);
+  analogWrite(FANPWMPIN, p);
   Serial.print("configured fan PWM: ");
   Serial.println(p);
   Pwm = p;
@@ -106,8 +88,7 @@ static int set_pwm(unsigned p){
 
 // set up the desired pump PWM value
 static int set_pump_pwm(unsigned p){
-  //analogWrite(PUMPPWMPIN, p);
-  pwm_set_duty(PWMPERIOD * p / 255, 2);
+  analogWrite(PUMPPWMPIN, p);
   Serial.print("configured pump PWM: ");
   Serial.println(p);
   PumpPwm = p;
