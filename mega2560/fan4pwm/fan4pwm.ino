@@ -10,6 +10,7 @@ const unsigned long UARTSPEED = 9600;
 
 #define INITIAL_PWM 128
 unsigned Pwm; // initialized through setPwm
+unsigned PumpPwm; // initialized through setPumpPwm
 
 // we average tach signals over this many quanta, if we have them. we track
 // the samples in a ringbuffer.
@@ -147,7 +148,7 @@ static void xtopb(void){
   }
 }
 
-static void setup_timers(void){
+static void setup_timers(unsigned initpwm){
   TCCR4A = 0;
   TCCR4B = 0;
   TCNT4  = 0;
@@ -160,9 +161,11 @@ static void setup_timers(void){
   ICR4 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
+  Pwm = OCR4C = initpwm;
   ICR5 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR5A = _BV(COM5C1) | _BV(WGM51);
   TCCR5B = _BV(WGM53) | _BV(CS50);
+  PumpPwm = OCR5C = initpwm;
 }
 
 static void apply_rgb(void){
@@ -197,13 +200,11 @@ void setup(){
 
   pinMode(PWMPIN, OUTPUT);
   pinMode(XTOPPWMPIN, OUTPUT);
-  setup_timers();
+  setup_timers(INITIAL_PWM);
   Serial.print("pwm write on ");
   Serial.print(PWMPIN);
   Serial.print(", ");
   Serial.println(XTOPPWMPIN);
-  setFanPWM(INITIAL_PWM);
-  setPumpPWM(INITIAL_PWM);
   Pulses = 0;
   pinMode(RPMPIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
@@ -274,8 +275,8 @@ static void setFanPWM(unsigned pwm){
 }
 
 static void setPumpPWM(unsigned pwm){
-  Pwm = pwm;
-  OCR4C = ICR4 * pwm / 256;
+  PumpPwm = pwm;
+  OCR5C = ICR5 * pwm / 256;
   Serial.print("PWM to ");
   Serial.println(pwm);
 }
@@ -285,6 +286,19 @@ static int apply_pwm(int in){
   if(in >= 0){
     if(in <= 255){
       setFanPWM(in);
+      return 0;
+    }
+  }
+  Serial.print("invalid PWM level: ");
+  Serial.println(in);
+  return -1;
+}
+
+// apply a PWM value between 0 and 255, inclusive.
+static int apply_pump_pwm(int in){
+  if(in >= 0){
+    if(in <= 255){
+      setPumpPWM(in);
       return 0;
     }
   }
@@ -383,6 +397,7 @@ void loop(){
 
   apply_rgb();
   apply_pwm(Pwm);
+  apply_pump_pwm(PumpPwm);
   do{
     for(int p = 0 ; p < PWM_CHANNELS ; ++p){
       StepEffect(p14 + LEDS_PER_PWM * p, LEDS_PER_PWM);
