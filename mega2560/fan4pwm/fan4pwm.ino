@@ -1,3 +1,4 @@
+#include <FastLED.h>
 #include <SoftwareSerial.h>
 // requires an Arduino Mega2560, possibly rev3, possibly only the authentic one.
 
@@ -33,9 +34,9 @@ const unsigned long FANMAXRPM = 2000;
 // artificial ceiling enforced for pumps, see above.
 const unsigned long PUMPMAXRPM = 5000;
 
-// tachometer needs an interrupt-capable digital pin. on Mega,
+// fan tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-const int RPMPIN = 2; // pin connected to tachometer
+const int RPMPIN = 19; // pin connected to tachometer
 
 // tachometers for the two D5 pumps of the Dual XTOP
 const int XTOPPINA = 20;
@@ -47,11 +48,19 @@ const int RRGBPIN = 11;
 const int GRGBPIN = 10;
 const int BRGBPIN = 9;
 
-// we need one digital output pins for fan PWM
-const int PWMPIN = 8;
-// and two for pump PWM
-const int XTOPPWMPINA = 44;
-const int XTOPPWMPINB = 45;
+// on mega:
+//  pin 13, 4 == timer 0 (used for micros())
+//  pin 12, 11 == timer 1
+//  pin 10, 9 == timer 2
+//  pin 5, 3, 2 == timer 3
+//  pin 8, 7, 6 == timer 4
+//  pin 44, 45, 46 == timer 5
+
+// we need one digital output pin for fan PWM
+const int PWMPIN = 44;
+// and one for pump PWM, which must be on a different timer
+// (we send the same PWM to both pumps)
+const int XTOPPWMPIN = 8;
 
 // Intel spec for PWM fans demands a 25K frequency.
 const word PWM_FREQ_HZ = 25000;
@@ -61,15 +70,12 @@ byte Red = 255;
 byte Green = 255;
 byte Blue = 255;
 
-// on mega:
-//  pin 13, 4 == timer 0 (used for micros())
-//  pin 12, 11 == timer 1
-//  pin 10, 9 == timer 2
-//  pin 5, 3, 2 == timer 3
-//  pin 8, 7, 6 == timer 4
-//  pin 44, 45, 46 == timer 5
-
-
+#define FANS_PER_CHAN 3
+#define LEDS_PER_FAN 12 // Arctic P14 ARGB
+#define LEDS_PER_PWM (FANS_PER_CHAN * LEDS_PER_FAN)
+#define PWM_CHANNELS 3
+CRGB p14[PWM_CHANNELS * LEDS_PER_PWM];
+ 
 // pulses is the tack count sampled in this last quantum. tick is the
 // micros() value that ended the quantum. returns the average over
 // valid tracked samples (i.e. up to TACHQUANTA seconds' worth).
@@ -166,21 +172,36 @@ static void apply_rgb(void){
   analogWrite(BRGBPIN, Blue);
 }
 
+static void setup_rgb(int rpin, int gpin, int bpin){
+  pinMode(rpin, OUTPUT);
+  pinMode(gpin, OUTPUT);
+  pinMode(bpin, OUTPUT);
+}
+
+// for the MEGA+CODI6, we're running 5V ARGB rather than 12V RGB LEDs.
+// set them up on PWM-mapped pins 3, 5, and 6.
+static void setup_argb(void){
+  FastLED.addLeds<NEOPIXEL, 3>(p14 + LEDS_PER_PWM * 0, 0, sizeof(CRGB) * LEDS_PER_PWM);
+  FastLED.addLeds<NEOPIXEL, 5>(p14 + LEDS_PER_PWM * 1, 0, sizeof(CRGB) * LEDS_PER_PWM);
+  FastLED.addLeds<NEOPIXEL, 6>(p14 + LEDS_PER_PWM * 2, 0, sizeof(CRGB) * LEDS_PER_PWM);
+  for(unsigned i = 0 ; i < sizeof(p14) / sizeof(*p14) ; ++i){
+    p14[i] = (i % 2) ? CRGB::Cyan : CRGB::Green;
+  }
+  FastLED.show();
+}
+
 void setup(){
   Serial.begin(SERIALSPEED);
   while(!Serial); // only necessary/meaningful for boards with native USB
   UART.begin(UARTSPEED);
 
   pinMode(PWMPIN, OUTPUT);
-  pinMode(XTOPPWMPINA, OUTPUT);
-  pinMode(XTOPPWMPINB, OUTPUT);
+  pinMode(XTOPPWMPIN, OUTPUT);
   setup_timers();
   Serial.print("pwm write on ");
   Serial.print(PWMPIN);
   Serial.print(", ");
-  Serial.print(XTOPPWMPINA);
-  Serial.print(", ");
-  Serial.println(XTOPPWMPINB);
+  Serial.println(XTOPPWMPIN);
   setFanPWM(INITIAL_PWM);
   setPumpPWM(INITIAL_PWM);
   Pulses = 0;
@@ -196,9 +217,53 @@ void setup(){
   attachInterrupt(digitalPinToInterrupt(XTOPPINA), xtopa, RISING);
   attachInterrupt(digitalPinToInterrupt(XTOPPINB), xtopb, RISING);
 
-  pinMode(RRGBPIN, OUTPUT);
-  pinMode(GRGBPIN, OUTPUT);
-  pinMode(BRGBPIN, OUTPUT);
+  setup_rgb(RRGBPIN, GRGBPIN, BRGBPIN);
+  // FIXME only want this for schwarzgerat mora
+  setup_argb();
+}
+
+// ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
+#define animation_speed 4.0
+#define color_rotation_speed 3.0
+#define spacing 1.0
+#define thickness 3.0
+#define Speed 30
+#define FPS 60
+
+double progress = 10;
+unsigned cx_shift = 50;
+unsigned cy_shift = 50;
+
+static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
+  float animation_mult = 0.01 * animation_speed;
+  float color_mult = 0.01 * color_rotation_speed;
+
+  double angle    = atan2(y - cy, x - cx) * 180 / 3.14159265359;
+  double distance = sqrt(pow(cx - x, 2) + pow(cy - y, 2));
+  float  value    = cos(animation_mult * distance / (0.1 * (float) spacing)  + progress);
+
+  int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
+  // 90--150; we only want greens
+  hue = (hue % 60) + 90;
+  CHSV hsv =
+    CHSV(hue, 255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
+
+  hsv2rgb_rainbow(hsv, leds[x]);
+}
+
+static void StepEffect(CRGB* leds, unsigned ledcount){
+  float cx_shift_mult = cx_shift / 100.f;
+  float cy_shift_mult = cy_shift / 100.f;
+  unsigned width = ledcount;
+  unsigned int height = 1;
+
+  float cx = (width-1) * cx_shift_mult;
+  float cy = height * cy_shift_mult;
+
+  for(unsigned int i = 0; i < width; i++){
+    GetColor(i, 0, cx, cy, leds);
+  }
+  progress +=  0.1 * (float) Speed / (float) FPS;
 }
 
 static void setFanPWM(unsigned pwm){
@@ -317,6 +382,10 @@ void loop(){
   unsigned long cur;
 
   apply_rgb();
+  for(int p = 0 ; p < PWM_CHANNELS ; ++p){
+    StepEffect(p14 + LEDS_PER_PWM * p, LEDS_PER_PWM);
+  }
+  FastLED.show();
   apply_pwm(Pwm);
   do{
     cur = micros();
