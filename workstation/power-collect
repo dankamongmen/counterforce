@@ -30,6 +30,13 @@ while true ; do
     echo "couldn't read UPS power" >&2
   fi
 
+  UPSV=$(pwrstat -status | grep Utility\ Voltage | cut -d\  -f3 || echo "")
+  if [ -n "$UPSV" ] ; then
+    mqtt Voltage $UPSV
+  else
+    echo "couldn't read UPS voltage" >&2
+  fi
+
   # we get our delay from this turbostat invocation
   TURBS=$(turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | tail -n 1)
   # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt

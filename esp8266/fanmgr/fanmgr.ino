@@ -14,17 +14,16 @@
 // only one ADC on the ESP8266
 const int TEMPPIN = A0; // coolant thermistor (2-wire)
 
+// we keep the LED on when we're not connected. when we are connected, we blink it
+// each time we transmit. LEDs are both inverted (there's another at D4).
 const int LEDPIN = D0; // fixed for nodemcu
+static volatile bool mqttconnected;
 
-const int FANTACHPIN = D1;
 const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1-wire)
-const int XTOPATACHPIN = D3;
-const int XTOPBTACHPIN = D4; // connected to LED
 const int PUMPPWMPIN = D5;
 const int FANPWMPIN = D6;
 
-// RPMs as determined by our interrupt handlers.
-// we only get the RPM count from one of our fans; it stands for all.
+// RPMs as reported to us over UART
 static unsigned RPM;
 static unsigned XTopRPMA;
 static unsigned XTopRPMB;
@@ -54,7 +53,7 @@ void setup(){
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
   pinMode(LEDPIN, OUTPUT);
-  setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
+  digitalWrite(LEDPIN, LOW);
   ArduinoOTA.setHostname(DEVNAME);
   ArduinoOTA.setPassword(DEVNAME); // FIXME
   ArduinoOTA.onStart([]() {
@@ -97,6 +96,8 @@ static int set_pump_pwm(unsigned p){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
+  digitalWrite(LEDPIN, HIGH);
+  mqttconnected = true;
   client.subscribe("control/" DEVNAME "/pwm", [](const String &payload){
       Serial.print("received PWM via mqtt: ");
       Serial.println(payload);
@@ -148,7 +149,7 @@ void onConnectionEstablished() {
 // for transmit/display. there are several blocking calls (1-wire and MQTT)
 // that can lengthen a given cycle.
 void loop(){
-  static bool ledstatus;
+  static bool ledstatus = true;
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
@@ -157,8 +158,6 @@ void loop(){
   static float ambient_temp = FLT_MAX;
   ArduinoOTA.handle();
   client.loop(); // handle any necessary wifi/mqtt
-  digitalWrite(LEDPIN, ledstatus);
-  ledstatus = !ledstatus;
   readThermistor(&coolant_temp, TEMPPIN, 1024);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
@@ -175,24 +174,12 @@ void loop(){
   if(diff < 15000000){
     return;
   }
-  // sample RPM and transmit
-  // FIXME replace with MEGA's rolling 5s logic
+  // blink for duration of transmit. if we're not connected, we're already
+  // on, and this will have no effect.
+  digitalWrite(LEDPIN, LOW);
   last_tx = m;
-  noInterrupts();
-  unsigned long p = Pulses;
-  Pulses = 0;
-  unsigned long x1p = XTAPulses;
-  XTAPulses = 0;
-  unsigned long x2p = XTBPulses;
-  XTBPulses = 0;
-  interrupts();
   Serial.print(diff);
   Serial.println(" µsec expired for cycle");
-  Serial.print(p);
-  Serial.println(" pulses measured at fan");
-  RPM = rpm(p, diff);
-  XTopRPMA = rpm(x1p, diff);
-  XTopRPMB = rpm(x2p, diff);
   rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   rpmPublish(client, "morarpm", RPM);
@@ -201,4 +188,7 @@ void loop(){
   publish_uptime(client, millis() / 1000); // FIXME handle overflow
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
+  if(mqttconnected){
+    digitalWrite(LEDPIN, HIGH);
+  }
 }

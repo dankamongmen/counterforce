@@ -49,6 +49,9 @@ const int RRGBPIN = 11;
 const int GRGBPIN = 10;
 const int BRGBPIN = 9;
 
+// 3-wire transducer outputs 0.5--4.5V
+const int PRESSUREPIN = A0;
+
 // on mega:
 //  pin 13, 4 == timer 0 (used for micros())
 //  pin 12, 11 == timer 1
@@ -217,6 +220,7 @@ void setup(){
   pinMode(XTOPPINB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(XTOPPINA), xtopa, RISING);
   attachInterrupt(digitalPinToInterrupt(XTOPPINB), xtopb, RISING);
+  pinMode(PRESSUREPIN, INPUT_PULLUP);
 
   setup_rgb(RRGBPIN, GRGBPIN, BRGBPIN);
   // FIXME only want this for schwarzgerat mora
@@ -384,11 +388,23 @@ static void printRPMSample(unsigned long val, char proto,
     UART.print(proto);
     UART.print(c);
   }
+  Serial.print(desc);
+  Serial.print(" rpm: ");
   Serial.print(val, DEC);
-  Serial.print(" ");
+  Serial.print(" -> ");
   Serial.print(c, DEC);
   Serial.print(" ");
-  Serial.println(desc);
+}
+
+static void printPWM(unsigned long val, char proto, const char* desc){
+  // each rotation is two tach signals, and RPM is reported per
+  // minutes: 60 / 2 == 30.
+  UART.print(proto);
+  UART.print(val, DEC);
+  Serial.print(desc);
+  Serial.print(" pwm: ");
+  Serial.print(val, DEC);
+  Serial.print(" ");
 }
 
 void loop(){
@@ -415,19 +431,17 @@ void loop(){
   XTOPPulsesB = 0;
   interrupts();
   unsigned long rpmavg = update_tach_samples(p, cur);
+  // FIXME need update_tach_samples() for pumps also, methinks?
+  UART.print("P");
+  UART.print(Pwm);
+  UART.print("U");
+  UART.print(PumpPwm);
   printRPMSample(rpmavg, 'R', "fans", RPMPIN, FANMAXRPM);
   printRPMSample(xa, 'A', "XtopA", XTOPPINA, PUMPMAXRPM);
   printRPMSample(xb, 'B', "XtopB", XTOPPINB, PUMPMAXRPM);
+  printPWM(Pwm, 'P', "fans");
+  printPWM(PumpPwm, 'U', "pumps");
   Serial.print(cur - m, DEC);
   Serial.println("µs");
-  UART.print("P");
-  UART.print(Pwm);
-  Serial.print("XTOPA: ");
-  Serial.print(xa);
-  Serial.print(" XTOPB: ");
-  Serial.print(xb);
-  Serial.print(" PWM output: ");
-  Serial.print(Pwm);
-  Serial.println();
   m = cur;
 }

@@ -8,19 +8,19 @@ mqtt:
  # Optional: Used to specify ClientID. The default is <hostname>-<pid>
  #client_id: somedevice
  # The Topic path to subscribe to. Be aware that you have to specify the wildcard, if you want to follow topics for multiple sensors.
- topic_path: sensors/+
+ topic_path: sensors/#
  # Optional: Regular expression to extract the device ID from the topic path. The default regular expression, assumes
  # that the last "element" of the topic_path is the device id.
  # The regular expression must contain a named capture group with the name deviceid
  # For example the expression for tasamota based sensors is "tele/(?P<deviceid>.*)/.*"
- device_id_regex: "(.*/)?(?P<deviceid>.*)"
+ device_id_regex: "(.*/)?(?P<deviceid>.*)((/SENSOR)?)"
  # The MQTT QoS level
  qos: 0
 cache:
  # Timeout. Each received metric will be presented for this time if no update is send via MQTT.
  # Set the timeout to -1 to disable the deletion of metrics from the cache. The exporter presents the ingest timestamp
  # to prometheus.
- timeout: 1m
+ timeout: 30s
 json_parsing:
  # Separator. Used to split path to elements when accessing json fields.
  # You can access json fields with dots in it. F.E. {"key.name": {"nested": "value"}}
@@ -434,3 +434,15 @@ metrics:
    mqtt_name: nictxbbr0
    help: Bytes sent by br0
    type: counter
+ - prom_name: acvoltage
+   mqtt_name: Voltage
+   help: AC voltage from mains
+   type: gauge
+ - prom_name: acvoltage
+   mqtt_name: ENERGY.Voltage
+   help: AC voltage from mains
+   type: gauge
+ - prom_name: mora3watts
+   mqtt_name: ENERGY.ApparentPower
+   help: Power consumed by Mo-Ra3
+   type: gauge
