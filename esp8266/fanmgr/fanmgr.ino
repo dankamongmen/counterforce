@@ -42,7 +42,9 @@ DallasTemperature digtemp(&twire);
 
 void setup(){
   Serial.begin(115200);
-  Serial.print("booting esp8266 ");
+  Serial.print("booting ");
+  Serial.print(DEVNAME);
+  Serial.print(" v");
   Serial.println(VERSION);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
@@ -180,15 +182,20 @@ void loop(){
   last_tx = m;
   Serial.print(diff);
   Serial.println(" µsec expired for cycle");
-  rpmPublish(client, "moraxtop0rpm", XTopRPMA);
-  rpmPublish(client, "moraxtop1rpm", XTopRPMB);
-  rpmPublish(client, "morarpm", RPM);
-  publish_temps(client, ambient_temp, coolant_temp);
-  publish_pwm(client, Pwm, PumpPwm);
-  publish_uptime(client, millis() / 1000); // FIXME handle overflow
+  bool success = true;
+  success &= rpmPublish(client, "moraxtop0rpm", XTopRPMA);
+  success &= rpmPublish(client, "moraxtop1rpm", XTopRPMB);
+  success &= rpmPublish(client, "morarpm", RPM);
+  success &= publish_temps(client, ambient_temp, coolant_temp);
+  success &= publish_pwm(client, Pwm, PumpPwm);
+  success &= publish_uptime(client, millis() / 1000); // FIXME handle overflow
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
   if(mqttconnected){
-    digitalWrite(LEDPIN, HIGH);
+    if(!success){
+      mqttconnected = false; // leave the LED on
+    }else{
+      digitalWrite(LEDPIN, HIGH);
+    }
   }
 }

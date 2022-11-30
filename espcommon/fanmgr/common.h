@@ -97,17 +97,16 @@ static int connect_onewire(DallasTemperature* dt){
   return -1;
 }
 
-template<typename T> int mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
+template<typename T> bool mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
   DynamicJsonDocument doc(BUFSIZ); // FIXME
   doc[key] = value;
   // PubSubClient limits messages to 256 bytes
   char buf[257];
   size_t n = serializeJson(doc, buf);
-  mqtt.publish("sensors/" DEVNAME, buf, n);
-  return 0;
+  return mqtt.publish("sensors/" DEVNAME, buf, n);
 }
 
-int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
+bool rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
   if(val < RPM_CUTOFF){ // filter out obviously incorrect values
     return mqttPublish(mqtt, key, val);
   }else{
@@ -116,7 +115,8 @@ int rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
     Serial.print(" for ");
     Serial.println(key);
   }
-  return 0;
+  // we didn't actually send anything, so we can't say we failed
+  return true;
 }
 
 // we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
@@ -146,13 +146,14 @@ static byte getHex(char c){
   return c - 'a' + 10;
 }
 
-static void publish_uptime(EspMQTTClient& client, unsigned long s){
-  mqttPublish(client, "uptimesec", s);
+static bool publish_uptime(EspMQTTClient& client, unsigned long s){
+  return mqttPublish(client, "uptimesec", s);
 }
 
-static void publish_temps(EspMQTTClient& client, float amb, float cool){
+static bool publish_temps(EspMQTTClient& client, float amb, float cool){
+  bool success = true;
   if(valid_temp(cool) && cool > 0){
-    mqttPublish(client, "moracoolant", cool);
+    success &= mqttPublish(client, "moracoolant", cool);
   }else{
     Serial.println("don't have a coolant sample");
   }
@@ -161,21 +162,24 @@ static void publish_temps(EspMQTTClient& client, float amb, float cool){
   // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
   // DEVICE_FAULT_SHORTVDD_C).
   if(valid_temp(amb)){
-    mqttPublish(client, "moraambient", amb);
+    success &= mqttPublish(client, "moraambient", amb);
   }else{
     Serial.println("don't have an ambient sample");
   }
+  return success;
 }
 
 static bool valid_pwm_p(int pwm){
   return pwm >= 0 && pwm <= 255;
 }
 
-static void publish_pwm(EspMQTTClient& client, int fanpwm, int pumppwm){
+static bool publish_pwm(EspMQTTClient& client, int fanpwm, int pumppwm){
+  bool success = true;
   if(valid_pwm_p(fanpwm)){
-    mqttPublish(client, "morapwm", fanpwm);
+    success &= mqttPublish(client, "morapwm", fanpwm);
   }
   if(valid_pwm_p(pumppwm)){
-    mqttPublish(client, "morapumppwm", pumppwm);
+    success &= mqttPublish(client, "morapumppwm", pumppwm);
   }
+  return success;
 }
