@@ -8,9 +8,9 @@ const unsigned long UARTSPEED = 9600;
 // atop a serial pair. Serial2 is RX on 17, TX on 16.
 #define UART Serial2
 
-#define INITIAL_PWM 128
-unsigned Pwm; // initialized through setPwm
-unsigned PumpPwm; // initialized through setPumpPwm
+#define INITIAL_PWM 130 // silent with Arctic P-14s
+unsigned Pwm; // initialized through setFanPWM
+unsigned PumpPwm; // initialized through setPumpPWM
 
 // we average tach signals over this many quanta, if we have them. we track
 // the samples in a ringbuffer.
@@ -31,13 +31,13 @@ const unsigned long QUANTUMUS = 1000000;
 
 // artificial ceiling enforced for fans; if we count above this, we
 // don't send it, as it's likely an error.
-const unsigned long FANMAXRPM = 2000;
+const unsigned long FANMAXRPM = 3000; // FIXME ought be 2000
 // artificial ceiling enforced for pumps, see above.
 const unsigned long PUMPMAXRPM = 5000;
 
 // fan tachometer needs an interrupt-capable digital pin. on Mega,
 // this is 2, 3, 18, 19, 20, 21 (last two conflict with i2c).
-const int RPMPIN = 19; // pin connected to tachometer
+const int RPMPIN = 2; // pin connected to tachometer
 
 // tachometers for the two D5 pumps of the Dual XTOP
 const int XTOPPINA = 20;
@@ -164,17 +164,20 @@ static void setup_timers(unsigned initpwm){
   ICR4 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR4A = _BV(COM4C1) | _BV(WGM41);
   TCCR4B = _BV(WGM43) | _BV(CS40);
-  Pwm = OCR4C = initpwm;
+  setFanPWM(initpwm);
   ICR5 = (F_CPU / PWM_FREQ_HZ) / 2;
   TCCR5A = _BV(COM5C1) | _BV(WGM51);
   TCCR5B = _BV(WGM53) | _BV(CS50);
-  PumpPwm = OCR5C = initpwm;
+  setPumpPWM(initpwm);
 }
 
 static void apply_rgb(void){
-  Serial.println("committing RGB values");
+  Serial.print("committing RGB values ");
+  Serial.print(Red, HEX);
   analogWrite(RRGBPIN, Red);
+  Serial.print(Green, HEX);
   analogWrite(GRGBPIN, Green);
+  Serial.println(Blue, HEX);
   analogWrite(BRGBPIN, Blue);
 }
 
@@ -208,23 +211,29 @@ void setup(){
   Serial.print(PWMPIN);
   Serial.print(", ");
   Serial.println(XTOPPWMPIN);
+  apply_pwm(INITIAL_PWM);
+  apply_pump_pwm(INITIAL_PWM);
   Pulses = 0;
-  pinMode(RPMPIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, RISING);
-  Serial.print("fan tachometer read on ");
-  Serial.println(RPMPIN);
-
   XTOPPulsesA = 0;
   XTOPPulsesB = 0;
+  pinMode(RPMPIN, INPUT_PULLUP);
   pinMode(XTOPPINA, INPUT_PULLUP);
   pinMode(XTOPPINB, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(RPMPIN), rpm, FALLING);
+  Serial.print("fan tachometer read on ");
+  Serial.println(RPMPIN);
   attachInterrupt(digitalPinToInterrupt(XTOPPINA), xtopa, RISING);
+  Serial.print("pump A tachometer read on ");
+  Serial.println(XTOPPINA);
   attachInterrupt(digitalPinToInterrupt(XTOPPINB), xtopb, RISING);
+  Serial.print("pump B tachometer read on ");
+  Serial.println(XTOPPINB);
+
   pinMode(PRESSUREPIN, INPUT_PULLUP);
 
   setup_rgb(RRGBPIN, GRGBPIN, BRGBPIN);
-  // FIXME only want this for schwarzgerat mora
   setup_argb();
+  apply_rgb();
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
@@ -268,19 +277,21 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
   for(unsigned int i = 0; i < width; i++){
     GetColor(i, 0, cx, cy, leds);
   }
-  progress +=  0.1 * (float) Speed / (float) FPS;
+  progress += 0.1 * (float) Speed / (float) FPS;
 }
 
 static void setFanPWM(unsigned pwm){
   Pwm = pwm;
-  OCR4C = ICR4 * pwm / 256;
+  OCR4C = (unsigned long)ICR4 * pwm / 256;
   Serial.print("PWM to ");
-  Serial.println(pwm);
+  Serial.print(pwm);
+  Serial.print(" -> ");
+  Serial.println(OCR4C);
 }
 
 static void setPumpPWM(unsigned pwm){
   PumpPwm = pwm;
-  OCR5C = ICR5 * pwm / 256;
+  OCR5C = (unsigned long)ICR5 * pwm / 256;
   Serial.print("PWM to ");
   Serial.println(pwm);
 }
@@ -311,29 +322,53 @@ static int apply_pump_pwm(int in){
   return -1;
 }
 
-// handle a byte read from the UART
+// check whether csum byte (0..255) is equal to 255 - (sum % 256)
+static bool valid_csum(unsigned csum, unsigned sum){
+  return csum == 255 - (sum % 256);
+}
+
+// handle a byte read from the UART. all UART commands are terminated by a
+// checksum byte which ought be 255 less the 8-bit sum of all bytes.
 static void handle_uart(int in){
   static enum {
     STATE_BEGIN,
     STATE_PWM,  // got a 'P'
+    STATE_PWM_FINAL, // got a PWM, want checksum
     STATE_RRGB, // got a 'C'
     STATE_GRGB, // got a Red
     STATE_BRGB, // got a Green
+    STATE_RGB_FINAL, // got an RGB, want checksum
+    STATE_PUMPPWM, // got a 'U'
+    STATE_PUMPPWM_FINAL, // got a PWM, want checksum
   } state = STATE_BEGIN;
   static byte uart_red;
   static byte uart_green;
+  static byte uart_blue;
+  static byte pwm_pending;
+  static byte pumppwm_pending;
   switch(state){
     case STATE_BEGIN:
       if(in == 'P'){
         state = STATE_PWM;
       }else if(in == 'C'){
         state = STATE_RRGB;
+      }else if(in == 'U'){
+        state = STATE_PUMPPWM;
       }else{
-        Serial.println("invalid uart input");
+        Serial.print("invalid uart input: ");
+        Serial.println(in, HEX);
       }
       break;
     case STATE_PWM:
-      apply_pwm(in);
+      pwm_pending = in;
+      state = STATE_PWM_FINAL;
+      break;
+    case STATE_PWM_FINAL:
+      if(valid_csum(in, 'P' + pwm_pending)){
+        apply_pwm(pwm_pending);
+      }else{
+        Serial.println("invalid PWM checksum");
+      }
       state = STATE_BEGIN;
       break;
     case STATE_RRGB:
@@ -345,11 +380,31 @@ static void handle_uart(int in){
       state = STATE_BRGB;
       break;
     case STATE_BRGB:
+      uart_blue = in;
+      state = STATE_RGB_FINAL;
+      break;
+    case STATE_RGB_FINAL:
+      if(valid_csum(in, 'C' + uart_red + uart_green + uart_blue)){
+        Red = uart_red;
+        Green = uart_green;
+        Blue = uart_blue;
+        apply_rgb();
+      }else{
+        Serial.println("invalid RGB checksum");
+      }
       state = STATE_BEGIN;
-      Red = uart_red;
-      Green = uart_green;
-      Blue = in;
-      apply_rgb();
+      break;
+    case STATE_PUMPPWM:
+      pumppwm_pending = in;
+      state = STATE_PUMPPWM_FINAL;
+      break;
+    case STATE_PUMPPWM_FINAL:
+      if(valid_csum(in, 'U' + pumppwm_pending)){
+        apply_pump_pwm(pumppwm_pending);
+      }else{
+        Serial.println("invalid pump checksum");
+      }
+      state = STATE_BEGIN;
       break;
     default:
       Serial.println("invalid uart state");
@@ -363,8 +418,12 @@ static void handle_uart(int in){
 static void check_pwm_update(void){
   int in;
   while((in = UART.read()) != -1){
-    Serial.print("read byte from uart: ");
-    Serial.println(in);
+    /*
+    Serial.print("read byte from uart: 0x");
+    Serial.print(in, HEX);
+    Serial.print(", ");
+    Serial.println((char)in);
+    */
     handle_uart(in);
   }
   while((in = Serial.read()) != -1){
@@ -374,46 +433,47 @@ static void check_pwm_update(void){
   }
 }
 
-static void printRPMSample(unsigned long val, char proto,
+static inline float rpm(unsigned long pulses, unsigned long usec){
+  Serial.print(pulses);
+  Serial.println(" pulses measured");
+  // each rotation is two tach signals, and RPM is reported per minutes
+  return pulses * 60 * 1000000.0 / usec / 2;
+}
+
+static void printRPMSample(float rpm, char proto,
                            const char* desc, int pin,
                            unsigned long typemax){
   Serial.print(pin, DEC);
   Serial.print(" ");
-  // each rotation is two tach signals, and RPM is reported per
-  // minutes: 60 / 2 == 30.
-  unsigned c = val * 30;
-  if(c > typemax){
-    Serial.print("invalid read ");
-  }else{
-    UART.print(proto);
-    UART.print(c);
-  }
   Serial.print(desc);
   Serial.print(" rpm: ");
-  Serial.print(val, DEC);
-  Serial.print(" -> ");
-  Serial.print(c, DEC);
+  if(rpm < typemax){
+    UART.print(proto);
+    UART.print(rpm);
+  }
+  Serial.print(rpm, DEC);
   Serial.print(" ");
 }
 
 static void printPWM(unsigned long val, char proto, const char* desc){
-  // each rotation is two tach signals, and RPM is reported per
-  // minutes: 60 / 2 == 30.
   UART.print(proto);
   UART.print(val, DEC);
   Serial.print(desc);
-  Serial.print(" pwm: ");
+  Serial.print(": ");
   Serial.print(val, DEC);
   Serial.print(" ");
+}
+
+static void read_pressure(int pin, float* p){
+  *p = analogRead(pin);
+  Serial.print("read pressure: ");
+  Serial.println(*p);
 }
 
 void loop(){
   static unsigned long m;
   unsigned long cur;
 
-  apply_rgb();
-  apply_pwm(Pwm);
-  apply_pump_pwm(PumpPwm);
   do{
     for(int p = 0 ; p < PWM_CHANNELS ; ++p){
       StepEffect(p14 + LEDS_PER_PWM * p, LEDS_PER_PWM);
@@ -421,6 +481,8 @@ void loop(){
     FastLED.show();
     cur = micros();
     check_pwm_update();
+    float p;
+    read_pressure(PRESSUREPIN, &p);
   }while(cur - m < QUANTUMUS); // handles overflow implicitly
   noInterrupts();
   unsigned p = Pulses;
@@ -430,15 +492,18 @@ void loop(){
   unsigned xb = XTOPPulsesB;
   XTOPPulsesB = 0;
   interrupts();
-  unsigned long rpmavg = update_tach_samples(p, cur);
+  //unsigned long rpmavg = update_tach_samples(p, cur);
   // FIXME need update_tach_samples() for pumps also, methinks?
   UART.print("P");
   UART.print(Pwm);
   UART.print("U");
   UART.print(PumpPwm);
-  printRPMSample(rpmavg, 'R', "fans", RPMPIN, FANMAXRPM);
-  printRPMSample(xa, 'A', "XtopA", XTOPPINA, PUMPMAXRPM);
-  printRPMSample(xb, 'B', "XtopB", XTOPPINB, PUMPMAXRPM);
+  float fp = rpm(p, cur - m);
+  float fxa = rpm(xa, cur - m);
+  float fxb = rpm(xb, cur - m);
+  printRPMSample(fp, 'R', "fans", RPMPIN, FANMAXRPM);
+  printRPMSample(fxa, 'A', "XtopA", XTOPPINA, PUMPMAXRPM);
+  printRPMSample(fxb, 'B', "XtopB", XTOPPINB, PUMPMAXRPM);
   printPWM(Pwm, 'P', "fans");
   printPWM(PumpPwm, 'U', "pumps");
   Serial.print(cur - m, DEC);

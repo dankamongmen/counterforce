@@ -46,7 +46,8 @@ static unsigned Pwm;
 static unsigned PumpPwm;
 
 EspMQTTClient client(
-  #include "EspMQTTConfig.h"
+  #include "EspMQTTConfig.h",
+  DEVNAME
 );
 
 OneWire twire(AMBIENTPIN);
