@@ -10,11 +10,18 @@
 #include <DallasTemperature.h>
 #include "common.h"
 
-const int TEMPPIN = 39; // coolant thermistor (2-wire)
-// ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 17;
-// pressure sensor
-const int PRESSUREPIN = 13;
+const int TEMPPIN = 36; // coolant thermistor (2-wire)
+const int PRESSUREPIN = 37; // pressure sensor
+const int FANTACHPIN = 38;
+const int AMBIENTPIN = 39; // ambient temperature (digital thermometer, Dallas 1-wire)
+const int XTOPATACHPIN = 35;
+const int XTOPBTACHPIN = 34;
+
+const int PUMPPWMPIN = 22;
+const int FANPWMPIN = 21;
+const int RGBPINR = 19;
+const int RGBPING = 23;
+const int RGBPINB = 18;
 
 // PWM channels for RGB fans
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
@@ -22,14 +29,6 @@ const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
 const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
-const int PUMPPWMPIN = 22;
-const int FANPWMPIN = 25;
-const int FANTACHPIN = 38;
-const int XTOPATACHPIN = 36;
-const int XTOPBTACHPIN = 37;
-const int RGBPINR = 12;
-const int RGBPING = 32;
-const int RGBPINB = 33;
 
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
 int Red = 0x8f;
@@ -99,6 +98,14 @@ int initialize_fan_pwm(ledc_channel_t channel, int pin){
 void setup(){
   Heltec.begin(true, false, true);
   Heltec.display->setFont(ArialMT_Plain_10);
+  ArduinoOTA.setHostname(DEVNAME);
+  ArduinoOTA.setPassword(DEVNAME); // FIXME
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
