@@ -21,7 +21,7 @@ stripnum() {
 
 while true ; do
   # SATA disks
-  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input')
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input') 2> /dev/null
   DIDX=0
   for i in $DISKTEMPS ; do
     mqtt sata$DIDX $i
