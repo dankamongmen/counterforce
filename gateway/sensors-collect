@@ -42,8 +42,11 @@ while true ; do
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
 
+  GPU=$(sensors -j | jq '."amdgpu-pci-0a00".edge[]') 2> /dev/null
+  mqtt gputemp $GPU
+
   # network
-  for i in ax88772usb br0 ; do
+  for i in r8152 br0 ; do
     STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
     if [ -n "$STATS" ] ; then
       RX=$(procnetdevrx $STATS)
