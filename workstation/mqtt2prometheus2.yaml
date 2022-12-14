@@ -446,3 +446,11 @@ metrics:
    mqtt_name: ENERGY.ApparentPower
    help: Power consumed by Mo-Ra3
    type: gauge
+ - prom_name: signaldbi
+   mqtt_name: Wifi.Signal
+   help: Wireless signal strength
+   type: gauge
+ - prom_name: signaldbi
+   mqtt_name: signaldbm
+   help: Wireless signal strength
+   type: gauge

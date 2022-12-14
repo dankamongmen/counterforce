@@ -159,6 +159,8 @@ while true ; do
       mqtt nictxb$i $TX
     fi
   done
+  DBM=$(iw dev ax200 link | grep signal | cut -d: -f2- | cut -dd -f1 | tr -d [:space:])
+  mqtt signaldbm $DBM
 
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
