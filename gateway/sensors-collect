@@ -42,7 +42,7 @@ while true ; do
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
 
-  GPU=$(sensors -j | jq '."amdgpu-pci-0a00".edge[]') 2> /dev/null
+  GPU=$(sensors -j | jq '."amdgpu-pci-0900".edge[]') 2> /dev/null
   mqtt gputemp $GPU
 
   # network
