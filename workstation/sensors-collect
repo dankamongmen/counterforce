@@ -28,7 +28,6 @@ procnetdevtx() {
 # this isn't going to change over our run
 #mqtt kernelver "\"`uname -r`\""
 
-# FIXME terrible, truly terrible
 while true ; do
   if [ -z "$HFLOW" ] ; then
     HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
