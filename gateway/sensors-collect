@@ -31,6 +31,11 @@ procnetdevtx() {
 CHIPID=nct6798-isa-0290
 
 while true ; do
+  # this moves around; find it dynamically
+  if [ -z "$AMDGPU" ] ; then
+    AMDGPU=$(sensors | grep ^amdgpu-pci) || echo "Couldn't find AMD GPU" >&2
+  fi
+
   # SMBus nct6798-isa-0290 SuperIO
   for i in `seq 1 7` ; do
     FAN=$(sensors -j | jq .\"$CHIPID\".\"fan${i}\".fan${i}_input) 2> /dev/null
@@ -42,7 +47,7 @@ while true ; do
   TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
   mqtt tctl $TCTL
 
-  GPU=$(sensors -j | jq '."amdgpu-pci-0900".edge[]') 2> /dev/null
+  GPU=$(sensors -j | jq .\"$AMDGPU\".edge[]) 2> /dev/null
   mqtt gputemp $GPU
 
   # network
