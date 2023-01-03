@@ -11,7 +11,7 @@ TOPIC=sensors/killermike
 
 # arguments: topic (key), message. swallow errors so we don't exit.
 mqtt() {
-  "$MQTT" -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+  "$MQTT" --id killermike -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
     { echo "error publishing $1 to mqtt" >&2 ; }
 }
 
