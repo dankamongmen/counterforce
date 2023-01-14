@@ -57,4 +57,6 @@ while true ; do
     fi
   fi
 
+  sleep 15
+
 done
