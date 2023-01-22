@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+TOPIC=sensors/strangelet
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+[ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
+
+# arguments: topic (key), message. swallow errors so we don't exit.
+mqtt() {
+  "$MQTT" --id killermike -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing $1 to mqtt" >&2 ; }
+}
+
+# prints bytes RX from a /proc/net/dev line provided as $*
+procnetdevrx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f2
+}
+
+# prints bytes TX from a /proc/net/dev line provided as $*
+procnetdevtx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f10
+}
+
+while true ; do
+  UPSEC=$(cut -d\  -f1 < /proc/uptime)
+  mqtt uptimesec $UPSEC
+
+  sleep 15
+done
