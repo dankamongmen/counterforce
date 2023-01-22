@@ -25,9 +25,19 @@ procnetdevtx() {
   echo $* | sed -e 's/ *//' | cut -d\  -f10
 }
 
+stripnum() {
+  echo "$@" | tr -d -c .[:digit:]-
+}
+
 while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
+
+  CPUIDX=0
+  for i in `sudo ipmi-sensors | grep 'CPU..Temp' | cut -d\| -f4` ; do
+    mqtt tctl$CPUIDX "`stripnum $i`"
+    CPUIDX=$((CPUIDX + 1))
+  done
 
   sleep 15
 done
