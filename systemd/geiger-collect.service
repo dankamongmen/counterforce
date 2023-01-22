@@ -6,7 +6,7 @@ Wants=time-sync.target
 [Service]
 User=dank
 Type=simple
-ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/geiger-collect
+ExecStart=/usr/local/sbin/geiger-collect
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes

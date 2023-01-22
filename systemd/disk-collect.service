@@ -7,7 +7,7 @@ Wants=time-sync.target
 # needs be root to run nvme
 User=root
 Type=simple
-ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/disk-collect
+ExecStart=/usr/local/sbin/disk-collect
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
