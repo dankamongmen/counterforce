@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# install some machine target's systemd files and set up links from
+#  /usr/local/sbin into their directory in this checkout.
+
+set -e
+
+usage() { echo "usage: `basename $0` roledirectory" ; }
+
+[ $# -eq 1 ] || { usage >&2 ; exit 1 ; }
+
+[ -d systemd ] || { echo "'systemd' wasn't a directory; is this a counterforce checkout?" >&2 ; usage >&2 ; exit 1 ; }
+[ -d "$1" ] || { echo "$1 was not a directory" >&2 ; usage >&2 ; exit 1 ; }
+
+# look for executable files in the role directory. if there is a corresponding
+# systemd service, install the service and the symlink.
+find "$1" -type f -executable | while read f ; do
+  if [ -e "systemd/`basename $f`.service" ] ; then
+    cp -v "$1.service" /etc/systemd/system/
+  fi
+  ln -svf "$f" "/usr/local/sbin/`basename $f"
+  systemctl enable `basename $f`
+  systemctl start `basename $f`
+  systemctl status `basename $f`
+done
