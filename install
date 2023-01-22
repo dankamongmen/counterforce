@@ -16,9 +16,9 @@ usage() { echo "usage: `basename $0` roledirectory" ; }
 # systemd service, install the service and the symlink.
 find "$1" -type f -executable | while read f ; do
   if [ -e "systemd/`basename $f`.service" ] ; then
-    cp -v "$1.service" /etc/systemd/system/
+    cp -v "systemd/`basename $f`.service" /etc/systemd/system/
   fi
-  ln -svf "$f" "/usr/local/sbin/`basename $f"
+  ln -svf "$f" "/usr/local/sbin/`basename $f`"
   systemctl enable `basename $f`
   systemctl start `basename $f`
   systemctl status `basename $f`
