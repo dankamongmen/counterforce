@@ -7,7 +7,7 @@ Wants=time-sync.target
 # need root for powercap-info / pwrstat
 User=root
 Type=simple
-ExecStart=/home/dank/src/dankamongmen/counterforce/workstation/power-collect
+ExecStart=/usr/local/sbin/power-collect
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes

@@ -6,7 +6,7 @@ Wants=time-sync.target
 [Service]
 User=dank
 Type=simple
-ExecStart=/home/dank/counterforce/pi/amoled-collect
+ExecStart=/usr/local/sbin/amoled-collect
 NoNewPrivileges=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
