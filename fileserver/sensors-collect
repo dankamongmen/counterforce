@@ -39,5 +39,18 @@ while true ; do
     CPUIDX=$((CPUIDX + 1))
   done
 
+  PCH=$(sudo ipmi-sensors | grep 'PCH.Temp' | cut -d\| -f4)
+  mqtt pch "`stripnum $i`"
+
+  FANIDX=0
+  for i in `sudo ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
+    RPM=`stripnum $i`
+    if [ -z "$RPM" ] ; then
+      RPM=0
+    fi
+    mqtt fan$FANIDX "$RPM"
+    FANIDX=$((FANIDX + 1))
+  done
+
   sleep 15
 done
