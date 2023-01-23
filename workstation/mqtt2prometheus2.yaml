@@ -418,6 +418,18 @@ metrics:
    mqtt_name: fan7
    help: Fan 7 RPMs
    type: gauge
+ - prom_name: fanrpm8
+   mqtt_name: fan8
+   help: Fan 8 RPMs
+   type: gauge
+ - prom_name: fanrpm9
+   mqtt_name: fan9
+   help: Fan 9 RPMs
+   type: gauge
+ - prom_name: fanrpm10
+   mqtt_name: fan10
+   help: Fan 10 RPMs
+   type: gauge
  - prom_name: nicrxbr8152
    mqtt_name: nicrxbr8152
    help: Bytes received by r8152
@@ -453,4 +465,20 @@ metrics:
  - prom_name: signaldbi
    mqtt_name: signaldbm
    help: Wireless signal strength
+   type: gauge
+ - prom_name: tctl0
+   mqtt_name: tctl0
+   help: Processor 0 Tctl
+   type: gauge
+ - prom_name: tctl1
+   mqtt_name: tctl1
+   help: Processor 1 Tctl
+   type: gauge
+ - prom_name: tctl2
+   mqtt_name: tctl2
+   help: Processor 2 Tctl
+   type: gauge
+ - prom_name: tctl3
+   mqtt_name: tctl3
+   help: Processor 3 Tctl
    type: gauge
