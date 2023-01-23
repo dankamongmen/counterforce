@@ -42,6 +42,21 @@ while true ; do
   PCH=$(sudo ipmi-sensors | grep 'PCH.Temp' | cut -d\| -f4)
   mqtt pch "`stripnum $i`"
 
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  mqtt loadavg $LOAD
+
+  # network
+  for i in ixgbe1 ixgbe0 ; do
+    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
+
   FANIDX=0
   for i in `sudo ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
     RPM=`stripnum $i`
