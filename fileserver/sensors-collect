@@ -34,12 +34,12 @@ while true ; do
   mqtt uptimesec $UPSEC
 
   CPUIDX=0
-  for i in `sudo ipmi-sensors | grep 'CPU..Temp' | cut -d\| -f4` ; do
+  for i in `ipmi-sensors | grep 'CPU..Temp' | cut -d\| -f4` ; do
     mqtt tctl$CPUIDX "`stripnum $i`"
     CPUIDX=$((CPUIDX + 1))
   done
 
-  PCH=$(sudo ipmi-sensors | grep 'PCH.Temp' | cut -d\| -f4)
+  PCH=$(ipmi-sensors | grep 'PCH.Temp' | cut -d\| -f4)
   mqtt pch "`stripnum $i`"
 
   # load average
@@ -58,7 +58,7 @@ while true ; do
   done
 
   FANIDX=0
-  for i in `sudo ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
+  for i in `ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
     RPM=`stripnum $i`
     if [ -z "$RPM" ] ; then
       RPM=0
