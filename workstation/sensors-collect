@@ -93,7 +93,7 @@ while true ; do
   mqtt mobochamber $AMBMOBO
 
   # corsair commander core xt
-  LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value')
+  LVALS=$("$LCTL" status --json -m 'Corsair Commander Core XT' | jq '.[].status[]|.value' || echo "")
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
