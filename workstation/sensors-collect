@@ -150,7 +150,7 @@ while true ; do
 
   # network
   for i in ax200 ixgbe1 ixgbe0 smsc75usb ; do
-    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    STATS=$(cat /proc/net/dev | grep $i: || true)
     if [ -n "$STATS" ] ; then
       RX=$(procnetdevrx $STATS)
       TX=$(procnetdevtx $STATS)
