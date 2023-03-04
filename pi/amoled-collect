@@ -29,5 +29,9 @@ while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  mqtt loadavg $LOAD
+
   sleep 15
 done
