@@ -28,6 +28,17 @@ while true ; do
     DIDX=$((DIDX + 1))
   done
 
+  # NVMe disks
+  for i in /dev/nvme? ; do
+    # text looks like: "temperature				: 50°C (323 Kelvin)"
+    # in some error cases, a negative value is returned; elide these
+    TEMP=$(nvme smart-log $i | grep ^temperature | cut -d\( -f1 | tr -d -c .[:digit:]-)
+    S=$(echo $i | cut -d/ -f3)
+    if [ "$TEMP" -ge 0 ] ; then
+      mqtt "$S"temp $TEMP
+    fi
+  done
+
   # fs availability
   for i in / /home ; do
     AVAIL=$(df $i --output=avail | sed -e 1d)
