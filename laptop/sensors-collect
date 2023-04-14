@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+TOPIC=sensors/grimes
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+[ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
+
+# arguments: topic (key), message. swallow errors so we don't exit.
+mqtt() {
+  "$MQTT" --id grimes -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing $1 to mqtt" >&2 ; }
+}
+
+# prints bytes RX from a /proc/net/dev line provided as $*
+procnetdevrx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f2
+}
+
+# prints bytes TX from a /proc/net/dev line provided as $*
+procnetdevtx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f10
+}
+
+# this isn't going to change over our run
+#mqtt kernelver "\"`uname -r`\""
+
+while true ; do
+
+  PCH=$(sensors -j | jq '."pch_skylake-virtual-0".temp1.temp1_input') 2> /dev/null
+  mqtt pch $PCH
+
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  mqtt loadavg $LOAD
+
+  # memory
+  ACTMEM=$(cat /proc/meminfo | grep ^Active: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
+  ACTMEM=$((ACTMEM * 1024))
+  mqtt actmem $ACTMEM
+  CACHEMEM=$(cat /proc/meminfo | grep ^Cached: | cut -d: -f2 | tr -d [:space:] | cut -dk -f1)
+  CACHEMEM=$((CACHEMEM * 1024))
+  mqtt cachemem $CACHEMEM
+
+  # network
+  for i in iw8265 e1000e ; do
+    STATS=$(cat /proc/net/dev | grep $i: || true)
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
+  DBM=$(iw dev iw8265 link | grep signal | cut -d: -f2- | cut -dd -f1 | tr -d [:space:])
+  mqtt signaldbm $DBM
+
+  UPSEC=$(cut -d\  -f1 < /proc/uptime)
+  mqtt uptimesec $UPSEC
+
+  sleep 10
+done
