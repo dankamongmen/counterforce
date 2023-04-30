@@ -33,5 +33,8 @@ while true ; do
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
   mqtt loadavg $LOAD
 
+  DBM=$(iw dev wlan0 link | grep signal | cut -d: -f2- | cut -dd -f1 | tr -d [:space:])
+  mqtt signaldbm $DBM
+
   sleep 15
 done
