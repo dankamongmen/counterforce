@@ -57,7 +57,7 @@ while true ; do
     fi
   done
 
-  FANIDX=0
+  FANIDX=1
   for i in `ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
     RPM=`stripnum $i`
     if [ -z "$RPM" ] ; then
