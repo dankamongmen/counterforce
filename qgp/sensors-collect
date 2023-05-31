@@ -1,0 +1,52 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+TOPIC=sensors/qgp
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+[ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
+
+# arguments: topic (key), message. swallow errors so we don't exit.
+mqtt() {
+  "$MQTT" --id qgp -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing $1 to mqtt" >&2 ; }
+}
+
+# prints bytes RX from a /proc/net/dev line provided as $*
+procnetdevrx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f2
+}
+
+# prints bytes TX from a /proc/net/dev line provided as $*
+procnetdevtx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f10
+}
+
+stripnum() {
+  echo "$@" | tr -d -c .[:digit:]-
+}
+
+while true ; do
+  UPSEC=$(cut -d\  -f1 < /proc/uptime)
+  mqtt uptimesec $UPSEC
+
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  mqtt loadavg $LOAD
+
+  # network
+  #for i in ixgbe1 ixgbe0 ; do
+  #  STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+  #  if [ -n "$STATS" ] ; then
+  #    RX=$(procnetdevrx $STATS)
+  #    TX=$(procnetdevtx $STATS)
+  #    mqtt nicrxb$i $RX
+  #    mqtt nictxb$i $TX
+  #  fi
+  #done
+
+  sleep 15
+done
