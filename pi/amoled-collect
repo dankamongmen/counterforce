@@ -17,7 +17,7 @@ mqtt() {
 
 while true ; do
   # rpi temp sensor
-  TCTL=$(sensors -j | jq '."cpu_thermal-virtual-0".temp1[]') 2> /dev/null
+  TCTL=$(sensors -j | jq '."cpu_thermal-virtual-0".temp1.temp1_input') 2> /dev/null
   "$MQTT" -h "$MQTTHOST" -t "$TOPIC" -m "{\"rpi4temp\":$TCTL}" -u "$MQTTUSER" -P "$MQTTPASS" \
     || { echo "Failed publishing to MQTT" >&2 ; }
 
