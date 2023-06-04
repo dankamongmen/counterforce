@@ -45,7 +45,7 @@ while true ; do
   done
 
   # fs availability
-  for i in / /home /media/qwop /media/qwopino ; do
+  for i in / /home ; do
     AVAIL=$(df $i --output=avail | sed -e 1d)
     TOTAL=$(df $i --output=size | sed -e 1d)
     PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
