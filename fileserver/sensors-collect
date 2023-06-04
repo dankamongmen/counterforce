@@ -44,7 +44,7 @@ while true ; do
   mqtt uptimesec $UPSEC
 
   CPUIDX=0
-  for i in `ipmi-sensors | grep 'CPU..Temp' | cut -d\| -f4` ; do
+  for i in `ipmi-sensors | grep 'CPU..Temp.*OK' | cut -d\| -f4` ; do
     mqtt tctl$CPUIDX "`stripnum $i`"
     CPUIDX=$((CPUIDX + 1))
   done
