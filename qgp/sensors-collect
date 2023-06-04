@@ -57,6 +57,12 @@ while true ; do
   GPU=$(sensors -j | jq .\"$AMDGPU\".edge[]) 2> /dev/null
   mqtt gputemp $GPU
 
+  XTOP0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan1.fan1_input') 2> /dev/null
+  mqtt cpu0rpm $XTOP0RPM
+
+  XTOP1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan5.fan5_input') 2> /dev/null
+  mqtt cpu1rpm $XTOP1RPM
+
   # network
   for i in r8169 ; do
     STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
