@@ -9,10 +9,19 @@ TOPIC=sensors/qgp
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 [ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
 
-# arguments: topic (key), message. swallow errors so we don't exit.
+# swallow errors so we don't exit. no arguments.
+mqttflush() {
+  "$MQTT" --id qgp -h "$MQTTHOST" -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing to mqtt: $POST" >&2 ; }
+}
+
+# arguments: topic (key), message.
 mqtt() {
-  "$MQTT" --id qgp -h "$MQTTHOST" -t "$TOPIC" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
-    { echo "error publishing $1 to mqtt" >&2 ; }
+  if [ -z "$POST" ] ; then
+    POST="\"$1\":$2"
+  else
+    POST="$POST, \"$1\":$2"
+  fi
 }
 
 # prints bytes RX from a /proc/net/dev line provided as $*
@@ -34,6 +43,7 @@ if [ -z "$AMDGPU" ] ; then
 fi
 
 while true ; do
+  POST=""
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
@@ -58,5 +68,6 @@ while true ; do
     fi
   done
 
+  mqttflush
   sleep 15
 done
