@@ -29,6 +29,10 @@ stripnum() {
   echo "$@" | tr -d -c .[:digit:]-
 }
 
+if [ -z "$AMDGPU" ] ; then
+  AMDGPU=$(sensors | grep ^amdgpu-pci) || echo "Couldn't find AMD GPU" >&2
+fi
+
 while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
@@ -37,16 +41,22 @@ while true ; do
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
   mqtt loadavg $LOAD
 
+  TCTL=$(sensors -j | jq '."k10temp-pci-00c3".Tctl[]') 2> /dev/null
+  mqtt tctl $TCTL
+
+  GPU=$(sensors -j | jq .\"$AMDGPU\".edge[]) 2> /dev/null
+  mqtt gputemp $GPU
+
   # network
-  #for i in ixgbe1 ixgbe0 ; do
-  #  STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
-  #  if [ -n "$STATS" ] ; then
-  #    RX=$(procnetdevrx $STATS)
-  #    TX=$(procnetdevtx $STATS)
-  #    mqtt nicrxb$i $RX
-  #    mqtt nictxb$i $TX
-  #  fi
-  #done
+  for i in r8169 ; do
+    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
 
   sleep 15
 done
