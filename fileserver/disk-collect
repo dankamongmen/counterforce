@@ -9,10 +9,19 @@ TOPIC=sensors/strangelet
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 [ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
 
-# arguments: topic (key), message. swallow errors so we don't exit.
+# swallow errors so we don't exit. no arguments.
+mqttflush() {
+  "$MQTT" --id strangelet -h "$MQTTHOST" -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing to mqtt: $POST" >&2 ; }
+}
+
+# arguments: topic (key), message.
 mqtt() {
-  "$MQTT" --id strangelet -t "$TOPIC" -h "$MQTTHOST" -m "{\"$1\":$2}" -u "$MQTTUSER" -P "$MQTTPASS" || \
-    { echo "error publishing to mqtt" >&2 ; }
+  if [ -z "$POST" ] ; then
+    POST="\"$1\":$2"
+  else
+    POST="$POST, \"$1\":$2"
+  fi
 }
 
 stripnum() {
@@ -20,6 +29,7 @@ stripnum() {
 }
 
 while true ; do
+  POST=""
   # SATA disks
   DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input') 2> /dev/null
   DIDX=0
@@ -50,5 +60,6 @@ while true ; do
     mqtt "$NAME" $PCENT
   done
 
+  mqttflush
   sleep 15
 done
