@@ -30,7 +30,7 @@ procnetdevtx() {
 
 while true ; do
 
-  PCH=$(sensors -j | jq '."pch_skylake-virtual-0".temp1.temp1_input') 2> /dev/null
+  PCH=$(sensors -j 2> /dev/null | jq '."pch_skylake-virtual-0".temp1.temp1_input')
   mqtt pch $PCH
 
   # load average
