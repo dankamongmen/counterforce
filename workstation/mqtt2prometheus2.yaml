@@ -130,6 +130,18 @@ metrics:
    mqtt_name: sata15
    help: SATA disk 15 temperature
    type: gauge
+ - prom_name: sata16temp
+   mqtt_name: sata16
+   help: SATA disk 16 temperature
+   type: gauge
+ - prom_name: sata17temp
+   mqtt_name: sata17
+   help: SATA disk 17 temperature
+   type: gauge
+ - prom_name: sata18temp
+   mqtt_name: sata18
+   help: SATA disk 18 temperature
+   type: gauge
  - prom_name: pkgwatts
    mqtt_name: pkgwatts
    help: CPU package power draw
@@ -442,17 +454,17 @@ metrics:
    mqtt_name: nicrxbr8152
    help: Bytes received by r8152
    type: counter
- - prom_name: nicrxbbr0
-   mqtt_name: nicrxbbr0
-   help: Bytes received by br0
+ - prom_name: nicrxbr8169
+   mqtt_name: nicrxbr8169
+   help: Bytes received by r8169
    type: counter
  - prom_name: nictxbr8152
    mqtt_name: nictxbr8152
    help: Bytes sent by r8152
    type: counter
- - prom_name: nictxbbr0
-   mqtt_name: nictxbbr0
-   help: Bytes sent by br0
+ - prom_name: nictxbr8169
+   mqtt_name: nictxbr8169
+   help: Bytes sent by r8169
    type: counter
  - prom_name: acvoltage
    mqtt_name: Voltage
