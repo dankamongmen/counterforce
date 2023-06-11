@@ -61,7 +61,7 @@ while true ; do
   mqtt gputemp $GPU
 
   # network
-  for i in r8152 r8169 ixgbe0 ; do
+  for i in r8152 r8169 ; do
     STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
     if [ -n "$STATS" ] ; then
       RX=$(procnetdevrx $STATS)
