@@ -37,7 +37,11 @@ procnetdevtx() {
 # this isn't going to change over our run
 #mqtt kernelver "\"`uname -r`\""
 
+ITER=0
+
 while true ; do
+  ITER=$((ITER + 1))
+
   POST=""
   if [ -z "$HFLOW" ] ; then
     HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
@@ -173,6 +177,13 @@ while true ; do
 
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
+
+  if [ $((ITER % 4)) == 0 ] ; then
+    HARTSFIELD=$(weather-util -m 30308 | grep Tempterature: | cut -d\  -f5)
+    if [ -n "$HARTSFIELD" ] ; then
+      mqtt hartsfield $HARTSFIELD
+    fi
+  fi
 
   mqttflush
   sleep 15

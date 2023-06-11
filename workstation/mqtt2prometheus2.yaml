@@ -28,11 +28,9 @@ json_parsing:
  separator: .
 # This is a list of valid metrics. Only metrics listed here will be exported
 metrics:
- # this one ought be mqtt-only, using the mqtt input plugin for grafana.
- # there's no sense in storing it IMHO.
- - prom_name: uptimesec
-   mqtt_name: uptimesec
-   help: Uptime in seconds
+ - prom_name: hartsfield
+   mqtt_name: hartsfield
+   help: Temperature at Hartsfield-Atlanta
    type: gauge
  - prom_name: geiger
    mqtt_name: geiger
@@ -501,4 +499,10 @@ metrics:
  - prom_name: tctl3
    mqtt_name: tctl3
    help: Processor 3 Tctl
+   type: gauge
+ # this one ought be mqtt-only, using the mqtt input plugin for grafana.
+ # there's no sense in storing it IMHO.
+ - prom_name: uptimesec
+   mqtt_name: uptimesec
+   help: Uptime in seconds
    type: gauge
