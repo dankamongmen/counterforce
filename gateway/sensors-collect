@@ -24,6 +24,10 @@ mqtt() {
   fi
 }
 
+stripnum() {
+    echo "$@" | tr -d -c .[:digit:]-
+}
+
 # prints bytes RX from a /proc/net/dev line provided as $*
 procnetdevrx() {
   echo $* | sed -e 's/ *//' | cut -d\  -f2
@@ -69,6 +73,25 @@ while true ; do
       mqtt nicrxb$i $RX
       mqtt nictxb$i $TX
     fi
+  done
+
+  # SATA disks
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input') 2> /dev/null
+  DIDX=0
+  for i in $DISKTEMPS ; do
+    mqtt sata$DIDX $i
+    DIDX=$((DIDX + 1))
+  done
+
+  # fs availability
+  for i in / /home /media/store ; do
+    AVAIL=$(df $i --output=avail | sed -e 1d)
+    AVAIL=$(stripnum $AVAIL)
+    TOTAL=$(df $i --output=size | sed -e 1d)
+    TOTAL=$(stripnum $TOTAL)
+    PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
+    NAME="fs`basename $i | sed -e 's/\//root/'`"
+    mqtt "$NAME" $PCENT
   done
 
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
