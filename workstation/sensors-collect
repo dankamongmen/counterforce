@@ -24,6 +24,13 @@ mqtt() {
   fi
 }
 
+isnumber() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ; ;;
+    *) return 0
+  esac
+}
+
 # prints bytes RX from a /proc/net/dev line provided as $*
 procnetdevrx() {
   echo $* | sed -e 's/ *//' | cut -d\  -f2
@@ -212,6 +219,46 @@ while true ; do
     NAME="fs`basename $i | sed -e 's/\//root/'`"
     mqtt "$NAME" $PCENT
   done
+
+  # these require root, ugh--set powercap-info suid root, or something similar =\.
+  UPSW=$(pwrstat -status | grep Load | cut -d\  -f2 || echo "")
+  if [ -n "$UPSW" ] ; then
+    mqtt upswatts $UPSW
+  else
+    echo "couldn't read UPS power" >&2
+  fi
+
+  UPSV=$(pwrstat -status | grep Utility\ Voltage | cut -d\  -f3 || echo "")
+  if [ -n "$UPSV" ] ; then
+    mqtt Voltage $UPSV
+  else
+    echo "couldn't read UPS voltage" >&2
+  fi
+
+  # we get our delay from this turbostat invocation
+  TURBS=$(turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | tail -n 1)
+  # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt
+  BPCENT=$(echo $TURBS | cut -d\  -f2)
+  if isnumber "$BPCENT" ; then
+    mqtt cpubpcent $BPCENT
+  fi
+  PWATTS=$(echo $TURBS | cut -d\  -f7)
+  if isnumber "$PWATTS" ; then
+    mqtt pkgwatts $PWATTS
+  fi
+  AVGKHZ=$(echo $TURBS | cut -d\  -f1)
+  BKHZ=$(echo $TURBS | cut -d\  -f3)
+  # we can only do arithmetic ops if the operand is a number,
+  # so test for that. this works in POSIX sh.
+  if isnumber "$AVGKHZ" ; then
+    if isnumber "$BKHZ" ; then
+      AVGKHZ=$((AVGKHZ * 1000))
+      BKHZ=$((BKHZ * 1000))
+      mqtt cpuavgkhz $AVGKHZ
+      mqtt cpubzykhz $BKHZ
+    fi
+  fi
+
 
   mqttflush
   sleep 15
