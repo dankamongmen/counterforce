@@ -77,6 +77,36 @@ while true ; do
     FANIDX=$((FANIDX + 1))
   done
 
+  # SATA disks
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input') 2> /dev/null
+  DIDX=0
+  for i in $DISKTEMPS ; do
+    mqtt sata$DIDX $i
+    DIDX=$((DIDX + 1))
+  done
+
+  # NVMe disks
+  for i in /dev/nvme? ; do
+    # text looks like: "temperature				: 50°C (323 Kelvin)"
+    # in some error cases, a negative value is returned; elide these
+    TEMP=$(nvme smart-log $i | grep ^temperature | cut -d\( -f1 | tr -d -c .[:digit:]-)
+    S=$(echo $i | cut -d/ -f3)
+    if [ "$TEMP" -ge 0 ] ; then
+      mqtt "$S"temp $TEMP
+    fi
+  done
+
+  # fs availability
+  for i in / /home /media/qwop /media/qwopino ; do
+    AVAIL=$(df $i --output=avail | sed -e 1d)
+    AVAIL=$(stripnum $AVAIL)
+    TOTAL=$(df $i --output=size | sed -e 1d)
+    TOTAL=$(stripnum $TOTAL)
+    PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
+    NAME="fs`basename $i | sed -e 's/\//root/'`"
+    mqtt "$NAME" $PCENT
+  done
+
   mqttflush
   sleep 15
 done
