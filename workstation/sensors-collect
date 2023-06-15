@@ -259,7 +259,6 @@ while true ; do
     fi
   fi
 
-
   mqttflush
-  sleep 15
+  sleep 10
 done
