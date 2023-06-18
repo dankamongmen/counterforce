@@ -13,7 +13,7 @@ void setup() {
 #define color_rotation_speed 10.0
 #define spacing 2.0
 #define thickness 2.0
-#define Speed 60
+#define Speed 90
 #define FPS 60
 
 double progress = 1000;
