@@ -44,6 +44,26 @@ fi
 
 while true ; do
   POST=""
+
+
+  if [ -z "$HFLOW" ] ; then
+    HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
+  fi
+  COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
+  if [ "$COOLTEMP" != "null" ] ; then
+    mqtt aquacool $COOLTEMP
+  fi
+  FLOW=$(sensors -j | jq .\"$HFLOW\".\"Flow\ \[dL/h\]\".fan1_input) 2> /dev/null
+  if [ "$FLOW" != "null" ] ; then
+    # convert deciliters-per-hour to liters-per-minute
+    FLOW=$(jq -n $FLOW/60/10)
+    mqtt aquaflow $FLOW
+  fi
+  V5USB=$(sensors -j | jq .\"$HFLOW\".\"+5V\ USB\ voltage\".in1_input) 2> /dev/null
+  if [ "$V5USB" != "null" ] ; then
+    mqtt v5usb $V5USB
+  fi
+
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
