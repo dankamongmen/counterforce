@@ -344,6 +344,10 @@ metrics:
    mqtt_name: gpupcent
    help: Percent of time GPU was busy
    type: gauge
+ - prom_name: nictempmlx5
+   mqtt_name: nictempmlx5
+   help: Temperature of mlx5
+   type: counter
  - prom_name: nicrxbmlx5
    mqtt_name: nicrxbmlx5
    help: Bytes received by mlx5
