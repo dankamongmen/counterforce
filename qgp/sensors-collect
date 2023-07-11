@@ -87,7 +87,7 @@ while true ; do
   mqtt cpu1rpm $XTOP1RPM
 
   # network
-  for i in r8169 ; do
+  for i in r8169 mlx5 ; do
     STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
     if [ -n "$STATS" ] ; then
       RX=$(procnetdevrx $STATS)
@@ -96,6 +96,9 @@ while true ; do
       mqtt nictxb$i $TX
     fi
   done
+
+  MLX5TEMP=$(sensors -j | jq '.[]|select(.Adapter|test("Virtual device"))|.temp1.temp1_input') 2> /dev/null
+  mqtt nictempmlx5 $MLX5TEMP
 
   # SATA disks
   DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.temp1.temp1_input') 2> /dev/null
