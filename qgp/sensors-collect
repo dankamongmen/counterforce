@@ -78,10 +78,16 @@ while true ; do
   mqtt gputemp $GPU
 
   XTOP0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan1.fan1_input') 2> /dev/null
-  mqtt cpu0rpm $XTOP0RPM
+  mqtt fan0 $XTOP0RPM
+
+  FAN0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan2.fan2_input') 2> /dev/null
+  mqtt morarpm $FAN0RPM
 
   MORARPM=$(sensors -j | jq '."it8689-isa-0a40".fan3.fan3_input') 2> /dev/null
   mqtt morarpm $MORARPM
+
+  FAN1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan4.fan4_input') 2> /dev/null
+  mqtt fan1 $FAN1RPM
 
   XTOP1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan5.fan5_input') 2> /dev/null
   mqtt cpu1rpm $XTOP1RPM
