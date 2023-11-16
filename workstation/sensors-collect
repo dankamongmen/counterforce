@@ -9,9 +9,9 @@ TOPIC=sensors/schwarzgerät
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 
-# swallow errors so we don't exit. no arguments.
+# swallow errors so we don't exit. optional arguments might include -r.
 mqttflush() {
-  "$MQTT" --id schwarzgerät -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+  "$MQTT" $@ --id schwarzgerät -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
     { echo "error publishing to mqtt: $POST" >&2 ; }
 }
 
@@ -41,10 +41,10 @@ procnetdevtx() {
   echo $* | sed -e 's/ *//' | cut -d\  -f10
 }
 
-# this isn't going to change over our run
-#mqtt kernelver "\"`uname -r`\""
-
 ITER=0
+
+mqtt kernel \"`uname -r`\"
+mqttflush -r
 
 while true ; do
   ITER=$((ITER + 1))
@@ -258,6 +258,10 @@ while true ; do
       mqtt cpubzykhz $BKHZ
     fi
   fi
+
+
+  DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]')
+  mqtt daylight $DAYLIGHT
 
   mqttflush
   sleep 10
