@@ -510,3 +510,7 @@ metrics:
    mqtt_name: uptimesec
    help: Uptime in seconds
    type: gauge
+ - prom_name: daylight
+   mqtt_name: daylight
+   help: Daytime sensor
+   type: gauge
