@@ -180,7 +180,9 @@ while true ; do
     fi
   done
   DBM=$(iw dev ax200 link | grep signal | cut -d: -f2- | cut -dd -f1 | tr -d [:space:])
-  mqtt signaldbm $DBM
+  if [ -n "$DBM" ] ; then
+    mqtt signaldbm $DBM
+  fi
 
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
@@ -261,7 +263,12 @@ while true ; do
 
 
   DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]')
-  mqtt daylight $DAYLIGHT
+  if [ "$DAYLIGHT" = "true" ] ; then
+    DAYBOOL=1
+  else
+    DAYBOOL=0
+  fi
+  mqtt daylight $DAYBOOL
 
   mqttflush
   sleep 10
