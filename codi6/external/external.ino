@@ -4,6 +4,7 @@ CRGB flt[15];    // Quantum FLT
 CRGB diyfab[30]; // EZDIY-FAB LED strips
  
 void setup() {
+  Serial.begin(9600);
   FastLED.addLeds<NEOPIXEL, 3>(flt, 0, sizeof(flt) / sizeof(*flt));
   FastLED.addLeds<NEOPIXEL, 6>(diyfab, 0, sizeof(diyfab) / sizeof(*diyfab));
 }
@@ -42,6 +43,8 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
   float cy_shift_mult = cy_shift / 100.f;
   unsigned width = ledcount;
   unsigned int height = 1;
+
+  Serial.print("arp");
 
   float cx = (width-1) * cx_shift_mult;
   float cy = height * cy_shift_mult;

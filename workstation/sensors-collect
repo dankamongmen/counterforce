@@ -223,52 +223,55 @@ while true ; do
   done
 
   # these require root, ugh--set powercap-info suid root, or something similar =\.
-  UPSW=$(pwrstat -status | grep Load | cut -d\  -f2 || echo "")
-  if [ -n "$UPSW" ] ; then
-    mqtt upswatts $UPSW
-  else
-    echo "couldn't read UPS power" >&2
-  fi
-
-  UPSV=$(pwrstat -status | grep Utility\ Voltage | cut -d\  -f3 || echo "")
-  if [ -n "$UPSV" ] ; then
-    mqtt Voltage $UPSV
-  else
-    echo "couldn't read UPS voltage" >&2
-  fi
-
-  # we get our delay from this turbostat invocation
-  TURBS=$(turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | tail -n 1)
-  # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt
-  BPCENT=$(echo $TURBS | cut -d\  -f2)
-  if isnumber "$BPCENT" ; then
-    mqtt cpubpcent $BPCENT
-  fi
-  PWATTS=$(echo $TURBS | cut -d\  -f7)
-  if isnumber "$PWATTS" ; then
-    mqtt pkgwatts $PWATTS
-  fi
-  AVGKHZ=$(echo $TURBS | cut -d\  -f1)
-  BKHZ=$(echo $TURBS | cut -d\  -f3)
-  # we can only do arithmetic ops if the operand is a number,
-  # so test for that. this works in POSIX sh.
-  if isnumber "$AVGKHZ" ; then
-    if isnumber "$BKHZ" ; then
-      AVGKHZ=$((AVGKHZ * 1000))
-      BKHZ=$((BKHZ * 1000))
-      mqtt cpuavgkhz $AVGKHZ
-      mqtt cpubzykhz $BKHZ
+  if UPSW=$(pwrstat -status | grep Load | cut -d\  -f2 || echo "") ; then
+    if [ -n "$UPSW" ] ; then
+      mqtt upswatts $UPSW
+    else
+      echo "couldn't read UPS power" >&2
     fi
   fi
 
-
-  DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]')
-  if [ "$DAYLIGHT" = "true" ] ; then
-    DAYBOOL=1
-  else
-    DAYBOOL=0
+  if UPSV=$(pwrstat -status | grep Utility\ Voltage | cut -d\  -f3 || echo "") ; then
+    if [ -n "$UPSV" ] ; then
+      mqtt Voltage $UPSV
+    else
+      echo "couldn't read UPS voltage" >&2
+    fi
   fi
-  mqtt daylight $DAYBOOL
+
+  # we get our delay from this turbostat invocation
+  if TURBS=$(turbostat --quiet --Summary --hide idle,IRQ sleep 10 2>&1 | tail -n 1) ; then
+    # we get Avg_MHz	Busy%	Bzy_MHz	TSC_MHz	IPC	CorWatt	PkgWatt
+    BPCENT=$(echo $TURBS | cut -d\  -f2)
+    if isnumber "$BPCENT" ; then
+      mqtt cpubpcent $BPCENT
+    fi
+    PWATTS=$(echo $TURBS | cut -d\  -f7)
+    if isnumber "$PWATTS" ; then
+      mqtt pkgwatts $PWATTS
+    fi
+    AVGKHZ=$(echo $TURBS | cut -d\  -f1)
+    BKHZ=$(echo $TURBS | cut -d\  -f3)
+    # we can only do arithmetic ops if the operand is a number,
+    # so test for that. this works in POSIX sh.
+    if isnumber "$AVGKHZ" ; then
+      if isnumber "$BKHZ" ; then
+        AVGKHZ=$((AVGKHZ * 1000))
+        BKHZ=$((BKHZ * 1000))
+        mqtt cpuavgkhz $AVGKHZ
+        mqtt cpubzykhz $BKHZ
+      fi
+    fi
+  fi
+
+  if DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]') ; then
+    if [ "$DAYLIGHT" = "true" ] ; then
+      DAYBOOL=1
+    else
+      DAYBOOL=0
+    fi
+    mqtt daylight $DAYBOOL
+  fi
 
   mqttflush
   sleep 10
