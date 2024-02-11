@@ -45,7 +45,6 @@ fi
 while true ; do
   POST=""
 
-
   if [ -z "$HFLOW" ] ; then
     HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
   fi
@@ -78,16 +77,16 @@ while true ; do
   mqtt gputemp $GPU
 
   XTOP0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan1.fan1_input') 2> /dev/null
-  mqtt fan0 $XTOP0RPM
+  mqtt cpu0rpm $XTOP0RPM
 
-  FAN0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan2.fan2_input') 2> /dev/null
-  mqtt morarpm $FAN0RPM
+  FAN1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan2.fan2_input') 2> /dev/null
+  mqtt fan1 $FAN1RPM
 
   MORARPM=$(sensors -j | jq '."it8689-isa-0a40".fan3.fan3_input') 2> /dev/null
   mqtt morarpm $MORARPM
 
-  FAN1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan4.fan4_input') 2> /dev/null
-  mqtt fan1 $FAN1RPM
+  FAN2RPM=$(sensors -j | jq '."it8689-isa-0a40".fan4.fan4_input') 2> /dev/null
+  mqtt fan2 $FAN2RPM
 
   XTOP1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan5.fan5_input') 2> /dev/null
   mqtt cpu1rpm $XTOP1RPM
