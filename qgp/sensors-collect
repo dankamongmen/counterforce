@@ -93,12 +93,13 @@ while true ; do
 
   # network
   for i in r8169 mlx5 sfc9120a ; do
-    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
-    if [ -n "$STATS" ] ; then
-      RX=$(procnetdevrx $STATS)
-      TX=$(procnetdevtx $STATS)
-      mqtt nicrxb$i $RX
-      mqtt nictxb$i $TX
+    if STATS=$(grep $i: /proc/net/dev) ; then
+      if [ -n "$STATS" ] ; then
+        RX=$(procnetdevrx $STATS)
+        TX=$(procnetdevtx $STATS)
+        mqtt nicrxb$i $RX
+        mqtt nictxb$i $TX
+      fi
     fi
   done
 
