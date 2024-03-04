@@ -1,0 +1,82 @@
+#!/bin/sh
+
+set -e
+
+MQTT=$(which mosquitto_pub)
+NAME=freebird
+TOPIC=sensors/$NAME
+
+[ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
+[ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+[ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
+
+# swallow errors so we don't exit. no arguments.
+mqttflush() {
+  "$MQTT" --id $NAME -h "$MQTTHOST" -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+    { echo "error publishing to mqtt: $POST" >&2 ; }
+}
+
+# arguments: topic (key), message.
+mqtt() {
+  if [ -z "$POST" ] ; then
+    POST="\"$1\":$2"
+  else
+    POST="$POST, \"$1\":$2"
+  fi
+}
+
+stripnum() {
+    echo "$@" | tr -d -c .[:digit:]-
+}
+
+# prints bytes RX from a /proc/net/dev line provided as $*
+procnetdevrx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f2
+}
+
+# prints bytes TX from a /proc/net/dev line provided as $*
+procnetdevtx() {
+  echo $* | sed -e 's/ *//' | cut -d\  -f10
+}
+
+# this isn't going to change over our run
+#mqtt kernelver "\"`uname -r`\""
+
+while true ; do
+  POST=""
+
+  TCTL=$(sensors -j | jq '."coretemp-isa-0000"."Package id 0"."temp1_input"') 2> /dev/null
+  mqtt tctl $TCTL
+
+  # network
+  for i in eno1 r8152 ; do
+    STATS=$(cat /proc/net/dev | grep $i:) # FIXME continue on error
+    if [ -n "$STATS" ] ; then
+      RX=$(procnetdevrx $STATS)
+      TX=$(procnetdevtx $STATS)
+      mqtt nicrxb$i $RX
+      mqtt nictxb$i $TX
+    fi
+  done
+
+  # fs availability
+  for i in / /home ; do
+    AVAIL=$(df $i --output=avail | sed -e 1d)
+    AVAIL=$(stripnum $AVAIL)
+    TOTAL=$(df $i --output=size | sed -e 1d)
+    TOTAL=$(stripnum $TOTAL)
+    PCENT=`jq -n \(1-$AVAIL/$TOTAL\)*100`
+    NAME="fs`basename $i | sed -e 's/\//root/'`"
+    mqtt "$NAME" $PCENT
+  done
+
+  UPSEC=$(cut -d\  -f1 < /proc/uptime)
+  mqtt uptimesec $UPSEC
+
+  # load average
+  LOAD=$(cut -d\  -f1 < /proc/loadavg)
+  mqtt loadavg $LOAD
+
+  mqttflush
+  sleep 15
+done
