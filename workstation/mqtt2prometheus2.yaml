@@ -36,14 +36,6 @@ metrics:
    mqtt_name: geiger
    help: Geiger counter events
    type: gauge
- - prom_name: mic
-   mqtt_name: mic
-   help: Microphone average (1s)
-   type: gauge
- - prom_name: micmax
-   mqtt_name: micmax
-   help: Microphone maximum (1s)
-   type: gauge
  - prom_name: nvme0temp
    mqtt_name: nvme0temp
    help: NVMe disk 0 temperature
@@ -368,6 +360,10 @@ metrics:
    mqtt_name: nicrxbax200
    help: Bytes received by ax200
    type: counter
+ - prom_name: nicrxbeno1
+   mqtt_name: nicrxbeno1
+   help: Bytes received by eno1
+   type: counter
  - prom_name: nictxbmlx5
    mqtt_name: nictxbmlx5
    help: Bytes sent by mlx5
@@ -387,6 +383,10 @@ metrics:
  - prom_name: nictxbax200
    mqtt_name: nictxbax200
    help: Bytes sent by ax200
+   type: counter
+ - prom_name: nictxbeno1
+   mqtt_name: nictxbeno1
+   help: Bytes sent by eno1
    type: counter
  - prom_name: vcore
    mqtt_name: vcore

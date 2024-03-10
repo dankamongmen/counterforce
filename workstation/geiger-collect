@@ -11,12 +11,9 @@ TOPIC=sensors/schwarzgerät
 stty 115200 -F /dev/tty-geiger
 
 # we read fifteen samples of a given type before publishing (this ought be
-# 15s). we sum over the geiger counts, and average the mic samples.
+# 15s). we sum over the geiger counts.
 G=0
-M=0
-MSAMPS=0
 GSAMPS=0
-MICMAX=0 # FIXME can we get negative samples?
 exec cat < /dev/tty-geiger | while read line
 do
   # all reported values are integers or floats with a mantissa of 0
@@ -28,22 +25,6 @@ do
        { echo "Error publishing geiger sample" >&2 ; }
       G=0
       GSAMPS=0
-    fi
-  elif echo "$line" | grep '^Mic: ' > /dev/null ; then
-    { M=`jq -n $M+$VAL` && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
-    if [ $MSAMPS -ge 15 ] ; then
-      VAL=`jq -n $M/$MSAMPS`
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"mic\":$VAL}" || \
-        { echo "Error publishing mic average" >&2 ; }
-      "$MQTT" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"micmax\":$MICMAX}" || \
-        { echo "Error publishing mic maximum" >&2 ; }
-      M=0
-      MSAMPS=0
-      MICMAX=0
-    fi
-  elif echo "$line" | grep '^Micmax: ' > /dev/null ; then
-    if [ $VAL -gt $MICMAX ] ; then
-      MICMAX=$VAL
     fi
   fi
 done
