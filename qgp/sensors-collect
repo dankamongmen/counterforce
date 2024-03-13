@@ -92,7 +92,7 @@ while true ; do
   mqtt cpu1rpm $XTOP1RPM
 
   # network
-  for i in r8169 mlx5 sfc9120a ; do
+  for i in r8169 r8152 sfc9120a ; do
     if STATS=$(grep $i: /proc/net/dev) ; then
       if [ -n "$STATS" ] ; then
         RX=$(procnetdevrx $STATS)
