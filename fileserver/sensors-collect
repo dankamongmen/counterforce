@@ -68,12 +68,14 @@ while true ; do
   done
 
   FANIDX=1
-  for i in `ipmi-sensors | grep 'FAN.' | cut -d\| -f4` ; do
+  for i in `ipmi-sensors | grep 'FAN.' | cut -d\| -f4 | cut -d. -f1` ; do
     RPM=`stripnum $i`
     if [ -z "$RPM" ] ; then
       RPM=0
     fi
-    mqtt fan$FANIDX "$RPM"
+    if [ $RPM -gt 0 ] ; then
+      mqtt fan$FANIDX "$RPM"
+    fi
     FANIDX=$((FANIDX + 1))
   done
 
