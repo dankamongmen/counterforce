@@ -76,20 +76,25 @@ while true ; do
   GPU=$(sensors -j | jq .\"$AMDGPU\".edge[]) 2> /dev/null
   mqtt gputemp $GPU
 
+  reportfan() {
+    VAL=$(echo $1 | cut -d. -f1)
+    [ $VAL -le 0 ] || mqtt $2 $VAL
+  }
+
   XTOP0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan1.fan1_input') 2> /dev/null
-  mqtt cpu0rpm $XTOP0RPM
+  reportfan $XTOP0RPM cpu0rpm
 
   FAN1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan2.fan2_input') 2> /dev/null
-  mqtt fan1 $FAN1RPM
+  reportfan $FAN1RPM fan1
 
   MORARPM=$(sensors -j | jq '."it8689-isa-0a40".fan3.fan3_input') 2> /dev/null
-  mqtt morarpm $MORARPM
+  reportfan $MORARPM morarpm
 
   FAN2RPM=$(sensors -j | jq '."it8689-isa-0a40".fan4.fan4_input') 2> /dev/null
-  mqtt fan2 $FAN2RPM
+  reportfan $FAN2RPM fan2
 
   XTOP1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan5.fan5_input') 2> /dev/null
-  mqtt cpu1rpm $XTOP1RPM
+  reportfan $XTOP1RPM cpu1rpm
 
   # network
   for i in r8169 r8152 sfc9120a ; do
