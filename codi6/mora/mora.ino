@@ -27,8 +27,6 @@ void setup() {
 #define color_rotation_speed 3.0
 #define spacing 1.0
 #define thickness 3.0
-#define Speed 30
-#define FPS 60
 
 double progress = 10;
 unsigned cx_shift = 50;
@@ -38,9 +36,17 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   float animation_mult = 0.01 * animation_speed;
   float color_mult = 0.01 * color_rotation_speed;
 
+  Serial.print("y: ");
+  Serial.print(y);
+  Serial.print(" x: ");
+  Serial.print(x);
+  Serial.print(" cx: ");
+  Serial.print(cx);
+  Serial.print(" cy: ");
+  Serial.println(cy);
   double angle    = atan2(y - cy, x - cx) * 180 / 3.14159265359;
   double distance = sqrt(pow(cx - x, 2) + pow(cy - y, 2));
-  float  value    = cos(animation_mult * distance / (0.1 * (float) spacing)  + progress);
+  float  value    = cos(animation_mult * distance / (0.1 * (float) spacing) + progress);
 
   int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
   // 90--150; we only want greens
@@ -63,7 +69,7 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
   for(unsigned int i = 0; i < width; i++){
     GetColor(i, 0, cx, cy, leds);
   }
-  progress +=  0.1 * (float) Speed / (float) FPS;
+  progress += 0.05;
 }
 
 void loop() {
