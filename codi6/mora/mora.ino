@@ -36,6 +36,7 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   float animation_mult = 0.01 * animation_speed;
   float color_mult = 0.01 * color_rotation_speed;
 
+  /*
   Serial.print("y: ");
   Serial.print(y);
   Serial.print(" x: ");
@@ -44,6 +45,7 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   Serial.print(cx);
   Serial.print(" cy: ");
   Serial.println(cy);
+  */
   double angle    = atan2(y - cy, x - cx) * 180 / 3.14159265359;
   double distance = sqrt(pow(cx - x, 2) + pow(cy - y, 2));
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing) + progress);
