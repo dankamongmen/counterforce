@@ -2,12 +2,10 @@
 
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, fan4pwm geiger))
-ESP32HEX:=$(addprefix esp32/, $(addsuffix .ino.elf, fanmgr))
 ESP32WROOM2HEX:=$(addprefix esp32-wroom2/, $(addsuffix .ino.hex, fanmgr))
-ESP8266HEX:=$(addprefix esp8266/, $(addsuffix .ino.elf, fanmgr))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(ESP32HEX) $(ESP8266HEX) $(UNOHEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 
@@ -35,13 +33,9 @@ $(OUT)/esp32-wroom2/fanmgr.ino.hex: $(addprefix esp32-wroom2/fanmgr/, fanmgr.ino
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wroom2/fanmgr
 
-$(OUT)/esp8266/fanmgr.ino.elf: $(addprefix esp8266/fanmgr/, fanmgr.ino) $(ESPCOMMON)
+$(OUT)/esp32-wroom2/simple.ino.hex: $(addprefix esp32-wroom2/simple/, simple.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b esp8266:esp8266:nodemcuv2 -v --output-dir $(@D) esp8266/fanmgr
-
-$(OUT)/esp32/fanmgr.ino.elf: $(addprefix esp32/fanmgr/, fanmgr.ino) $(ESPCOMMON)
-	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b Heltec-esp32:esp32:wifi_lora_32_V2 -v --output-dir $(@D) esp32/fanmgr
+	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wroom2/simple
 
 $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)

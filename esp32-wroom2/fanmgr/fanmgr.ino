@@ -12,7 +12,6 @@
 #endif
 
 #include <float.h>
-#include <ArduinoJson.h>
 #include <OneWire.h>
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
