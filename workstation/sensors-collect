@@ -127,15 +127,23 @@ while true ; do
   mqtt corsairtemp1 $VAL
 
   # nvidia
-  GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
-  mqtt gputemp $GPU
-  GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits)
-  GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
-  mqtt gpuactmem $GPUMEM
-  GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits)
-  mqtt gpuwatts $GPUW
-  GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
-  mqtt gpupcent $GPCENT
+  GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader || true)
+  if [ -n "$GPU" ] ; then
+    mqtt gputemp $GPU
+  fi
+  GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits || true)
+  if [ -n "$GPUMEM" ] ; then
+    GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
+    mqtt gpuactmem $GPUMEM
+  fi
+  GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits || true)
+  if [ -n "$GPUW" ] ; then
+    mqtt gpuwatts $GPUW
+  fi
+  GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits || true)
+  if [ -n "$GPCENT" ] ; then
+    mqtt gpupcent $GPCENT
+  fi
 
   # aquacomputer
   COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
