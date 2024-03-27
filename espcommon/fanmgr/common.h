@@ -74,17 +74,18 @@ static int readAmbient(float* t, DallasTemperature *dt){
 }
 
 static void readThermistor(float* t, int pin, int levels){
+  *t = NAN;
   const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 298.15;
   const float R0 = 10100;
   const float R1 = 10000;
   const float VREF = 3.3;
-  float v0 = analogRead(pin);
-  if(v0 <= 1 || v0 >= levels - 1){
+  uint16_t data = system_adc_read();
+    if(data <= 1 || data >= levels - 1){
     return;
   }
   // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
-  float scaled = v0 * VREF / (levels - 1);
+  float scaled = data * VREF / (levels - 1);
   float Rt = R1 * scaled / (VREF - scaled);
   float tn = 1.0 / ((1.0 / NOMINAL) + log(R0 / Rt) / BETA);
   tn -= 273.15;

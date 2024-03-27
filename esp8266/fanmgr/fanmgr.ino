@@ -4,19 +4,17 @@
 // doesn't run LEDs, nor does it support a pressure sensor.
 #define DEVNAME "esp8266"
 #include "ESP8266WiFi.h"
-#include <SoftwareSerial.h>
 #include <float.h>
 #include <ArduinoJson.h>
 #include <OneWire.h>
+#include <ESP8266_PWM.h>
 #include <DallasTemperature.h>
 #include <ArduinoOTA.h>
+#include <user_interface.h>
 #include "common.h"
 
 const int TEMPPIN = A0; // coolant thermistor (2-wire), only one ADC on the ESP8266
 const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1-wire)
-
-const int UARTTXPIN = D5;
-const int UARTRXPIN = D6;
 
 // we keep the LED on when we're not connected. when we are connected, we blink it
 // each time we transmit. LEDs are both inverted (there's another at D4).
@@ -42,7 +40,6 @@ EspMQTTClient client(
 
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
-SoftwareSerial UART;
 
 void setup(){
   Serial.begin(115200);
@@ -53,13 +50,6 @@ void setup(){
   Serial.println(VERSION);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  pinMode(UARTRXPIN, INPUT);
-  pinMode(UARTTXPIN, OUTPUT);
-  UART.begin(9600, SWSERIAL_8N1, UARTRXPIN, UARTTXPIN);
-  if(!UART){
-    Serial.println("couldn't create software UART");
-  }
-  UART.listen();
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
@@ -166,35 +156,6 @@ void onConnectionEstablished() {
   );
 }
 
-// check the UART for incoming data, and apply it
-static void check_uart(SoftwareSerial* u, unsigned* xtopa, unsigned* xtopb, unsigned* fans){
-  int c = u->read();
-  if(c < 0){
-    return;
-  }
-  Serial.print("GOT UART: 0x");
-  Serial.println(c, HEX);
-}
-
-static void send_uart_csum(SoftwareSerial* u, unsigned sum){
-  u->write(255 - (sum % 256));
-}
-
-static void send_uart(SoftwareSerial* u, unsigned fan, unsigned pump,
-                      unsigned r, unsigned g, unsigned b){
-  u->write('P');
-  u->write(fan);
-  send_uart_csum(u, 'P' + fan);
-  u->write('U');
-  u->write(pump);
-  send_uart_csum(u, 'U' + pump);
-  u->write('C');
-  u->write(r);
-  u->write(g);
-  u->write(b);
-  send_uart_csum(u, 'C' + r + g + b);
-}
-
 // we transmit approximately every 15 seconds, sampling RPMs at this time.
 // we continuously sample the temperature, and use the most recent valid read
 // for transmit/display. there are several blocking calls (1-wire and MQTT)
@@ -209,8 +170,6 @@ void loop(){
   static float ambient_temp = FLT_MAX;
   ArduinoOTA.handle();
   client.loop(); // handle any necessary wifi/mqtt
-  check_uart(&UART, &XTopRPMA, &XTopRPMB, &RPM);
-  send_uart(&UART, Pwm, PumpPwm, Red, Green, Blue);
   readThermistor(&coolant_temp, TEMPPIN, 1024);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
@@ -234,11 +193,11 @@ void loop(){
   Serial.print(diff);
   Serial.println(" µsec expired for cycle");
   bool success = true;
-  success &= rpmPublish(client, "moraxtop0rpm", XTopRPMA);
-  success &= rpmPublish(client, "moraxtop1rpm", XTopRPMB);
-  success &= rpmPublish(client, "morarpm", RPM);
+  //success &= rpmPublish(client, "moraxtop0rpm", XTopRPMA);
+  //success &= rpmPublish(client, "moraxtop1rpm", XTopRPMB);
+  //success &= rpmPublish(client, "morarpm", RPM);
   success &= publish_temps(client, ambient_temp, coolant_temp);
-  success &= publish_pwm(client, Pwm, PumpPwm);
+  //success &= publish_pwm(client, Pwm, PumpPwm);
   success &= publish_uptime(client, millis() / 1000); // FIXME handle overflow
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;

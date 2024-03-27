@@ -338,7 +338,7 @@ metrics:
    type: gauge
  - prom_name: nictempmlx5
    mqtt_name: nictempmlx5
-   help: Temperature of mlx5
+   help: Temperature of high-speed networking
    type: counter
  - prom_name: nicrxbmlx5
    mqtt_name: nicrxbmlx5
