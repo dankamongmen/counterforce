@@ -24,10 +24,10 @@ const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
 const int RGBPINR = 32;
 const int RGBPING = 33;
 const int RGBPINB = 34;
-// RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
-int Red = 0x0;
+// RGB we want for the 12V fan LEDs (initialized to white, read from MQTT)
+int Red = 0xff;
 int Green = 0xff;
-int Blue = 0x0;
+int Blue = 0xff;
 
 // RPMs as determined by our interrupt handlers.
 // we only get the RPM count from one of our fans; it stands for all.
@@ -83,10 +83,6 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
 
 int initialize_rgb_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 5000);
-}
-
-int initialize_fan_pwm(ledc_channel_t channel, int pin){
-  return initialize_pwm(channel, pin, 25000);
 }
 
 void setup(){
