@@ -196,7 +196,7 @@ while true ; do
   mqtt uptimesec $UPSEC
 
   if [ $((ITER % 20)) = 0 ] ; then
-    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5)
+    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
     if [ -n "$HARTSFIELD" ] ; then
       mqtt hartsfield $HARTSFIELD
     fi
