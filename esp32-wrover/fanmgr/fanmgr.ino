@@ -5,7 +5,7 @@
 //         analog coolant thermistor
 // controls 12V RGB LEDs via 3 MOSFETs
 
-#define DEVNAME "wrover"
+#define DEVNAME "esp32"
 
 #include <float.h>
 #include <OneWire.h>
@@ -21,9 +21,9 @@ const int AMBIENTPIN = 4;
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
 const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
-const int RGBPINR = 27;
-const int RGBPING = 14;
-const int RGBPINB = 12;
+const int RGBPINR = 32;
+const int RGBPING = 33;
+const int RGBPINB = 34;
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
 int Red = 0x0;
 int Green = 0xff;

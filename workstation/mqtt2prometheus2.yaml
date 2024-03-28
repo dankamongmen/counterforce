@@ -293,11 +293,11 @@ metrics:
    help: Media utilization
    type: gauge
  - prom_name: moraambient
-   mqtt_name: moraambient
+   mqtt_name: dtemp
    help: Ambient temperature at MO-RA3
    type: gauge
- - prom_name: mora3coolanttemp
-   mqtt_name: moracoolant
+ - prom_name: moracoolant
+   mqtt_name: atemp
    help: Coolant temperature at MO-RA3
    type: gauge
  - prom_name: mora3fanrpm
