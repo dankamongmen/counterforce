@@ -97,63 +97,6 @@ void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
   digitalWrite(LEDPIN, HIGH);
   mqttconnected = true;
-  client.subscribe("control/" DEVNAME "/pwm", [](const String &payload){
-      Serial.print("received PWM via mqtt: ");
-      Serial.println(payload);
-      unsigned long p = 0;
-      if(payload.length() == 0){
-        Serial.println("empty PWM input");
-        return;
-      }
-      for(int i = 0 ; i < payload.length() ; ++i){
-        char h = payload.charAt(i);
-        if(!isdigit(h)){
-          Serial.println("invalid PWM character");
-          return;
-        }
-        p *= 10; // FIXME check for overflow
-        p += h - '0';
-      }
-      if(valid_pwm_p(p)){
-        set_pwm(p);
-      }
-    }
-  );
-  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
-      Serial.print("received pump PWM via mqtt: ");
-      Serial.println(payload);
-      unsigned long p = 0;
-      if(payload.length() == 0){
-        Serial.println("empty PWM input");
-        return;
-      }
-      for(int i = 0 ; i < payload.length() ; ++i){
-        char h = payload.charAt(i);
-        if(!isdigit(h)){
-          Serial.println("invalid PWM character");
-          return;
-        }
-        p *= 10; // FIXME check for overflow
-        p += h - '0';
-      }
-      if(valid_pwm_p(p)){
-        set_pump_pwm(p);
-      }
-    }
-  );
-  client.subscribe("control/" DEVNAME "/rgb", [](const String &payload){
-      Serial.print("received rgb via mqtt: ");
-      Serial.println(payload);
-      unsigned long p = 0;
-      if(payload.length() != 6){
-        Serial.println("invalid RGB input");
-        return;
-      }
-      Red = getHex(payload[0]) * 16 + getHex(payload[1]);
-      Green = getHex(payload[2]) * 16 + getHex(payload[3]);
-      Blue = getHex(payload[4]) * 16 + getHex(payload[5]);
-    }
-  );
 }
 
 // we transmit approximately every 15 seconds, sampling RPMs at this time.
@@ -166,11 +109,9 @@ void loop(){
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
   // on error, but instead only on transmission).
-  static float coolant_temp = FLT_MAX;
-  static float ambient_temp = FLT_MAX;
+  float ambient_temp = NAN;
   ArduinoOTA.handle();
   client.loop(); // handle any necessary wifi/mqtt
-  readThermistor(&coolant_temp, TEMPPIN, 1024);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
@@ -182,23 +123,31 @@ void loop(){
     }
   }
   unsigned long m = micros();
-  unsigned long diff = m - last_tx;
-  if(diff < 15000000){
-    return;
+  if(last_tx){
+    unsigned long diff = m - last_tx;
+    if(diff < 15000000){
+      return;
+    }
   }
   // blink for duration of transmit. if we're not connected, we're already
   // on, and this will have no effect.
   digitalWrite(LEDPIN, LOW);
-  last_tx = m;
-  Serial.print(diff);
-  Serial.println(" µsec expired for cycle");
   bool success = true;
+  
+  mqttmsg mmsg(client);
   //success &= rpmPublish(client, "moraxtop0rpm", XTopRPMA);
   //success &= rpmPublish(client, "moraxtop1rpm", XTopRPMB);
   //success &= rpmPublish(client, "morarpm", RPM);
-  success &= publish_temps(client, ambient_temp, coolant_temp);
+  float coolant_temp = NAN;
+  readThermistor(&coolant_temp, TEMPPIN, 1024);
+  publish_temps(mmsg, ambient_temp, coolant_temp);
   //success &= publish_pwm(client, Pwm, PumpPwm);
-  success &= publish_uptime(client, millis() / 1000); // FIXME handle overflow
+  publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
+  if(mmsg.publish()){
+    Serial.print("Successful xmit at ");
+    Serial.println(m);
+    last_tx = m;
+  }
   coolant_temp = FLT_MAX;
   ambient_temp = FLT_MAX;
   if(mqttconnected){
