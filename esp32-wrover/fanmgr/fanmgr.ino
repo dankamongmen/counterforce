@@ -5,7 +5,7 @@
 //         analog coolant thermistor
 // controls 12V RGB LEDs via 3 MOSFETs
 
-#define DEVNAME "vroom2"
+#define DEVNAME "wrover"
 
 #include <float.h>
 #include <OneWire.h>
@@ -15,7 +15,7 @@
 
 const int TEMPPIN = 13; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 22;
+const int AMBIENTPIN = 4;
 
 // PWM channels for RGB fans
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
@@ -131,7 +131,7 @@ static int set_rgb(void){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("control/mora3/rgb", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/rgb", [](const String &payload){
       Serial.print("received RGB via mqtt: ");
       Serial.println(payload);
       byte colors[3]; // rgb
@@ -170,10 +170,8 @@ void onConnectionEstablished() {
 void loop(){
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
-  static float coolant_temp = FLT_MAX;
-  static float ambient_temp = FLT_MAX;
+  float ambient_temp = NAN;
   client.loop(); // handle any necessary wifi/mqtt
-  readThermistor(&coolant_temp, TEMPPIN, 4096);
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
@@ -186,17 +184,23 @@ void loop(){
     }
   }
   unsigned long m = micros();
-  unsigned long diff = m - last_tx;
-  if(diff < 15000000){
-    return;
+  if(last_tx){
+    unsigned long diff = m - last_tx;
+    if(diff < 15000000){
+      return;
+    }
   }
   // sample RPM, transmit, and update the display
-  last_tx = m;
-  Serial.print(diff);
-  Serial.println(" µsec expired for cycle");
+  Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
   publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
+  float coolant_temp;
+  readThermistor(&coolant_temp, TEMPPIN, 4096);
   publish_temps(mmsg, ambient_temp, coolant_temp);
   publish_rgb(mmsg, Red, Blue, Green);
-  mmsg.publish();
+  if(mmsg.publish()){
+    Serial.print("Successful xmit at ");
+    Serial.println(m);
+    last_tx = m;
+  }
 }

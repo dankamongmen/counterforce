@@ -2,10 +2,10 @@
 
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, fan4pwm geiger))
-ESP32WROOM2HEX:=$(addprefix esp32-wroom2/, $(addsuffix .ino.hex, fanmgr))
+ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.hex, fanmgr))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(ESP32WROOM2HEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(ESP32WROVERHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 
@@ -29,13 +29,9 @@ $(OUT)/codi6/internal.ino.hex: $(addprefix codi6/internal/, internal.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/internal
 
-$(OUT)/esp32-wroom2/fanmgr.ino.hex: $(addprefix esp32-wroom2/fanmgr/, fanmgr.ino) $(ESPCOMMON)
+$(OUT)/esp32-wrover/fanmgr.ino.hex: $(addprefix esp32-wrover/fanmgr/, fanmgr.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wroom2/fanmgr
-
-$(OUT)/esp32-wroom2/simple.ino.hex: $(addprefix esp32-wroom2/simple/, simple.ino) $(ESPCOMMON)
-	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wroom2/simple
+	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wrover/fanmgr
 
 $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
