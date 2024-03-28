@@ -1,15 +1,11 @@
-// intended for use on a HiLetGo ESP32-WROOM2, this manages a PWM fan and two
-// PWM pumps. it receives PWM control messages, and sends RPM and temperature
-// reports, over MQTT.
+// intended for use on a LilyGO/TTGO-Koala Type C ESP32 WROVER B
+// https://opencircuit.shop/product/lilygo-ttgo-t-koala-esp32-wrover
+//
+// samples digital ambient 1-wire thermistor,
+//         analog coolant thermistor
+// controls 12V RGB LEDs via 3 MOSFETs
 
-// define VERSION12V for the RGB 12V MORA (as opposed to ARGB 5V)
-// #define VERSION12V
-
-#ifdef VERSION12V
 #define DEVNAME "vroom2"
-#else
-#define DEVNAME "mora3"
-#endif
 
 #include <float.h>
 #include <OneWire.h>
@@ -17,32 +13,21 @@
 #include <DallasTemperature.h>
 #include "common.h"
 
-const int TEMPPIN = 39; // coolant thermistor (2-wire)
+const int TEMPPIN = 13; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 22;
-// pressure sensor
-const int PRESSUREPIN = 25;
 
 // PWM channels for RGB fans
 const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
 const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
 const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
-const ledc_channel_t FANCHANPWM = LEDC_CHANNEL_3;
-const ledc_channel_t PUMPCHAN = LEDC_CHANNEL_4;
-const int PUMPPWMPIN = 17;
-const int FANPWMPIN = 16;
-const int FANTACHPIN = 34;
-const int XTOPATACHPIN = 13;
-const int XTOPBTACHPIN = 32;
-#ifdef VERSION12V
 const int RGBPINR = 27;
 const int RGBPING = 14;
 const int RGBPINB = 12;
-#endif
 // RGB we want for the 12V fan LEDs (initialized to green, read from MQTT)
-int Red = 0x8f;
-int Green = 0x8f;
-int Blue = 0x08;
+int Red = 0x0;
+int Green = 0xff;
+int Blue = 0x0;
 
 // RPMs as determined by our interrupt handlers.
 // we only get the RPM count from one of our fans; it stands for all.
@@ -108,55 +93,13 @@ void setup(){
   Serial.begin(115200);
   Serial.println("initializing!");
   pinMode(TEMPPIN, INPUT);
-#ifdef VERSION12V
-  pinMode(PRESSUREPIN, INPUT);
-#endif
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  initialize_fan_pwm(PUMPCHAN, PUMPPWMPIN);
-  initialize_fan_pwm(FANCHANPWM, FANPWMPIN);
-#ifdef VERSION12V
   initialize_rgb_pwm(FANCHANR, RGBPINR);
   initialize_rgb_pwm(FANCHANG, RGBPING);
   initialize_rgb_pwm(FANCHANB, RGBPINB);
   set_rgb();
-#endif
-  set_pwm(INITIAL_FAN_PWM);
-  set_pump_pwm(INITIAL_PUMP_PWM);
-  setup_interrupts(FANTACHPIN, XTOPATACHPIN, XTOPBTACHPIN);
   Serial.println("initialized!");
-}
-
-// set up the desired PWM value
-static int set_pwm(unsigned p){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM, p) != ESP_OK){
-    Serial.println("error setting PWM!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANPWM) != ESP_OK){
-    Serial.println("error committing PWM!");
-    return -1;
-  }else{
-    Serial.print("configured PWM: ");
-    Serial.println(p);
-    Pwm = p;
-  }
-  return 0;
-}
-
-// set up the desired pump PWM value
-static int set_pump_pwm(unsigned p){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN, p) != ESP_OK){
-    Serial.println("error setting PWM!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, PUMPCHAN) != ESP_OK){
-    Serial.println("error committing PWM!");
-    return -1;
-  }else{
-    Serial.print("configured pump PWM: ");
-    Serial.println(p);
-    PumpPwm = p;
-  }
-  return 0;
 }
 
 // set up the desired RGB PWM values
@@ -188,7 +131,6 @@ static int set_rgb(void){
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-#ifdef VERSION12V
   client.subscribe("control/mora3/rgb", [](const String &payload){
       Serial.print("received RGB via mqtt: ");
       Serial.println(payload);
@@ -209,74 +151,29 @@ void onConnectionEstablished() {
         colors[i] = hb * 16 + lb;
       }
       // everything was valid; update globals
+      Serial.print("RGB request: ");
+      Serial.print(colors[0]);
+      Serial.print(" ");
+      Serial.print(colors[1]);
+      Serial.print(" ");
+      Serial.println(colors[2]);
       Red = colors[0];
       Green = colors[1];
       Blue = colors[2];
       set_rgb();
     }
   );
-#endif
-  client.subscribe("control/mora3/pwm", [](const String &payload){
-      Serial.print("received PWM via mqtt: ");
-      Serial.println(payload);
-      unsigned long p = 0;
-      if(payload.length() == 0){
-        Serial.println("empty PWM input");
-        return;
-      }
-      for(int i = 0 ; i < payload.length() ; ++i){
-        char h = payload.charAt(i);
-        if(!isdigit(h)){
-          Serial.println("invalid PWM character");
-          return;
-        }
-        p *= 10; // FIXME check for overflow
-        p += h - '0';
-      }
-      if(valid_pwm_p(p)){
-        set_pwm(p);
-      }
-    }
-  );
-  client.subscribe("control/mora3/pumppwm", [](const String &payload){
-      Serial.print("received pump PWM via mqtt: ");
-      Serial.println(payload);
-      unsigned long p = 0;
-      if(payload.length() == 0){
-        Serial.println("empty PWM input");
-        return;
-      }
-      for(int i = 0 ; i < payload.length() ; ++i){
-        char h = payload.charAt(i);
-        if(!isdigit(h)){
-          Serial.println("invalid PWM character");
-          return;
-        }
-        p *= 10; // FIXME check for overflow
-        p += h - '0';
-      }
-      if(valid_pwm_p(p)){
-        set_pump_pwm(p);
-      }
-    }
-  );
 }
 
-// we transmit and update the display approximately every 15s, sampling
-// RPM at this time. we continuously sample the temperature, and use the
-// most recent valid read for transmit/display. there are several blocking
-// calls (1-wire and MQTT) that can lengthen a given cycle.
+// we transmit approximately every 15s, sampling at that time. there are
+// several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
-  static float pressure = FLT_MAX;
   static float coolant_temp = FLT_MAX;
   static float ambient_temp = FLT_MAX;
   client.loop(); // handle any necessary wifi/mqtt
   readThermistor(&coolant_temp, TEMPPIN, 4096);
-#ifdef VERSION12V
-  readPressure(&pressure, PRESSUREPIN);
-#endif
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
@@ -294,27 +191,12 @@ void loop(){
     return;
   }
   // sample RPM, transmit, and update the display
-  // FIXME replace with MEGA's rolling 5s logic
   last_tx = m;
-  noInterrupts();
-  unsigned long p = Pulses;
-  Pulses = 0;
-  unsigned long x1p = XTAPulses;
-  XTAPulses = 0;
-  unsigned long x2p = XTBPulses;
-  XTBPulses = 0;
-  interrupts();
   Serial.print(diff);
   Serial.println(" µsec expired for cycle");
-  RPM = rpm(p, diff);
-  XTopRPMA = rpm(x1p, diff);
-  XTopRPMB = rpm(x2p, diff);
-  Serial.print(RPM);
-  Serial.println(" RPM measured at fan");
-  rpmPublish(client, "moraxtop0rpm", XTopRPMA);
-  rpmPublish(client, "moraxtop1rpm", XTopRPMB);
-  rpmPublish(client, "morarpm", RPM);
-  publish_uptime(client, millis() / 1000); // FIXME handle overflow
-  publish_temps(client, ambient_temp, coolant_temp);
-  publish_pwm(client, Pwm, PumpPwm);
+  mqttmsg mmsg(client);
+  publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
+  publish_temps(mmsg, ambient_temp, coolant_temp);
+  publish_rgb(mmsg, Red, Blue, Green);
+  mmsg.publish();
 }

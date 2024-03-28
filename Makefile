@@ -5,7 +5,7 @@ MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, fan4pwm geiger))
 ESP32WROOM2HEX:=$(addprefix esp32-wroom2/, $(addsuffix .ino.hex, fanmgr))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(ESP32WROOM2HEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 

@@ -74,18 +74,17 @@ static int readAmbient(float* t, DallasTemperature *dt){
 }
 
 static void readThermistor(float* t, int pin, int levels){
-  *t = NAN;
   const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
   const float NOMINAL = 298.15;
   const float R0 = 10100;
   const float R1 = 10000;
   const float VREF = 3.3;
-  uint16_t data = system_adc_read();
-    if(data <= 1 || data >= levels - 1){
+  float v0 = analogRead(pin);
+  if(v0 <= 1 || v0 >= levels - 1){
     return;
   }
   // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
-  float scaled = data * VREF / (levels - 1);
+  float scaled = v0 * VREF / (levels - 1);
   float Rt = R1 * scaled / (VREF - scaled);
   float tn = 1.0 / ((1.0 / NOMINAL) + log(R0 / Rt) / BETA);
   tn -= 273.15;
@@ -110,26 +109,33 @@ static int connect_onewire(DallasTemperature* dt){
   return -1;
 }
 
-template<typename T> bool mqttPublish(EspMQTTClient& mqtt, const char* key, const T value){
-  DynamicJsonDocument doc(BUFSIZ); // FIXME
-  doc[key] = value;
-  // PubSubClient limits messages to 256 bytes
-  char buf[257];
-  size_t n = serializeJson(doc, buf);
-  return mqtt.publish("sensors/" DEVNAME, buf, n);
-}
+typedef struct mqttmsg {
+ private: 
+  EspMQTTClient& mqtt;
+  DynamicJsonDocument doc{BUFSIZ};
+ public:
+  mqttmsg(EspMQTTClient& esp) :
+    mqtt(esp)
+    {}
+  template<typename T> void add(const char* key, const T value){
+    doc[key] = value;
+  }
+  bool publish(){
+    char buf[257]; // PubSubClient limits messages to 256 bytes
+    size_t n = serializeJson(doc, buf);
+    return mqtt.publish("sensors/" DEVNAME, buf, n);
+  }
+} mqttmsg;
 
-bool rpmPublish(EspMQTTClient& mqtt, const char* key, unsigned val){
+void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
   if(val < RPM_CUTOFF){ // filter out obviously incorrect values
-    return mqttPublish(mqtt, key, val);
+    mmsg.add(key, val);
   }else{
     Serial.print("not publishing ");
     Serial.print(val);
     Serial.print(" for ");
     Serial.println(key);
   }
-  // we didn't actually send anything, so we can't say we failed
-  return true;
 }
 
 // we shouldn't ever see 60C (140F) at the MO-RA3; filter them. if this
@@ -159,14 +165,19 @@ static byte getHex(char c){
   return c - 'a' + 10;
 }
 
-static bool publish_uptime(EspMQTTClient& client, unsigned long s){
-  return mqttPublish(client, "uptimesec", s);
+static void publish_uptime(mqttmsg& mmsg, unsigned long s){
+  mmsg.add("uptimesec", s);
 }
 
-static bool publish_temps(EspMQTTClient& client, float amb, float cool){
-  bool success = true;
+static void publish_rgb(mqttmsg& mmsg, unsigned r, unsigned g, unsigned b){
+  mmsg.add("rgbr", r);
+  mmsg.add("rgbg", g);
+  mmsg.add("rgbb", b);
+}
+
+static void publish_temps(mqttmsg& mmsg, float amb, float cool){
   if(valid_temp(cool) && cool > 0){
-    success &= mqttPublish(client, "moracoolant", cool);
+    mmsg.add("moracoolant", cool);
   }else{
     Serial.println("don't have a coolant sample");
   }
@@ -175,24 +186,21 @@ static bool publish_temps(EspMQTTClient& client, float amb, float cool){
   // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
   // DEVICE_FAULT_SHORTVDD_C).
   if(valid_temp(amb)){
-    success &= mqttPublish(client, "moraambient", amb);
+    mmsg.add("moraambient", amb);
   }else{
     Serial.println("don't have an ambient sample");
   }
-  return success;
 }
 
 static bool valid_pwm_p(int pwm){
   return pwm >= 0 && pwm <= 255;
 }
 
-static bool publish_pwm(EspMQTTClient& client, int fanpwm, int pumppwm){
-  bool success = true;
+static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
   if(valid_pwm_p(fanpwm)){
-    success &= mqttPublish(client, "morapwm", fanpwm);
+    mmsg.add("morapwm", fanpwm);
   }
   if(valid_pwm_p(pumppwm)){
-    success &= mqttPublish(client, "morapumppwm", pumppwm);
+    mmsg.add("morapumppwm", pumppwm);
   }
-  return success;
 }
