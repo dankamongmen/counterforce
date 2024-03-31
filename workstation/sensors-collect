@@ -195,7 +195,7 @@ while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
-  if [ $((ITER % 200)) = 0 ] ; then
+  if [ $((ITER % 100)) = 0 ] ; then
     HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
   fi
   if [ -z "$HARTSFIELD" ] ; then
