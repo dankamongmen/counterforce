@@ -49,8 +49,11 @@ while true ; do
     CPUIDX=$((CPUIDX + 1))
   done
 
+  MB10=$(ipmi-sensors | grep 'MB_10G.Temp' | cut -d\| -f4)
+  mqtt nictempmlx5 "`stripnum $MB10`"
+
   PCH=$(ipmi-sensors | grep 'PCH.Temp' | cut -d\| -f4)
-  mqtt pch "`stripnum $i`"
+  mqtt pch "`stripnum $PCH`"
 
   # load average
   LOAD=$(cut -d\  -f1 < /proc/loadavg)
