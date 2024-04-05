@@ -13,30 +13,24 @@
 #include <DallasTemperature.h>
 #include "common.h"
 
-const int TEMPPIN = 13; // coolant thermistor (2-wire)
+const int TEMPPIN = 19; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 4;
 
-// PWM channels for RGB fans
-const ledc_channel_t FANCHANR = LEDC_CHANNEL_0;
-const ledc_channel_t FANCHANG = LEDC_CHANNEL_1;
-const ledc_channel_t FANCHANB = LEDC_CHANNEL_2;
-const int RGBPINR = 32;
-const int RGBPING = 33;
-const int RGBPINB = 34;
-// RGB we want for the 12V fan LEDs (initialized to white, read from MQTT)
-int Red = 0xff;
-int Green = 0xff;
-int Blue = 0xff;
+const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
+const int FANPWMPIN = 21;
+const int FANTACHPIN = 33;
 
-// RPMs as determined by our interrupt handlers.
-// we only get the RPM count from one of our fans; it stands for all.
-static unsigned RPM;
-static unsigned XTopRPMA;
-static unsigned XTopRPMB;
+static volatile unsigned FanRpm;
 
-static unsigned Pwm;
-static unsigned PumpPwm;
+void IRAM_ATTR rpm_fan(){
+  if(FanRpm < 65536){
+    ++FanRpm;
+  }
+}
+
+static unsigned FanPwm = 0xc0;
+static unsigned PumpPwm = 0xc0;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h",
@@ -48,6 +42,12 @@ DallasTemperature digtemp(&twire);
 
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 #define FANPWM_TIMER LEDC_TIMER_1
+
+void init_tach(int pin){
+  pinMode(pin, INPUT);
+  digitalWrite(pin, HIGH);
+  attachInterrupt(digitalPinToInterrupt(pin), rpm_fan, FALLING);
+}
 
 int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   ledc_channel_config_t conf;
@@ -77,12 +77,13 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
     Serial.println("error (timer config)!");
     return -1;
   }
+  init_tach(FANTACHPIN);
   Serial.println("success!");
   return 0;
 }
 
-int initialize_rgb_pwm(ledc_channel_t channel, int pin){
-  return initialize_pwm(channel, pin, 5000);
+static int initialize_fan_pwm(ledc_channel_t channel, int pin){
+  return initialize_pwm(channel, pin, 25000);
 }
 
 void setup(){
@@ -91,72 +92,45 @@ void setup(){
   pinMode(TEMPPIN, INPUT);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
-  initialize_rgb_pwm(FANCHANR, RGBPINR);
-  initialize_rgb_pwm(FANCHANG, RGBPING);
-  initialize_rgb_pwm(FANCHANB, RGBPINB);
-  set_rgb();
+  client.enableHTTPWebUpdater();
+  initialize_fan_pwm(FANCHAN, FANPWMPIN);
+  set_pwm();
   Serial.println("initialized!");
 }
 
-// set up the desired RGB PWM values
-static int set_rgb(void){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANR, Red) != ESP_OK){
+// set up the desired PWM values
+static int set_pwm(void){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHAN, FanPwm) != ESP_OK){
     Serial.println("error setting red!");
     return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANR) != ESP_OK){
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHAN) != ESP_OK){
     Serial.println("error committing red!");
     return -1;
   }
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANB, Blue) != ESP_OK){
-    Serial.println("error setting blue!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANB) != ESP_OK){
-    Serial.println("error committing blue!");
-    return -1;
-  }
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHANG, Green) != ESP_OK){
-    Serial.println("error setting green!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHANG) != ESP_OK){
-    Serial.println("error committing green!");
-    return -1;
-  }
-  Serial.println("configured RGB");
+  Serial.println("configured pwm");
   return 0;
 }
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
-  client.subscribe("control/" DEVNAME "/rgb", [](const String &payload){
-      Serial.print("received RGB via mqtt: ");
+  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
+      Serial.print("received pwm via mqtt: ");
       Serial.println(payload);
-      byte colors[3]; // rgb
-      if(payload.length() != 2 * sizeof(colors)){
-        Serial.println("RGB wasn't 6 characters");
+      if(payload.length() != 2){
+        Serial.println("pwm wasn't 2 characters");
         return;
       }
-      for(int i = 0 ; i < sizeof(colors) ; ++i){
-        char h = payload.charAt(i * 2);
-        char l = payload.charAt(i * 2 + 1);
-        if(!isxdigit(h) || !isxdigit(l)){
-          Serial.println("invalid RGB character");
-          return;
-        }
-        byte hb = getHex(h);
-        byte lb = getHex(l);
-        colors[i] = hb * 16 + lb;
+      char h = payload.charAt(0);
+      char l = payload.charAt(1);
+      if(!isxdigit(h) || !isxdigit(l)){
+        Serial.println("invalid hex character");
+        return;
       }
+      byte hb = getHex(h);
+      byte lb = getHex(l);
       // everything was valid; update globals
-      Serial.print("RGB request: ");
-      Serial.print(colors[0]);
-      Serial.print(" ");
-      Serial.print(colors[1]);
-      Serial.print(" ");
-      Serial.println(colors[2]);
-      Red = colors[0];
-      Green = colors[1];
-      Blue = colors[2];
-      set_rgb();
+      FanPwm = hb * 16 + lb;
+      set_pwm();
     }
   );
 }
@@ -180,20 +154,28 @@ void loop(){
     }
   }
   unsigned long m = micros();
+  unsigned long diff = m - last_tx;
   if(last_tx){
-    unsigned long diff = m - last_tx;
     if(diff < 15000000){
       return;
     }
   }
-  // sample RPM, transmit, and update the display
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
   publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
+  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
+  unsigned zrpm = FanRpm;
+  Serial.print("FanRpm: ");
+  Serial.println(zrpm);
+  unsigned fanrpm = zrpm * (30.0 * (1000.0 / diff));
+  FanRpm = 0;
+  attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
   float coolant_temp;
   readThermistor(&coolant_temp, TEMPPIN, 4096);
   publish_temps(mmsg, ambient_temp, coolant_temp);
-  publish_rgb(mmsg, Red, Blue, Green);
+  publish_pwm(mmsg, FanPwm, PumpPwm);
+  Serial.print("fan rpm: ");
+  Serial.println(fanrpm);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);
