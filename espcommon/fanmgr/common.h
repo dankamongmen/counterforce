@@ -122,6 +122,7 @@ typedef struct mqttmsg {
     doc[key] = value;
   }
   bool publish(){
+    add("uptimesec", millis() / 1000); // FIXME handle overflow
     char buf[257]; // PubSubClient limits messages to 256 bytes
     size_t n = serializeJson(doc, buf);
     return mqtt.publish("sensors/" DEVNAME, buf, n);
@@ -157,10 +158,6 @@ static byte getHex(char c){
   }
   c = tolower(c);
   return c - 'a' + 10;
-}
-
-static void publish_uptime(mqttmsg& mmsg, unsigned long s){
-  mmsg.add("uptimesec", s);
 }
 
 static void publish_rgb(mqttmsg& mmsg, unsigned r, unsigned g, unsigned b){

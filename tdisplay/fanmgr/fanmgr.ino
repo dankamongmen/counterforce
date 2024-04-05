@@ -130,4 +130,19 @@ void onConnectionEstablished() {
 }
 
 void loop(){
+  static unsigned long last_tx; // micros() when we last transmitted to MQTT
+  client.loop(); // wifi/mqtt
+  unsigned long m = micros();
+  unsigned long diff = m - last_tx;
+  if(last_tx){
+    if(diff < 15000000){
+      return;
+    }
+  }
+  mqttmsg mmsg(client);
+  if(mmsg.publish()){
+    Serial.print("Successful xmit at ");
+    Serial.println(m);
+    last_tx = m;
+  }
 }

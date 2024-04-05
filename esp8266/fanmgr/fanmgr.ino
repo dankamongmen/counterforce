@@ -121,7 +121,6 @@ void loop(){
   readThermistor(&coolant_temp, TEMPPIN, 1024);
   publish_temps(mmsg, ambient_temp, coolant_temp);
   //success &= publish_pwm(client, Pwm, PumpPwm);
-  publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);

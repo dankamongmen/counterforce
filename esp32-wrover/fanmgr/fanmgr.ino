@@ -162,7 +162,6 @@ void loop(){
   }
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
-  publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
   detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
   unsigned zrpm = FanRpm;
   Serial.print("FanRpm: ");
