@@ -21,9 +21,11 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
+static float DallasTemp = NAN;
+static float ThermTemp = NAN;
 const int FANTACHPIN = 25;
 const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
-const int FANPWMPIN = 38;
+const int FANPWMPIN = 26;
 static unsigned FanPwm = 0xc0;
 static unsigned PumpPwm = 0xc0;
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
@@ -32,10 +34,10 @@ static unsigned PumpPwm = 0xc0;
 // set up the desired PWM values
 static int set_pwm(void){
   if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHAN, FanPwm) != ESP_OK){
-    Serial.println("error setting red!");
+    Serial.println("error setting fan!");
     return -1;
   }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHAN) != ESP_OK){
-    Serial.println("error committing red!");
+    Serial.println("error committing fan!");
     return -1;
   }
   Serial.println("configured pwm");
@@ -85,12 +87,30 @@ static int initialize_pwm(ledc_channel_t channel, int pin, int freq){
     return -1;
   }
   init_tach(FANTACHPIN);
-  Serial.println("success!");
+  Serial.print("configured ");
+  Serial.print(freq);
+  Serial.print("hz pwm channel ");
+  Serial.print(channel);
+  Serial.print(" pin ");
+  Serial.println(pin);
   return 0;
 }
 
 static int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
+}
+
+// call only on changes, lest we flicker
+static void redraw(){
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(0, 0);
+  tft.print("fan pwm: ");
+  tft.println(FanPwm);
+  tft.print("1wire: ");
+  tft.println(DallasTemp);
+  tft.print("therm: ");
+  tft.println(ThermTemp);
 }
 
 void setup(){
@@ -102,7 +122,10 @@ void setup(){
   initialize_fan_pwm(FANCHAN, FANPWMPIN);
   set_pwm();
   tft.init();
-  tft.fillScreen(TFT_GREEN);
+  tft.setRotation(1);
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextSize(2);
+  redraw();
 }
 
 void onConnectionEstablished() {
@@ -125,6 +148,7 @@ void onConnectionEstablished() {
       // everything was valid; update globals
       FanPwm = hb * 16 + lb;
       set_pwm();
+      redraw();
     }
   );
 }
@@ -140,6 +164,8 @@ void loop(){
     }
   }
   mqttmsg mmsg(client);
+  publish_temps(mmsg, DallasTemp, ThermTemp);
+  publish_pwm(mmsg, FanPwm, PumpPwm);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);

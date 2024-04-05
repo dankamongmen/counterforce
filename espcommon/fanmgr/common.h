@@ -189,9 +189,9 @@ static bool valid_pwm_p(int pwm){
 
 static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
   if(valid_pwm_p(fanpwm)){
-    mmsg.add("morapwm", fanpwm);
+    mmsg.add("fanpwm", fanpwm);
   }
   if(valid_pwm_p(pumppwm)){
-    mmsg.add("morapumppwm", pumppwm);
+    mmsg.add("pumppwm", pumppwm);
   }
 }
