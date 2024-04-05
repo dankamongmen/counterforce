@@ -26,6 +26,7 @@ static float ThermTemp = NAN;
 const int FANTACHPIN = 25;
 const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 const int FANPWMPIN = 26;
+static unsigned RawFanCount, AdjRpm; // FIXME
 static unsigned FanPwm = 0xc0;
 static unsigned PumpPwm = 0xc0;
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
@@ -111,6 +112,10 @@ static void redraw(){
   tft.println(DallasTemp);
   tft.print("therm: ");
   tft.println(ThermTemp);
+  tft.print("raw fan count: ");
+  tft.println(RawFanCount);
+  tft.print("adj fan rpm: ");
+  tft.println(AdjRpm);
 }
 
 void setup(){
@@ -164,6 +169,17 @@ void loop(){
     }
   }
   mqttmsg mmsg(client);
+  unsigned fanrpm;
+  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
+  fanrpm = FanRpm;
+  FanRpm = 0;
+  attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
+  Serial.print("raw fanrpm: ");
+  Serial.println(fanrpm);
+  RawFanCount = fanrpm;
+  AdjRpm = fanrpm / (diff / 1000000.0) * 30;
+  Serial.print("adj fanrpm: ");
+  Serial.println(AdjRpm);
   publish_temps(mmsg, DallasTemp, ThermTemp);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   if(mmsg.publish()){
@@ -171,4 +187,5 @@ void loop(){
     Serial.println(m);
     last_tx = m;
   }
+  redraw();
 }
