@@ -9,7 +9,6 @@
 #include <OneWire.h>
 #include <ESP8266_PWM.h>
 #include <DallasTemperature.h>
-#include <ArduinoOTA.h>
 #include <user_interface.h>
 #include "common.h"
 
@@ -50,31 +49,12 @@ void setup(){
   Serial.println(VERSION);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
+  client.enableHTTPWebUpdater();
   set_pwm(INITIAL_FAN_PWM);
   set_pump_pwm(INITIAL_PUMP_PWM);
   pinMode(TEMPPIN, INPUT);
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
-  ArduinoOTA.setHostname(DEVNAME);
-  ArduinoOTA.setPassword(DEVNAME); // FIXME
-  ArduinoOTA.onStart([]() {
-    Serial.println("Start");
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
-  });
-  ArduinoOTA.begin();
 }
 
 // set up the desired PWM value
@@ -110,7 +90,6 @@ void loop(){
   // these are the most recent valid reads (i.e. we don't reset to FLT_MAX
   // on error, but instead only on transmission).
   float ambient_temp = NAN;
-  ArduinoOTA.handle();
   client.loop(); // handle any necessary wifi/mqtt
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
@@ -142,7 +121,6 @@ void loop(){
   readThermistor(&coolant_temp, TEMPPIN, 1024);
   publish_temps(mmsg, ambient_temp, coolant_temp);
   //success &= publish_pwm(client, Pwm, PumpPwm);
-  publish_uptime(mmsg, millis() / 1000); // FIXME handle overflow
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);

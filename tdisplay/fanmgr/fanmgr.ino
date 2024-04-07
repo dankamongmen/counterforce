@@ -1,36 +1,17 @@
-// intended for use on a LilyGO/TTGO-Koala Type C ESP32 WROVER B
-// https://opencircuit.shop/product/lilygo-ttgo-t-koala-esp32-wrover
-//
-// samples digital ambient 1-wire thermistor,
-//         analog coolant thermistor
-// controls 12V RGB LEDs via 3 MOSFETs
-
-#define DEVNAME "esp32"
-
-#include <float.h>
+#define DEVNAME "ttgo"
+#include <TFT_eSPI.h>
 #include <OneWire.h>
 #include <driver/ledc.h>
 #include <DallasTemperature.h>
 #include "common.h"
 
-const int TEMPPIN = 19; // coolant thermistor (2-wire)
+const int TEMPPIN = 17; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 4;
+const int AMBIENTPIN = 37;
 
-const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
-const int FANPWMPIN = 21;
-const int FANTACHPIN = 33;
-
-static volatile unsigned FanRpm;
-
-void IRAM_ATTR rpm_fan(){
-  if(FanRpm < 65536){
-    ++FanRpm;
-  }
-}
-
-static unsigned FanPwm = 0xc0;
-static unsigned PumpPwm = 0xc0;
+#define BUTTON_1            35
+#define BUTTON_2            0
+TFT_eSPI tft = TFT_eSPI(135, 240); // Invoke custom library
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h",
@@ -40,16 +21,45 @@ EspMQTTClient client(
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
+static float DallasTemp = NAN;
+static float ThermTemp = NAN;
+const int FANTACHPIN = 25;
+const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
+const int FANPWMPIN = 26;
+static unsigned RawFanCount, AdjRpm; // FIXME
+static unsigned FanPwm = 0xc0;
+static unsigned PumpPwm = 0xc0;
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 #define FANPWM_TIMER LEDC_TIMER_1
 
-void init_tach(int pin){
+// set up the desired PWM values
+static int set_pwm(void){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHAN, FanPwm) != ESP_OK){
+    Serial.println("error setting fan!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHAN) != ESP_OK){
+    Serial.println("error committing fan!");
+    return -1;
+  }
+  Serial.println("configured pwm");
+  return 0;
+}
+
+static volatile unsigned FanRpm;                                                                                                    
+                                                                                                                                    
+static void IRAM_ATTR rpm_fan(){                                                                                                           
+  if(FanRpm < UINT_MAX){                                                                                                               
+    ++FanRpm;                                                                                                                       
+  }                                                                                                                                 
+}
+
+static void init_tach(int pin){
   pinMode(pin, INPUT);
   digitalWrite(pin, HIGH);
   attachInterrupt(digitalPinToInterrupt(pin), rpm_fan, FALLING);
 }
 
-int initialize_pwm(ledc_channel_t channel, int pin, int freq){
+static int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   ledc_channel_config_t conf;
   memset(&conf, 0, sizeof(conf));
   conf.gpio_num = pin;
@@ -78,7 +88,12 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
     return -1;
   }
   init_tach(FANTACHPIN);
-  Serial.println("success!");
+  Serial.print("configured ");
+  Serial.print(freq);
+  Serial.print("hz pwm channel ");
+  Serial.print(channel);
+  Serial.print(" pin ");
+  Serial.println(pin);
   return 0;
 }
 
@@ -86,29 +101,36 @@ static int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
 
+// call only on changes, lest we flicker
+static void redraw(){
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(0, 0);
+  tft.print("fan pwm: ");
+  tft.println(FanPwm);
+  tft.print("1wire: ");
+  tft.println(DallasTemp);
+  tft.print("therm: ");
+  tft.println(ThermTemp);
+  tft.print("raw fan count: ");
+  tft.println(RawFanCount);
+  tft.print("adj fan rpm: ");
+  tft.println(AdjRpm);
+}
+
 void setup(){
   Serial.begin(115200);
-  Serial.println("initializing!");
   pinMode(TEMPPIN, INPUT);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
   initialize_fan_pwm(FANCHAN, FANPWMPIN);
   set_pwm();
-  Serial.println("initialized!");
-}
-
-// set up the desired PWM values
-static int set_pwm(void){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHAN, FanPwm) != ESP_OK){
-    Serial.println("error setting red!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHAN) != ESP_OK){
-    Serial.println("error committing red!");
-    return -1;
-  }
-  Serial.println("configured pwm");
-  return 0;
+  tft.init();
+  tft.setRotation(1);
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextSize(2);
+  redraw();
 }
 
 void onConnectionEstablished() {
@@ -131,28 +153,14 @@ void onConnectionEstablished() {
       // everything was valid; update globals
       FanPwm = hb * 16 + lb;
       set_pwm();
+      redraw();
     }
   );
 }
 
-// we transmit approximately every 15s, sampling at that time. there are
-// several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 void loop(){
-  static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
-  float ambient_temp = NAN;
-  client.loop(); // handle any necessary wifi/mqtt
-  if(!onewire_connected){
-    if(connect_onewire(&digtemp) == 0){
-      onewire_connected = true;
-    }
-  }
-  if(onewire_connected){
-    if(readAmbient(&ambient_temp, &digtemp)){
-      onewire_connected = false;
-      ambient_temp = FLT_MAX;
-    }
-  }
+  client.loop(); // wifi/mqtt
   unsigned long m = micros();
   unsigned long diff = m - last_tx;
   if(last_tx){
@@ -160,24 +168,24 @@ void loop(){
       return;
     }
   }
-  Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
+  unsigned fanrpm;
   detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
-  unsigned zrpm = FanRpm;
-  Serial.print("FanRpm: ");
-  Serial.println(zrpm);
-  unsigned fanrpm = zrpm * (30.0 * (1000.0 / diff));
+  fanrpm = FanRpm;
   FanRpm = 0;
   attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
-  float coolant_temp;
-  readThermistor(&coolant_temp, TEMPPIN, 4096);
-  publish_temps(mmsg, ambient_temp, coolant_temp);
-  publish_pwm(mmsg, FanPwm, PumpPwm);
-  Serial.print("fan rpm: ");
+  Serial.print("raw fanrpm: ");
   Serial.println(fanrpm);
+  RawFanCount = fanrpm;
+  AdjRpm = fanrpm / (diff / 1000000.0) * 30;
+  Serial.print("adj fanrpm: ");
+  Serial.println(AdjRpm);
+  publish_temps(mmsg, DallasTemp, ThermTemp);
+  publish_pwm(mmsg, FanPwm, PumpPwm);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);
     last_tx = m;
   }
+  redraw();
 }
