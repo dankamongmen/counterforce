@@ -14,8 +14,8 @@
 const unsigned long RPM_CUTOFF = 5000;
 
 // PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
-#define INITIAL_FAN_PWM  64
-#define INITIAL_PUMP_PWM 64
+#define INITIAL_FAN_PWM  128
+#define INITIAL_PUMP_PWM 128
 
 static volatile unsigned long Pulses;
 static volatile unsigned long XTAPulses;

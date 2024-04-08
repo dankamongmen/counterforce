@@ -82,6 +82,19 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   return 0;
 }
 
+// set up the desired PWM values
+static int set_pwm(const ledc_channel_t channel){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, FanPwm) != ESP_OK){
+    Serial.println("error setting red!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel) != ESP_OK){
+    Serial.println("error committing red!");
+    return -1;
+  }
+  Serial.println("configured pwm");
+  return 0;
+}
+
 static int initialize_fan_pwm(ledc_channel_t channel, int pin){
   return initialize_pwm(channel, pin, 25000);
 }
@@ -94,21 +107,8 @@ void setup(){
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
   initialize_fan_pwm(FANCHAN, FANPWMPIN);
-  set_pwm();
+  set_pwm(FANCHAN);
   Serial.println("initialized!");
-}
-
-// set up the desired PWM values
-static int set_pwm(void){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, FANCHAN, FanPwm) != ESP_OK){
-    Serial.println("error setting red!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, FANCHAN) != ESP_OK){
-    Serial.println("error committing red!");
-    return -1;
-  }
-  Serial.println("configured pwm");
-  return 0;
 }
 
 void onConnectionEstablished() {
@@ -130,7 +130,7 @@ void onConnectionEstablished() {
       byte lb = getHex(l);
       // everything was valid; update globals
       FanPwm = hb * 16 + lb;
-      set_pwm();
+      set_pwm(FANCHAN);
     }
   );
 }
