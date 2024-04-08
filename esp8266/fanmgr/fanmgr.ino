@@ -20,17 +20,9 @@ const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1
 const int LEDPIN = D0; // fixed for nodemcu
 static volatile bool mqttconnected;
 
-// RPMs as reported to us over UART
-static unsigned RPM;
-static unsigned XTopRPMA;
-static unsigned XTopRPMB;
-
 // PWMs as ordered from us over MQTT
 static unsigned Pwm;
 static unsigned PumpPwm;
-
-// RGB as ordered from us over MQTT
-static unsigned Red, Green, Blue;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h",
