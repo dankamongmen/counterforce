@@ -284,6 +284,9 @@ while true ; do
     mqtt daylight $DAYBOOL
   fi
 
+  SYSTEMDFAILED=$(systemctl --failed --output-json | jq length -)
+  mqtt systemdfails $SYSTEMDFAILED
+
   mqttflush
   sleep 10
 done

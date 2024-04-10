@@ -308,6 +308,10 @@ metrics:
    mqtt_name: morapwm
    help: MO-RA3 fan PWM
    type: gauge
+ - prom_name: mora3fanpwm
+   mqtt_name: pwm
+   help: MO-RA3 fan PWM
+   type: gauge
  - prom_name: mora3pumppwm
    mqtt_name: morapumppwm
    help: MO-RA3 pump PWM
@@ -496,13 +500,17 @@ metrics:
    mqtt_name: tctl3
    help: Processor 3 Tctl
    type: gauge
+ - prom_name: daylight
+   mqtt_name: daylight
+   help: Daytime sensor
+   type: gauge
+ - prom_name: systemdfails
+   mqtt_name: systemdfails
+   help: Number of failed systemd units
+   type: gauge
  # this one ought be mqtt-only, using the mqtt input plugin for grafana.
  # there's no sense in storing it IMHO.
  - prom_name: uptimesec
    mqtt_name: uptimesec
    help: Uptime in seconds
-   type: gauge
- - prom_name: daylight
-   mqtt_name: daylight
-   help: Daytime sensor
    type: gauge

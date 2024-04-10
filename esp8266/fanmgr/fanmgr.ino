@@ -65,16 +65,35 @@ static int set_pwm(unsigned p){
   return 0;
 }
 
-void onConnectionEstablished() {
-  Serial.println("got an MQTT connection");
-  digitalWrite(LEDPIN, HIGH);
-  mqttconnected = true;
-}
-
 static void publish_unified_pwm(mqttmsg& mmsg, int pwm){
   if(valid_pwm_p(pwm)){
     mmsg.add("pwm", pwm);
   }
+}
+
+void onConnectionEstablished() {
+  Serial.println("got an MQTT connection");
+  digitalWrite(LEDPIN, HIGH);
+  mqttconnected = true;
+  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
+      Serial.print("received pwm via mqtt: ");
+      Serial.println(payload);
+      if(payload.length() != 2){
+        Serial.println("pwm wasn't 2 characters");
+        return;
+      }
+      char h = payload.charAt(0);
+      char l = payload.charAt(1);
+      if(!isxdigit(h) || !isxdigit(l)){
+        Serial.println("invalid hex character");
+        return;
+      }
+      byte hb = getHex(h);
+      byte lb = getHex(l);
+      unsigned pwm = hb * 16 + lb;
+      set_pwm(pwm);
+    }
+  );
 }
 
 // we transmit approximately every 15 seconds.
