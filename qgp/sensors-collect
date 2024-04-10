@@ -141,6 +141,9 @@ while true ; do
     mqtt "$NAME" $PCENT
   done
 
+  SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
+  mqtt systemdfails $SYSTEMDFAILED
+
   mqttflush
   sleep 15
 done
