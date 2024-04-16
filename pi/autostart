@@ -1,0 +1,7 @@
+@xrandr -o right
+#@lxpanel --profile LXDE
+#@pcmanfm --desktop --profile LXDE
+#@xscreensaver -no-splash
+#@chromium-browser --kiosk http://10.128.0.1:3000/d/6Vf0MVFVz/orthanc?orgId=1&refresh=10s&kiosk
+@chromium-browser --kiosk http://10.128.0.1:3000/playlists/play/xdpMfy74k?kiosk&autofitpanels
+#@x-terminal-emulator

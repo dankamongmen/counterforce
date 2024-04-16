@@ -17,10 +17,14 @@ mqttflush() {
 
 # arguments: topic (key), message.
 mqtt() {
-  if [ -z "$POST" ] ; then
-    POST="\"$1\":$2"
+  if [ -z "$2" ] ; then
+    echo "not adding invalid value for $1" >&2
   else
-    POST="$POST, \"$1\":$2"
+    if [ -z "$POST" ] ; then
+      POST="\"$1\":$2"
+    else
+      POST="$POST, \"$1\":$2"
+    fi
   fi
 }
 
@@ -42,7 +46,12 @@ while true ; do
   mqtt loadavg $LOAD
 
   DBM=$(iw dev wlan0 link | grep signal | cut -d: -f2- | cut -dd -f1 | tr -d [:space:])
-  mqtt signaldbm $DBM
+  if [ -n "$DBM" ] ; then
+    mqtt signaldbm $DBM
+  fi
+
+  SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
+  mqtt systemdfails $SYSTEMDFAILED
 
   mqttflush
   sleep 15
