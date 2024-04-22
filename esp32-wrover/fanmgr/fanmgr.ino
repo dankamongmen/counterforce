@@ -5,7 +5,7 @@
 //         analog coolant thermistor
 // controls 12V RGB LEDs via 3 MOSFETs
 
-#define DEVNAME "esp32"
+#define DEVNAME "demo"
 
 #include <float.h>
 #include <OneWire.h>
@@ -13,19 +13,34 @@
 #include <DallasTemperature.h>
 #include "common.h"
 
-const int TEMPPIN = 19; // coolant thermistor (2-wire)
 // ambient temperature (digital thermometer, Dallas 1-wire)
 const int AMBIENTPIN = 4;
 
 const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 const int FANPWMPIN = 21;
-const int FANTACHPIN = 33;
+const int FANTACHPIN = 23;
+const int PUMPATACHPIN = 22;
+const int PUMPBTACHPIN = 19;
 
 static volatile unsigned FanRpm;
+static volatile unsigned PumpARpm;
+static volatile unsigned PumpBRpm;
 
-void IRAM_ATTR rpm_fan(){
+void IRAM_ATTR rpm_fan(void){
   if(FanRpm < 65536){
     ++FanRpm;
+  }
+}
+
+void IRAM_ATTR rpm_pumpa(void){
+  if(PumpARpm < 65536){
+    ++PumpARpm;
+  }
+}
+
+void IRAM_ATTR rpm_pumpb(void){
+  if(PumpBRpm < 65536){
+    ++PumpBRpm;
   }
 }
 
@@ -43,10 +58,10 @@ DallasTemperature digtemp(&twire);
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 #define FANPWM_TIMER LEDC_TIMER_1
 
-void init_tach(int pin){
+void init_tach(int pin, void(*fxn)(void)){
   pinMode(pin, INPUT);
   digitalWrite(pin, HIGH);
-  attachInterrupt(digitalPinToInterrupt(pin), rpm_fan, FALLING);
+  attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
 }
 
 int initialize_pwm(ledc_channel_t channel, int pin, int freq){
@@ -77,7 +92,9 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
     Serial.println("error (timer config)!");
     return -1;
   }
-  init_tach(FANTACHPIN);
+  init_tach(FANTACHPIN, rpm_fan);
+  init_tach(PUMPATACHPIN, rpm_pumpa);
+  init_tach(PUMPBTACHPIN, rpm_pumpb);
   Serial.println("success!");
   return 0;
 }
@@ -102,7 +119,6 @@ static int initialize_fan_pwm(ledc_channel_t channel, int pin){
 void setup(){
   Serial.begin(115200);
   Serial.println("initializing!");
-  pinMode(TEMPPIN, INPUT);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
@@ -162,22 +178,40 @@ void loop(){
   }
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
-  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
-  unsigned zrpm = FanRpm;
-  Serial.print("FanRpm: ");
-  Serial.println(zrpm);
-  unsigned fanrpm = zrpm * (30.0 * (1000.0 / diff));
-  FanRpm = 0;
-  attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
-  float coolant_temp;
-  readThermistor(&coolant_temp, TEMPPIN, 4096);
-  publish_temps(mmsg, ambient_temp, coolant_temp);
+  // fan tach
+    detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
+    unsigned zrpm = FanRpm;
+    FanRpm = 0;
+    attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
+    Serial.print("FanRpm: ");
+    Serial.println(zrpm);
+    unsigned rpm = zrpm / 2.0 * (60000000.0 / diff);
+    publish_pair(mmsg, "rpm", rpm);
+  publish_temps(mmsg, ambient_temp, NAN);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   Serial.print("fan rpm: ");
-  Serial.println(fanrpm);
+  Serial.println(rpm);
+  // pump a tachs
+    detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
+    zrpm = PumpARpm;
+    PumpARpm = 0;
+    attachInterrupt(digitalPinToInterrupt(PUMPATACHPIN), rpm_pumpa, FALLING);
+    Serial.print("PumpARpm: ");
+    Serial.println(zrpm);
+    rpm = zrpm / 2.0 * (60000000.0 / diff);
+    publish_pair(mmsg, "pumparpm", rpm);
+  // pump b tachs
+    detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
+    zrpm = PumpBRpm;
+    PumpBRpm = 0;
+    attachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN), rpm_pumpb, FALLING);
+    Serial.print("PumpBRpm: ");
+    Serial.println(zrpm);
+    rpm = zrpm / 2.0 * (60000000.0 / diff);
+    publish_pair(mmsg, "pumpbrpm", rpm);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);
-    last_tx = m;
+    last_tx = micros();
   }
 }

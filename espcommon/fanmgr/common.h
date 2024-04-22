@@ -195,3 +195,7 @@ static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
     mmsg.add("pumppwm", pumppwm);
   }
 }
+
+void publish_pair(mqttmsg& mmsg, const char* key, int val){
+  mmsg.add(key, val);
+}
