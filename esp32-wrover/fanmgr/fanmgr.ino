@@ -14,13 +14,17 @@
 #include "common.h"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
-const int AMBIENTPIN = 4;
+static const int AMBIENTPIN = 4;
 
-const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
-const int FANPWMPIN = 21;
-const int FANTACHPIN = 23;
-const int PUMPATACHPIN = 22;
-const int PUMPBTACHPIN = 19;
+static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
+static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
+static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
+static const int FANPWMPIN = 32;
+static const int PUMPAPWMPIN = 25;
+static const int PUMPBPWMPIN = 33;
+static const int FANTACHPIN = 19;
+static const int PUMPATACHPIN = 22;
+static const int PUMPBTACHPIN = 23;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
@@ -45,7 +49,7 @@ void IRAM_ATTR rpm_pumpb(void){
 }
 
 static unsigned FanPwm = 0xc0;
-static unsigned PumpPwm = 0xc0;
+static unsigned PumpPwm = 0x80;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h",
@@ -100,8 +104,8 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
 }
 
 // set up the desired PWM values
-static int set_pwm(const ledc_channel_t channel){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, FanPwm) != ESP_OK){
+static int set_pwm(const ledc_channel_t channel, unsigned pwm){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, pwm) != ESP_OK){
     Serial.println("error setting red!");
     return -1;
   }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel) != ESP_OK){
@@ -123,30 +127,35 @@ void setup(){
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
   initialize_fan_pwm(FANCHAN, FANPWMPIN);
-  set_pwm(FANCHAN);
+  initialize_fan_pwm(PUMPACHAN, PUMPAPWMPIN);
+  initialize_fan_pwm(PUMPBCHAN, PUMPBPWMPIN);
+  set_pwm(FANCHAN, FanPwm);
+  set_pwm(PUMPACHAN, PumpPwm);
+  set_pwm(PUMPBCHAN, PumpPwm);
   Serial.println("initialized!");
 }
 
 void onConnectionEstablished() {
   Serial.println("got an MQTT connection");
   client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
-      Serial.print("received pwm via mqtt: ");
+      Serial.print("received fan pwm via mqtt: ");
       Serial.println(payload);
-      if(payload.length() != 2){
-        Serial.println("pwm wasn't 2 characters");
-        return;
+      int fpwm = extract_pwm(payload);
+      if(fpwm >= 0){
+        FanPwm = fpwm;
+        set_pwm(FANCHAN, FanPwm);
       }
-      char h = payload.charAt(0);
-      char l = payload.charAt(1);
-      if(!isxdigit(h) || !isxdigit(l)){
-        Serial.println("invalid hex character");
-        return;
+    }
+  );
+  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
+      Serial.print("received pump pwm via mqtt: ");
+      Serial.println(payload);
+      unsigned ppwm = extract_pwm(payload);
+      if(ppwm >= 0){
+        PumpPwm = ppwm;
+        set_pwm(PUMPACHAN, PumpPwm);
+        set_pwm(PUMPBCHAN, PumpPwm);
       }
-      byte hb = getHex(h);
-      byte lb = getHex(l);
-      // everything was valid; update globals
-      FanPwm = hb * 16 + lb;
-      set_pwm(FANCHAN);
     }
   );
 }
@@ -156,6 +165,7 @@ void onConnectionEstablished() {
 void loop(){
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
+  unsigned frpm, parpm, pbrpm;
   float ambient_temp = NAN;
   client.loop(); // handle any necessary wifi/mqtt
   if(!onewire_connected){
@@ -178,40 +188,35 @@ void loop(){
   }
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
-  // fan tach
-    detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
-    unsigned zrpm = FanRpm;
+  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
+  detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
+  detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
+    frpm = FanRpm;
     FanRpm = 0;
-    attachInterrupt(digitalPinToInterrupt(FANTACHPIN), rpm_fan, FALLING);
-    Serial.print("FanRpm: ");
-    Serial.println(zrpm);
-    unsigned rpm = zrpm / 2.0 * (60000000.0 / diff);
-    publish_pair(mmsg, "rpm", rpm);
+    parpm = PumpARpm;
+    PumpARpm = 0;
+    pbrpm = PumpBRpm;
+    PumpBRpm = 0;
+  init_tach(PUMPBTACHPIN, rpm_pumpb);
+  init_tach(PUMPATACHPIN, rpm_pumpa);
+  init_tach(FANTACHPIN, rpm_fan);
+  last_tx = micros();
+  frpm = frpm / 2.0 * (60000000.0 / diff);
+  parpm = parpm / 2.0 * (60000000.0 / diff);
+  pbrpm = pbrpm / 2.0 * (60000000.0 / diff);
+  Serial.print("FanRpm: ");
+  Serial.println(frpm);
+  Serial.print("PumpARpm: ");
+  Serial.println(parpm);
+  Serial.print("PumpBRpm: ");
+  Serial.println(pbrpm);
+  publish_pair(mmsg, "rpm", frpm);
+  publish_pair(mmsg, "pumparpm", parpm);
+  publish_pair(mmsg, "pumpbrpm", pbrpm);
   publish_temps(mmsg, ambient_temp, NAN);
   publish_pwm(mmsg, FanPwm, PumpPwm);
-  Serial.print("fan rpm: ");
-  Serial.println(rpm);
-  // pump a tachs
-    detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
-    zrpm = PumpARpm;
-    PumpARpm = 0;
-    attachInterrupt(digitalPinToInterrupt(PUMPATACHPIN), rpm_pumpa, FALLING);
-    Serial.print("PumpARpm: ");
-    Serial.println(zrpm);
-    rpm = zrpm / 2.0 * (60000000.0 / diff);
-    publish_pair(mmsg, "pumparpm", rpm);
-  // pump b tachs
-    detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
-    zrpm = PumpBRpm;
-    PumpBRpm = 0;
-    attachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN), rpm_pumpb, FALLING);
-    Serial.print("PumpBRpm: ");
-    Serial.println(zrpm);
-    rpm = zrpm / 2.0 * (60000000.0 / diff);
-    publish_pair(mmsg, "pumpbrpm", rpm);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);
-    last_tx = micros();
   }
 }

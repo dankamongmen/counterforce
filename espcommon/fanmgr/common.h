@@ -60,6 +60,32 @@ static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
   attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, FALLING);
 }
 
+// precondition: isxdigit(c) is true
+static byte getHex(char c){
+  if(isdigit(c)){
+    return c - '0';
+  }
+  c = tolower(c);
+  return c - 'a' + 10;
+}
+
+static int extract_pwm(const String& payload){
+  if(payload.length() != 2){
+    Serial.println("pwm wasn't 2 characters");
+    return -1;
+  }
+  char h = payload.charAt(0);
+  char l = payload.charAt(1);
+  if(!isxdigit(h) || !isxdigit(l)){
+    Serial.println("invalid hex character");
+    return -1;
+  }
+  byte hb = getHex(h);
+  byte lb = getHex(l);
+  // everything was valid
+  return hb * 16 + lb;
+}
+
 static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
@@ -149,15 +175,6 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
   Serial.print(pulses);
   Serial.println(" pulses measured");
   return pulses * 60 * 1000000.0 / usec / 2;
-}
-
-// precondition: isxdigit(c) is true
-static byte getHex(char c){
-  if(isdigit(c)){
-    return c - '0';
-  }
-  c = tolower(c);
-  return c - 'a' + 10;
 }
 
 static void publish_rgb(mqttmsg& mmsg, unsigned r, unsigned g, unsigned b){
