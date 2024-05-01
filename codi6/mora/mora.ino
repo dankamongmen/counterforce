@@ -32,13 +32,11 @@ double progress = 10;
 unsigned cx_shift = 50;
 unsigned cy_shift = 50;
 
-static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
+static void GetColor(unsigned x, float cx, float cy, CRGB* leds){
   float animation_mult = 0.01 * animation_speed;
   float color_mult = 0.01 * color_rotation_speed;
 
   /*
-  Serial.print("y: ");
-  Serial.print(y);
   Serial.print(" x: ");
   Serial.print(x);
   Serial.print(" cx: ");
@@ -46,8 +44,8 @@ static void GetColor(unsigned x, unsigned y, float cx, float cy, CRGB* leds){
   Serial.print(" cy: ");
   Serial.println(cy);
   */
-  double angle    = atan2(y - cy, x - cx) * 180 / 3.14159265359;
-  double distance = sqrt(pow(cx - x, 2) + pow(cy - y, 2));
+  double angle    = atan2(0 - cy, x - cx) * 180 / 3.14159265359;
+  double distance = sqrt(pow(cx - x, 2) + pow(cy, 2));
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing) + progress);
 
   int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
@@ -69,16 +67,16 @@ static void StepEffect(CRGB* leds, unsigned ledcount){
   float cy = height * cy_shift_mult;
 
   for(unsigned int i = 0; i < width; i++){
-    GetColor(i, 0, cx, cy, leds);
+    GetColor(i, cx, cy, leds);
   }
   progress += 0.05;
 }
 
 void loop() {
-  for(int p = 0 ; p < PWM_CHANNELS / 2 ; ++p){
+  for(int p = 0 ; p < PWM_CHANNELS ; ++p){
     //for(int i = 0 ; i < FANS_PER_CHAN ; ++i){
       StepEffect(p14 + LEDS_PER_PWM * p /*+ LEDS_PER_FAN * i*/, LEDS_PER_PWM);
-      StepEffect(p14 + LEDS_PER_PWM * (p + PWM_CHANNELS / 2) /*+ LEDS_PER_FAN * i*/, LEDS_PER_PWM);
+      //StepEffect(p14 + LEDS_PER_PWM * (p + PWM_CHANNELS / 2) /*+ LEDS_PER_FAN * i*/, LEDS_PER_PWM);
     //}
   }
   FastLED.show();
