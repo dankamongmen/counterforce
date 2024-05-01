@@ -1,11 +1,4 @@
-// intended for use on a LilyGO/TTGO-Koala Type C ESP32 WROVER B
-// https://opencircuit.shop/product/lilygo-ttgo-t-koala-esp32-wrover
-//
-// samples digital ambient 1-wire thermistor,
-//         analog coolant thermistor
-// controls 12V RGB LEDs via 3 MOSFETs
-
-#define DEVNAME "demo"
+#define DEVNAME "esp32s"
 
 #include <float.h>
 #include <OneWire.h>
@@ -19,8 +12,8 @@ static const int AMBIENTPIN = 4;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-static const int FANPWMPIN = 32;
-static const int PUMPAPWMPIN = 25;
+static const int FANPWMPIN = 25;
+static const int PUMPAPWMPIN = 26;
 static const int PUMPBPWMPIN = 33;
 static const int FANTACHPIN = 19;
 static const int PUMPATACHPIN = 22;
@@ -30,20 +23,22 @@ static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
 static volatile unsigned PumpBRpm;
 
+#define RPMMAX (1u << 16u)
+
 void IRAM_ATTR rpm_fan(void){
-  if(FanRpm < 65536){
+  if(FanRpm < RPMMAX){
     ++FanRpm;
   }
 }
 
 void IRAM_ATTR rpm_pumpa(void){
-  if(PumpARpm < 65536){
+  if(PumpARpm < RPMMAX){
     ++PumpARpm;
   }
 }
 
 void IRAM_ATTR rpm_pumpb(void){
-  if(PumpBRpm < 65536){
+  if(PumpBRpm < RPMMAX){
     ++PumpBRpm;
   }
 }
@@ -60,7 +55,6 @@ OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);
 
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
-#define FANPWM_TIMER LEDC_TIMER_1
 
 void init_tach(int pin, void(*fxn)(void)){
   pinMode(pin, INPUT);
@@ -68,13 +62,13 @@ void init_tach(int pin, void(*fxn)(void)){
   attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
 }
 
-int initialize_pwm(ledc_channel_t channel, int pin, int freq){
+int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
   ledc_channel_config_t conf;
   memset(&conf, 0, sizeof(conf));
   conf.gpio_num = pin;
   conf.speed_mode = LEDC_HIGH_SPEED_MODE;
   conf.intr_type = LEDC_INTR_DISABLE;
-  conf.timer_sel = FANPWM_TIMER;
+  conf.timer_sel = timer;
   conf.duty = FANPWM_BIT_NUM;
   conf.channel = channel;
   Serial.print("setting up pin ");
@@ -90,7 +84,7 @@ int initialize_pwm(ledc_channel_t channel, int pin, int freq){
   memset(&ledc_timer, 0, sizeof(ledc_timer));
   ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
   ledc_timer.bit_num = FANPWM_BIT_NUM;
-  ledc_timer.timer_num = FANPWM_TIMER;
+  ledc_timer.timer_num = timer;
   ledc_timer.freq_hz = freq;
   if(ledc_timer_config(&ledc_timer) != ESP_OK){
     Serial.println("error (timer config)!");
@@ -116,8 +110,8 @@ static int set_pwm(const ledc_channel_t channel, unsigned pwm){
   return 0;
 }
 
-static int initialize_fan_pwm(ledc_channel_t channel, int pin){
-  return initialize_pwm(channel, pin, 25000);
+static int initialize_25k_pwm(ledc_channel_t channel, int pin, ledc_timer_t timer){
+  return initialize_pwm(channel, pin, 25000, timer);
 }
 
 void setup(){
@@ -126,9 +120,9 @@ void setup(){
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
-  initialize_fan_pwm(FANCHAN, FANPWMPIN);
-  initialize_fan_pwm(PUMPACHAN, PUMPAPWMPIN);
-  initialize_fan_pwm(PUMPBCHAN, PUMPBPWMPIN);
+  initialize_25k_pwm(FANCHAN, FANPWMPIN, LEDC_TIMER_1);
+  initialize_25k_pwm(PUMPACHAN, PUMPAPWMPIN, LEDC_TIMER_2);
+  initialize_25k_pwm(PUMPBCHAN, PUMPBPWMPIN, LEDC_TIMER_3);
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
   set_pwm(PUMPBCHAN, PumpPwm);
@@ -192,27 +186,31 @@ void loop(){
   detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
   detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
     frpm = FanRpm;
-    FanRpm = 0;
     parpm = PumpARpm;
-    PumpARpm = 0;
     pbrpm = PumpBRpm;
-    PumpBRpm = 0;
+    FanRpm = PumpARpm = PumpBRpm = 0;
   init_tach(PUMPBTACHPIN, rpm_pumpb);
   init_tach(PUMPATACHPIN, rpm_pumpa);
   init_tach(FANTACHPIN, rpm_fan);
   last_tx = micros();
-  frpm = frpm / 2.0 * (60000000.0 / diff);
-  parpm = parpm / 2.0 * (60000000.0 / diff);
-  pbrpm = pbrpm / 2.0 * (60000000.0 / diff);
-  Serial.print("FanRpm: ");
-  Serial.println(frpm);
-  Serial.print("PumpARpm: ");
-  Serial.println(parpm);
-  Serial.print("PumpBRpm: ");
-  Serial.println(pbrpm);
-  publish_pair(mmsg, "rpm", frpm);
-  publish_pair(mmsg, "pumparpm", parpm);
-  publish_pair(mmsg, "pumpbrpm", pbrpm);
+  if(frpm < RPMMAX){
+    frpm = rpm(frpm, diff);
+    Serial.print("FanRpm: ");
+    Serial.println(frpm);
+    publish_pair(mmsg, "rpm", frpm);
+  }
+  if(parpm < RPMMAX){
+    parpm = rpm(parpm, diff);
+    Serial.print("PumpARpm: ");
+    Serial.println(parpm);
+    publish_pair(mmsg, "pumparpm", parpm);
+  }
+  if(pbrpm < RPMMAX){
+    pbrpm = rpm(pbrpm, diff);
+    Serial.print("PumpBRpm: ");
+    Serial.println(pbrpm);
+    publish_pair(mmsg, "pumpbrpm", pbrpm);
+  }
   publish_temps(mmsg, ambient_temp, NAN);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   if(mmsg.publish()){

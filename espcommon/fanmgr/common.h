@@ -174,7 +174,7 @@ static inline bool valid_temp(float t){
 static inline float rpm(unsigned long pulses, unsigned long usec){
   Serial.print(pulses);
   Serial.println(" pulses measured");
-  return pulses * 60 * 1000000.0 / usec / 2;
+  return pulses * 30000000.0 / usec;
 }
 
 static void publish_rgb(mqttmsg& mmsg, unsigned r, unsigned g, unsigned b){
