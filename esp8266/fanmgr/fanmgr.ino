@@ -14,7 +14,7 @@
 #include "common.h"
 
 const int TEMPPIN = A0; // coolant thermistor (2-wire), only one ADC on the ESP8266
-const int AMBIENTPIN = D2; // ambient temperature (digital thermometer, Dallas 1-wire)
+const int AMBIENTPIN = D8; // ambient temperature (digital thermometer, Dallas 1-wire)
 const int PWMPIN = D4;
 
 // we keep the LED on when we're not connected. when we are connected, we blink it

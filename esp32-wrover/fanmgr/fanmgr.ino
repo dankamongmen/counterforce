@@ -12,18 +12,18 @@ static const int AMBIENTPIN = 4;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-static const int FANPWMPIN = 25;
-static const int PUMPAPWMPIN = 26;
-static const int PUMPBPWMPIN = 33;
-static const int FANTACHPIN = 19;
-static const int PUMPATACHPIN = 22;
-static const int PUMPBTACHPIN = 23;
+static const int FANPWMPIN = 23;
+static const int PUMPAPWMPIN = 22;
+static const int PUMPBPWMPIN = 21;
+static const int FANTACHPIN = 5;
+static const int PUMPATACHPIN = 18;
+static const int PUMPBTACHPIN = 19;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
 static volatile unsigned PumpBRpm;
 
-#define RPMMAX (1u << 16u)
+#define RPMMAX (1u << 13u)
 
 void IRAM_ATTR rpm_fan(void){
   if(FanRpm < RPMMAX){

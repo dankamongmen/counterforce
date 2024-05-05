@@ -256,6 +256,14 @@ metrics:
    mqtt_name: cpu1rpm
    help: Dual XTOP pump 2 RPM
    type: gauge
+ - prom_name: xtop0rpm
+   mqtt_name: pumparpm
+   help: Dual XTOP pump 1 RPM
+   type: gauge
+ - prom_name: xtop1rpm
+   mqtt_name: pumpbrpm
+   help: Dual XTOP pump 2 RPM
+   type: gauge
  - prom_name: rpi4temp
    mqtt_name: rpi4temp
    help: Raspberry Pi 4B temperature
@@ -301,19 +309,15 @@ metrics:
    help: Coolant temperature at MO-RA3
    type: gauge
  - prom_name: mora3fanrpm
-   mqtt_name: morarpm
+   mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
  - prom_name: mora3fanpwm
-   mqtt_name: morapwm
-   help: MO-RA3 fan PWM
-   type: gauge
- - prom_name: mora3fanpwm
-   mqtt_name: pwm
+   mqtt_name: fanpwm
    help: MO-RA3 fan PWM
    type: gauge
  - prom_name: mora3pumppwm
-   mqtt_name: morapumppwm
+   mqtt_name: pumppwm
    help: MO-RA3 pump PWM
    type: gauge
  - prom_name: moraxtop0rpm
