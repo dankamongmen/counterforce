@@ -2,8 +2,7 @@
 
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, fan4pwm geiger))
-ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, fanmgr))
-ESP8266HEX:=$(addprefix esp8266/, $(addsuffix .ino.elf, fanmgr))
+ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, fanmgr r-mora))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
 HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(ESP8266HEX) $(ESP32WROVERHEX))
@@ -34,9 +33,9 @@ $(OUT)/esp32-wrover/fanmgr.ino.elf: $(addprefix esp32-wrover/fanmgr/, fanmgr.ino
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wrover/fanmgr
 
-$(OUT)/esp8266/fanmgr.ino.elf: $(addprefix esp8266/fanmgr/, fanmgr.ino) $(ESPCOMMON)
+$(OUT)/esp32-wrover/r-mora.ino.elf: $(addprefix esp32-wrover/r-mora/, r-mora.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b esp8266:esp8266:nodemcuv2 -v --output-dir $(@D) esp8266/fanmgr
+	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wrover/fanmgr
 
 $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)

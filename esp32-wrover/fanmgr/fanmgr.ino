@@ -1,4 +1,4 @@
-#define DEVNAME "esp32s"
+#define DEVNAME "s-mora"
 
 #include <float.h>
 #include <OneWire.h>
@@ -12,12 +12,12 @@ static const int AMBIENTPIN = 4;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-static const int FANPWMPIN = 34;
+static const int FANPWMPIN = 32;
 static const int PUMPAPWMPIN = 35;
-static const int PUMPBPWMPIN = 32;
-static const int FANTACHPIN = TX2;
+static const int PUMPBPWMPIN = 34;
+static const int FANTACHPIN = RX2;
 static const int PUMPATACHPIN = 18;
-static const int PUMPBTACHPIN = RX2;
+static const int PUMPBTACHPIN = TX2;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
