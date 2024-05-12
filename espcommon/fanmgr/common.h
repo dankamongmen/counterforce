@@ -11,54 +11,11 @@
 #define ISR IRAM_ATTR //ICACHE_RAM_ATRR
 #endif
 
-const unsigned long RPM_CUTOFF = 5000;
+#define RPMMAX (1u << 13u)
 
 // PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
 #define INITIAL_FAN_PWM  128
 #define INITIAL_PUMP_PWM 128
-
-static volatile unsigned long Pulses;
-static volatile unsigned long XTAPulses;
-static volatile unsigned long XTBPulses;
-
-static void ISR fantach(void){
-  ++Pulses;
-}
-
-static void ISR xtop1tach(void){
-  ++XTAPulses;
-}
-
-static void ISR xtop2tach(void){
-  ++XTBPulses;
-}
-
-static void print_int_pin(int pin){
-  Serial.print("setting up interrupt on ");
-  Serial.println(pin);
-}
-
-static void debug_interrupt(int pin){
-  Serial.print("interrupt ");
-  Serial.print(digitalPinToInterrupt(pin));
-  Serial.print(" on pin ");
-  Serial.println(pin);
-}
-
-static void setup_interrupts(int fanpin, int pumppina, int pumppinb){
-  print_int_pin(fanpin);
-  pinMode(fanpin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(fanpin), fantach, FALLING);
-  debug_interrupt(fanpin);
-  print_int_pin(pumppina);
-  pinMode(pumppina, INPUT_PULLUP);
-  debug_interrupt(pumppina);
-  attachInterrupt(digitalPinToInterrupt(pumppina), xtop1tach, FALLING);
-  print_int_pin(pumppinb);
-  pinMode(pumppinb, INPUT_PULLUP);
-  debug_interrupt(pumppinb);
-  attachInterrupt(digitalPinToInterrupt(pumppinb), xtop2tach, FALLING);
-}
 
 // precondition: isxdigit(c) is true
 static byte getHex(char c){
@@ -156,7 +113,7 @@ typedef struct mqttmsg {
 } mqttmsg;
 
 void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
-  if(val < RPM_CUTOFF){ // filter out obviously incorrect values
+  if(val < RPMMAX){ // filter out obviously incorrect values
     mmsg.add(key, val);
   }else{
     Serial.print("not publishing ");
