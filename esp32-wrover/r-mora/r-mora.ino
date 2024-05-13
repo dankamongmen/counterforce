@@ -7,7 +7,7 @@
 #include "common.h"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
-static const int AMBIENTPIN = 4;
+static const int AMBIENTPIN = RX2;
 
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
@@ -17,7 +17,7 @@ static const int FANPWMPIN = 32;
 static const int FANTACHPIN = 19;
 
 static const int PUMPAPWMPIN = 2;
-static const int PUMPATACHPIN = RX2;
+static const int PUMPATACHPIN = 4;
 
 static const int PUMPBPWMPIN = 12;
 static const int PUMPBTACHPIN = 23;

@@ -17,7 +17,7 @@ static const int FANPWMPIN = 26;
 static const int FANTACHPIN = TX2;
 
 static const int PUMPAPWMPIN = 12;
-static const int PUMPATACHPIN = 10;
+static const int PUMPATACHPIN = 18;
 
 static const int PUMPBPWMPIN = 32;
 static const int PUMPBTACHPIN = RX2;
