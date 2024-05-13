@@ -13,14 +13,14 @@ static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
 
-static const int FANPWMPIN = 23;
-static const int FANTACHPIN = 22;
+static const int FANPWMPIN = 32;
+static const int FANTACHPIN = 19;
 
-static const int PUMPAPWMPIN = 21;
-static const int PUMPATACHPIN = 19;
+static const int PUMPAPWMPIN = 2;
+static const int PUMPATACHPIN = RX2;
 
-static const int PUMPBPWMPIN = 5;
-static const int PUMPBTACHPIN = 17;
+static const int PUMPBPWMPIN = 12;
+static const int PUMPBTACHPIN = 23;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
