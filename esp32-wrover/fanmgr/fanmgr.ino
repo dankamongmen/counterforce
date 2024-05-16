@@ -46,8 +46,8 @@ void IRAM_ATTR rpm_pumpb(void){
   }
 }
 
-static unsigned FanPwm = 0xc0;
-static unsigned PumpPwm = 0x80;
+static unsigned FanPwm = INITIAL_FAN_PWM;
+static unsigned PumpPwm = INITIAL_PUMP_PWM;
 
 EspMQTTClient client(
   #include "EspMQTTConfig.h",
