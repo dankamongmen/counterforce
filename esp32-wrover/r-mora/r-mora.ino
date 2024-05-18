@@ -9,10 +9,6 @@
 // ambient temperature (digital thermometer, Dallas 1-wire)
 static const int AMBIENTPIN = 27;
 
-static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
-static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
-static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-
 static const int FANPWMPIN = 32;
 static const int FANTACHPIN = 19;
 
@@ -21,36 +17,6 @@ static const int PUMPATACHPIN = 4;
 
 static const int PUMPBPWMPIN = 12;
 static const int PUMPBTACHPIN = 23;
-
-static volatile unsigned FanRpm;
-static volatile unsigned PumpARpm;
-static volatile unsigned PumpBRpm;
-
-void ISR rpm_fan(void){
-  if(FanRpm < RPMMAX){
-    ++FanRpm;
-  }
-}
-
-void ISR rpm_pumpa(void){
-  if(PumpARpm < RPMMAX){
-    ++PumpARpm;
-  }
-}
-
-void ISR rpm_pumpb(void){
-  if(PumpBRpm < RPMMAX){
-    ++PumpBRpm;
-  }
-}
-
-static unsigned FanPwm = INITIAL_FAN_PWM;
-static unsigned PumpPwm = INITIAL_PUMP_PWM;
-
-EspMQTTClient client(
-  #include "EspMQTTConfig.h",
-  DEVNAME
-);
 
 OneWire twire(AMBIENTPIN);
 DallasTemperature digtemp(&twire);

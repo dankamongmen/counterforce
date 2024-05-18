@@ -11,11 +11,44 @@
 #define ISR IRAM_ATTR //ICACHE_RAM_ATRR
 #endif
 
+static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
+static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
+static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
+
+#define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
+
 #define RPMMAX (1u << 13u)
 
-// PWMs we want to run at (initialized to INITIAL_*_PWM, read from MQTT)
-#define INITIAL_FAN_PWM  128
-#define INITIAL_PUMP_PWM 128
+static volatile unsigned FanRpm;
+static volatile unsigned PumpARpm;
+static volatile unsigned PumpBRpm;
+
+void ISR rpm_fan(void){
+  if(FanRpm < RPMMAX){
+    ++FanRpm;
+  }
+}
+
+void ISR rpm_pumpa(void){
+  if(PumpARpm < RPMMAX){
+    ++PumpARpm;
+  }
+}
+
+void ISR rpm_pumpb(void){
+  if(PumpBRpm < RPMMAX){
+    ++PumpBRpm;
+  }
+}
+
+// PWMs we want to run at (initialized here, read from MQTT)
+static unsigned FanPwm = 128;
+static unsigned PumpPwm = 128;
+
+EspMQTTClient client(
+  #include "EspMQTTConfig.h",
+  DEVNAME
+);
 
 // precondition: isxdigit(c) is true
 static byte getHex(char c){
