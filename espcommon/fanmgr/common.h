@@ -3,7 +3,7 @@
 
 #include <ArduinoJson.h>
 
-#define VERSION "v2.3.0"
+#define VERSION "v2.4.0"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -108,7 +108,7 @@ typedef struct mqttmsg {
     add("uptimesec", millis() / 1000); // FIXME handle overflow
     char buf[257]; // PubSubClient limits messages to 256 bytes
     size_t n = serializeJson(doc, buf);
-    return mqtt.publish("sensors/" DEVNAME, buf, n);
+    return mqtt.publish("sensors/" DEVNAME, buf);
   }
 } mqttmsg;
 
