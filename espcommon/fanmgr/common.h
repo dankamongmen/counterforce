@@ -3,7 +3,10 @@
 
 #include <ArduinoJson.h>
 
-#define VERSION "v2.4.0"
+#include "nvs_flash.h"
+#include "nvs.h"
+
+#define VERSION "v2.5.0"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -18,6 +21,8 @@ static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 
 #define RPMMAX (1u << 13u)
+
+static nvs_handle_t Nvs;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
@@ -92,25 +97,6 @@ static int readAmbient(float* t, DallasTemperature *dt){
   return 0;
 }
 
-static void readThermistor(float* t, int pin, int levels){
-  *t = NAN;
-  const float BETA = 3435; // https://www.alphacool.com/download/kOhm_Sensor_Table_Alphacool.pdf
-  const float NOMINAL = 298.15;
-  const float R0 = 10100;
-  const float R1 = 10000;
-  const float VREF = 3.3;
-  float v0 = analogRead(pin);
-  if(v0 <= 1 || v0 >= levels - 1){
-    return;
-  }
-  // 10-bit ADC on the ESP8266. get voltage [0..3.3]...
-  float scaled = v0 * VREF / (levels - 1);
-  float Rt = R1 * scaled / (VREF - scaled);
-  float tn = 1.0 / ((1.0 / NOMINAL) + log(R0 / Rt) / BETA);
-  tn -= 273.15;
-  *t = tn;
-}
-
 // attempt to establish a connection to the DS18B20
 static int connect_onewire(DallasTemperature* dt){
   static unsigned long last_error_diag;
@@ -170,18 +156,7 @@ static inline float rpm(unsigned long pulses, unsigned long usec){
   return pulses * 30000000.0 / usec;
 }
 
-static void publish_rgb(mqttmsg& mmsg, unsigned r, unsigned g, unsigned b){
-  mmsg.add("rgbr", r);
-  mmsg.add("rgbg", g);
-  mmsg.add("rgbb", b);
-}
-
-static void publish_temps(mqttmsg& mmsg, float amb, float cool){
-  if(valid_temp(cool) && cool > 0){
-    mmsg.add("atemp", cool);
-  }else{
-    Serial.println("don't have an analog temp sample");
-  }
+static void publish_temps(mqttmsg& mmsg, float amb){
   // there are several error codes returned by DallasTemperature, all of
   // them equal to or less than DEVICE_DISCONNECTED_C (there are also
   // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
@@ -204,6 +179,11 @@ static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
   if(valid_pwm_p(pumppwm)){
     mmsg.add("pumppwm", pumppwm);
   }
+}
+
+static void
+publish_version(mqttmsg& mmsg){
+  mmsg.add("ver", VERSION);
 }
 
 static void publish_pair(mqttmsg& mmsg, const char* key, int val){
@@ -260,12 +240,46 @@ static int set_pwm(const ledc_channel_t channel, unsigned pwm){
     Serial.println("error committing red!");
     return -1;
   }
-  Serial.println("configured pwm");
+  printf("set pwm to %u on channel %lu", pwm, channel);
   return 0;
 }
 
 static int initialize_25k_pwm(ledc_channel_t channel, int pin, ledc_timer_t timer){
   return initialize_pwm(channel, pin, 25000, timer);
+}
+
+static int
+nvs_setup(nvs_handle_t *nh){
+  esp_err_t err = nvs_flash_init();
+  if(err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND){
+    // NVS partition was truncated and needs to be erased
+    nvs_flash_erase();
+    err = nvs_flash_init(); // Retry nvs_flash_init
+  }
+  if(err != ESP_OK){
+    printf("error initializing flash: %s", esp_err_to_name(err));
+    return -1;
+  }
+  err = nvs_open("storage", NVS_READWRITE, nh);
+  if(err != ESP_OK){
+    printf("error opening flash: %s", esp_err_to_name(err));
+    return -1;
+  }
+  uint32_t pwm;
+  if(nvs_get_u32(*nh, "fanpwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
+    FanPwm = pwm;
+    set_pwm(FANCHAN, FanPwm);
+  }else{
+    printf("no valid fanpwm in persistent store");
+  }
+  if(nvs_get_u32(*nh, "pumppwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
+    PumpPwm = pwm;
+    set_pwm(PUMPACHAN, PumpPwm);
+    set_pwm(PUMPBCHAN, PumpPwm);
+  }else{
+    printf("no valid pumppwm in persistent store");
+  }
+  return 0;
 }
 
 void setup(){
@@ -280,7 +294,20 @@ void setup(){
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
   set_pwm(PUMPBCHAN, PumpPwm);
+  nvs_setup(&Nvs);
+  printf("Fan PWM initialized to %u", FanPwm);
+  printf("Pump PWM initialized to %u", PumpPwm);
   Serial.println("initialized!");
+}
+
+static int
+commit(nvs_handle_t nh){
+  esp_err_t err = nvs_commit(nh);
+  if(err != ESP_OK){
+    printf("error writing flash: %s", esp_err_to_name(err));
+    return -1;
+  }
+  return 0;
 }
 
 void onConnectionEstablished() {
@@ -289,9 +316,12 @@ void onConnectionEstablished() {
       Serial.print("received fan pwm via mqtt: ");
       Serial.println(payload);
       int fpwm = extract_pwm(payload);
-      if(fpwm >= 0){
+      if(valid_pwm_p(fpwm)){
         FanPwm = fpwm;
         set_pwm(FANCHAN, FanPwm);
+        if(nvs_set_u32(Nvs, "fanpwm", FanPwm) == ESP_OK){
+          commit(Nvs);
+        }
       }
     }
   );
@@ -299,10 +329,13 @@ void onConnectionEstablished() {
       Serial.print("received pump pwm via mqtt: ");
       Serial.println(payload);
       unsigned ppwm = extract_pwm(payload);
-      if(ppwm >= 0){
+      if(valid_pwm_p(ppwm)){
         PumpPwm = ppwm;
         set_pwm(PUMPACHAN, PumpPwm);
         set_pwm(PUMPBCHAN, PumpPwm);
+        if(nvs_set_u32(Nvs, "pumppwm", PumpPwm) == ESP_OK){
+          commit(Nvs);
+        }
       }
     }
   );
@@ -365,8 +398,9 @@ void loop(){
     Serial.println(pbrpm);
     publish_pair(mmsg, "pumpbrpm", pbrpm);
   }
-  publish_temps(mmsg, ambient_temp, NAN);
+  publish_temps(mmsg, ambient_temp);
   publish_pwm(mmsg, FanPwm, PumpPwm);
+  publish_version(mmsg);
   if(mmsg.publish()){
     Serial.print("Successful xmit at ");
     Serial.println(m);
