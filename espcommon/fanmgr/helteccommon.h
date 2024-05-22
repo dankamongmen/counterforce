@@ -28,6 +28,14 @@ drawNum(SSD1306Wire* d, int x, int y, int num){
   d->drawString(x, y, tstr);
 }
 
+static void
+drawPwm(SSD1306Wire* d, int x, int y, int pwm){
+  float f = pwm * 100.0 / 255.0;
+  char tstr[10];
+  snprintf(tstr, sizeof(tstr), "%0.2f", f);
+  d->drawString(x, y, tstr);
+}
+
 // if pwm is positive, but rpm is 0, that's a no-signal; set rpm to -1
 static inline void
 normalizeRPM(int* rpm, int pwm){
@@ -45,21 +53,22 @@ updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
   display.clear();
   char tempstr[16];
   maketempstr(tempstr, ambient);
-  display.drawString(0, display.getHeight() - THEIGHT, tempstr);
-  display.drawRect(0, 6, display.getWidth() - 1, 44);
-  display.drawString(40, 5, "pwm");
-  display.drawString(80, 5, "rpm");
-  display.drawString(2, 16, "fans");
-  display.drawString(2, 27, "pump a");
-  display.drawString(2, 38, "pump b");
-  drawNum(&display, 40, 16, fanpwm);
-  drawNum(&display, 40, 32, pumppwm);
+  display.drawString(2, display.getHeight() - THEIGHT, tempstr);
+  display.drawRect(2, 6, display.getWidth() - 5, 45);
+  display.drawString(60, 5, "pwm(%)");
+  display.drawString(105, 5, "rpm");
+  display.drawString(4, 16, "fans");
+  display.drawString(4, 27, "pump a");
+  display.drawString(4, 38, "pump b");
+  fanrpm = rand() % 10000;
+  drawPwm(&display, 67, 16, fanpwm);
+  drawPwm(&display, 67, 32, pumppwm);
   normalizeRPM(&fanrpm, fanpwm);
-  drawNum(&display, 80, 16, fanrpm);
+  drawNum(&display, 100, 16, fanrpm);
   normalizeRPM(&pumparpm, pumppwm);
-  drawNum(&display, 80, 27, pumparpm);
+  drawNum(&display, 100, 27, pumparpm);
   normalizeRPM(&pumpbrpm, pumppwm);
-  drawNum(&display, 80, 38, pumpbrpm);
+  drawNum(&display, 100, 38, pumpbrpm);
   display.drawString(display.getWidth() - FANMGRSTRWIDTH, display.getHeight() - THEIGHT, FANMGRSTR);
   display.display();
 }
