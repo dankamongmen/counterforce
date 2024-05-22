@@ -20,8 +20,22 @@ maketempstr(char* buf, float ambient){
 static void
 drawNum(SSD1306Wire* d, int x, int y, int num){
   char tstr[10];
-  snprintf(tstr, sizeof(tstr), "%d", num);
+  if(num >= 0){
+    snprintf(tstr, sizeof(tstr), "%d", num);
+  }else{
+    snprintf(tstr, sizeof(tstr), "n/a");
+  }
   d->drawString(x, y, tstr);
+}
+
+// if pwm is positive, but rpm is 0, that's a no-signal; set rpm to -1
+static inline void
+normalizeRPM(int* rpm, int pwm){
+  if(!*rpm){
+    if(pwm){
+      *rpm = -1;
+    }
+  }
 }
 
 // update the display with current samples
@@ -31,19 +45,22 @@ updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
   display.clear();
   char tempstr[16];
   maketempstr(tempstr, ambient);
-  display.drawString(0, 0, tempstr);
-  display.drawRect(0, 11, display.getWidth() - 1, 44);
-  display.drawString(40, 11, "pwm");
-  display.drawString(80, 11, "rpm");
-  display.drawString(2, 22, "fans");
-  display.drawString(2, 33, "pump a");
-  display.drawString(2, 44, "pump b");
-  drawNum(&display, 40, 22, fanpwm);
-  drawNum(&display, 40, 38, pumppwm);
-  drawNum(&display, 80, 22, fanrpm);
-  drawNum(&display, 80, 33, pumparpm);
-  drawNum(&display, 80, 44, pumpbrpm);
-  display.drawString(display.getWidth() - FANMGRSTRWIDTH, display.getHeight() - 10, FANMGRSTR);
+  display.drawString(0, display.getHeight() - THEIGHT, tempstr);
+  display.drawRect(0, 6, display.getWidth() - 1, 44);
+  display.drawString(40, 5, "pwm");
+  display.drawString(80, 5, "rpm");
+  display.drawString(2, 16, "fans");
+  display.drawString(2, 27, "pump a");
+  display.drawString(2, 38, "pump b");
+  drawNum(&display, 40, 16, fanpwm);
+  drawNum(&display, 40, 32, pumppwm);
+  normalizeRPM(&fanrpm, fanpwm);
+  drawNum(&display, 80, 16, fanrpm);
+  normalizeRPM(&pumparpm, pumppwm);
+  drawNum(&display, 80, 27, pumparpm);
+  normalizeRPM(&pumpbrpm, pumppwm);
+  drawNum(&display, 80, 38, pumpbrpm);
+  display.drawString(display.getWidth() - FANMGRSTRWIDTH, display.getHeight() - THEIGHT, FANMGRSTR);
   display.display();
 }
 
