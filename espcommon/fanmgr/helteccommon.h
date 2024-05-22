@@ -14,7 +14,7 @@ static SSD1306Wire display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RS
 static void
 maketempstr(char* buf, float ambient){
   if(isnan(ambient)){
-    strcpy(buf, "no temp");
+    strcpy(buf, "no thermal");
   }else{
     sprintf(buf, "%0.2fC", ambient);
   }
@@ -49,28 +49,49 @@ normalizeRPM(int* rpm, int pwm){
   }
 }
 
+static void
+maketimestr(char *str){
+  uint64_t ticks = esp_timer_get_time();
+  ticks /= 1000000;
+  unsigned s = ticks % 60;
+  unsigned m = (ticks % 3600) / 60;
+  unsigned h = (ticks % 86400lu) / 3600;
+  unsigned d = ticks / 86400lu;
+  if(d){
+    sprintf(str, "%ud %uh %um %us", d, h, m, s);
+  }else if(h){
+    sprintf(str, "%uh %um %us", h, m, s);
+  }else if(m){
+    sprintf(str, "%um %us", m, s);
+  }else{
+    sprintf(str, "%us", s);
+  }
+}
+
 // update the display with current samples
 static void
 updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
               int fanpwm, int pumppwm){
   display.clear();
   char tempstr[16];
+  maketimestr(tempstr);
+  display.drawString(0, 0, tempstr);
   maketempstr(tempstr, ambient);
   display.drawString(2, display.getHeight() - THEIGHT, tempstr);
-  display.drawRect(2, 6, display.getWidth() - 5, 45);
-  display.drawString(60, 5, "pwm(%)");
-  display.drawString(105, 5, "rpm");
-  display.drawString(4, 16, "fans");
-  display.drawString(4, 27, "pump a");
-  display.drawString(4, 38, "pump b");
-  drawPwm(&display, 67, 16, fanpwm);
-  drawPwm(&display, 67, 32, pumppwm);
+  display.drawRect(2, 11, display.getWidth() - 6, 45);
+  display.drawString(60, 10, "pwm(%)");
+  display.drawString(102, 10, "rpm");
+  display.drawString(4, 20, "fans");
+  display.drawString(4, 30, "pump a");
+  display.drawString(4, 40, "pump b");
+  drawPwm(&display, 67, 20, fanpwm);
+  drawPwm(&display, 67, 34, pumppwm);
   normalizeRPM(&fanrpm, fanpwm);
-  drawNum(&display, 100, 16, fanrpm);
+  drawNum(&display, 100, 20, fanrpm);
   normalizeRPM(&pumparpm, pumppwm);
-  drawNum(&display, 100, 27, pumparpm);
+  drawNum(&display, 100, 30, pumparpm);
   normalizeRPM(&pumpbrpm, pumppwm);
-  drawNum(&display, 100, 38, pumpbrpm);
+  drawNum(&display, 100, 40, pumpbrpm);
   display.drawString(display.getWidth() - 60, display.getHeight() - THEIGHT, FANMGRSTR);
   display.display();
 }
