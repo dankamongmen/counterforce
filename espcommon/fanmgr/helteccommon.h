@@ -6,15 +6,18 @@
 // addr, freq, i2c group, resolution, rst
 static SSD1306Wire display(0x3c, 500000, SDA_OLED, SCL_OLED, GEOMETRY_128_64, RST_OLED);
 
-#define FANMGRSTR "moradank "VERSION
-#define FANMGRSTRWIDTH 70 // determined experimentally
+#define FANMGRSTR DEVNAME " " VERSION
 
 // height of text, taken from font
 #define THEIGHT 10
 
 static void
 maketempstr(char* buf, float ambient){
-  sprintf(buf, "%0.2fC", ambient);
+  if(isnan(ambient)){
+    strcpy(buf, "no temp");
+  }else{
+    sprintf(buf, "%0.2fC", ambient);
+  }
 }
 
 static void
@@ -60,7 +63,6 @@ updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
   display.drawString(4, 16, "fans");
   display.drawString(4, 27, "pump a");
   display.drawString(4, 38, "pump b");
-  fanrpm = rand() % 10000;
   drawPwm(&display, 67, 16, fanpwm);
   drawPwm(&display, 67, 32, pumppwm);
   normalizeRPM(&fanrpm, fanpwm);
@@ -69,7 +71,7 @@ updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
   drawNum(&display, 100, 27, pumparpm);
   normalizeRPM(&pumpbrpm, pumppwm);
   drawNum(&display, 100, 38, pumpbrpm);
-  display.drawString(display.getWidth() - FANMGRSTRWIDTH, display.getHeight() - THEIGHT, FANMGRSTR);
+  display.drawString(display.getWidth() - 60, display.getHeight() - THEIGHT, FANMGRSTR);
   display.display();
 }
 
@@ -88,8 +90,8 @@ heltecSetup(int ledpin){
 }
 
 static int
-heltecLoop(int ledpin){
-  fanmgrLoop(ledpin);
-  updateDisplay(20.0, FanRpm, PumpARpm, PumpBRpm, FanPwm, PumpPwm);
+heltecLoop(float ambient){
+  fanmgrLoop(ambient);
+  updateDisplay(ambient, FanRpm, PumpARpm, PumpBRpm, FanPwm, PumpPwm);
   return 0;
 }

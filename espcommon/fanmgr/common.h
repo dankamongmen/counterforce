@@ -346,13 +346,10 @@ void onConnectionEstablished() {
   );
 }
 
-// we transmit approximately every 15s, sampling at that time. there are
-// several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
-static void
-fanmgrLoop(int ledpin){
+// run wifi loop, sample sensors. returns ambient temp.
+static float
+sampleSensors(int ledpin){
   static bool onewire_connected;
-  static unsigned long last_tx; // micros() when we last transmitted to MQTT
-  unsigned frpm, parpm, pbrpm;
   float ambient_temp = NAN;
   client.loop(); // handle any necessary wifi/mqtt
   if(client.isConnected()){
@@ -368,10 +365,18 @@ fanmgrLoop(int ledpin){
   if(onewire_connected){
     if(readAmbient(&ambient_temp, &digtemp)){
       onewire_connected = false;
-      ambient_temp = FLT_MAX;
+      ambient_temp = NAN;
     }
   }
+  return ambient_temp;
+}
+
+// we transmit approximately every 15s, sampling at that time. there are
+// several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
+static void
+fanmgrLoop(float ambient){
   unsigned long m = micros();
+  static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
   if(last_tx){
     if(diff < 15000000){
@@ -380,6 +385,7 @@ fanmgrLoop(int ledpin){
   }
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
+  unsigned frpm, parpm, pbrpm;
   detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
   detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
   detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
@@ -409,7 +415,7 @@ fanmgrLoop(int ledpin){
     Serial.println(pbrpm);
     publish_pair(mmsg, "pumpbrpm", pbrpm);
   }
-  publish_temps(mmsg, ambient_temp);
+  publish_temps(mmsg, ambient);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   publish_version(mmsg);
   if(mmsg.publish()){
