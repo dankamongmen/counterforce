@@ -1,10 +1,5 @@
 #define DEVNAME "s-mora"
 
-#include <float.h>
-#include <OneWire.h>
-#include <driver/ledc.h>
-#include <DallasTemperature.h>
-
 // ambient temperature (digital thermometer, Dallas 1-wire)
 static const int AMBIENTPIN = 27;
 
@@ -18,3 +13,13 @@ static const int PUMPBPWMPIN = 32;
 static const int PUMPBTACHPIN = RX2;
 
 #include "common.h"
+
+static const int LEDPIN = 2;
+
+void setup(void){
+  fanmgrSetup();
+}
+
+void loop(void){
+  fanmgrLoop(LEDPIN);
+}

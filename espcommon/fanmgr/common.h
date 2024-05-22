@@ -1,7 +1,10 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
 #include "EspMQTTClient.h"
-
+#include <float.h>
+#include <OneWire.h>
+#include <driver/ledc.h>
 #include <ArduinoJson.h>
+#include <DallasTemperature.h>
 
 #include "nvs_flash.h"
 #include "nvs.h"
@@ -282,7 +285,8 @@ nvs_setup(nvs_handle_t *nh){
   return 0;
 }
 
-void setup(){
+static void
+fanmgrSetup(int ledpin){
   Serial.begin(115200);
   Serial.println("initializing!");
   client.enableDebuggingMessages();
@@ -294,6 +298,7 @@ void setup(){
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
   set_pwm(PUMPBCHAN, PumpPwm);
+  pinMode(ledpin, OUTPUT);
   nvs_setup(&Nvs);
   printf("Fan PWM initialized to %u", FanPwm);
   printf("Pump PWM initialized to %u", PumpPwm);
@@ -343,12 +348,18 @@ void onConnectionEstablished() {
 
 // we transmit approximately every 15s, sampling at that time. there are
 // several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
-void loop(){
+static void
+fanmgrLoop(void){
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned frpm, parpm, pbrpm;
   float ambient_temp = NAN;
   client.loop(); // handle any necessary wifi/mqtt
+  if(client.isConnected()){
+    digitalWrite(LED_PIN, HIGH);
+  }else{
+    digitalWrite(LED_PIN, LOW);
+  }
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
