@@ -349,16 +349,16 @@ void onConnectionEstablished() {
 // we transmit approximately every 15s, sampling at that time. there are
 // several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 static void
-fanmgrLoop(void){
+fanmgrLoop(int ledpin){
   static bool onewire_connected;
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned frpm, parpm, pbrpm;
   float ambient_temp = NAN;
   client.loop(); // handle any necessary wifi/mqtt
   if(client.isConnected()){
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(ledpin, HIGH);
   }else{
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(ledpin, LOW);
   }
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){

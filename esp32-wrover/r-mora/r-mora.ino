@@ -17,7 +17,7 @@ static const int PUMPBTACHPIN = 23;
 static const int LEDPIN = 2;
 
 void setup(void){
-  fanmgrSetup();
+  fanmgrSetup(LEDPIN);
 }
 
 void loop(void){

@@ -22,5 +22,5 @@ void setup(){
 }
 
 void loop(void){
-  heltecLoop();
+  heltecLoop(LEDPIN);
 }
