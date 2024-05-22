@@ -32,11 +32,12 @@ updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
   char tempstr[16];
   maketempstr(tempstr, ambient);
   display.drawString(0, 0, tempstr);
+  display.drawRect(0, 11, display.getWidth() - 1, 44);
   display.drawString(40, 11, "pwm");
   display.drawString(80, 11, "rpm");
-  display.drawString(0, 22, "fans");
-  display.drawString(0, 33, "pump a");
-  display.drawString(0, 44, "pump b");
+  display.drawString(2, 22, "fans");
+  display.drawString(2, 33, "pump a");
+  display.drawString(2, 44, "pump b");
   drawNum(&display, 40, 22, fanpwm);
   drawNum(&display, 40, 38, pumppwm);
   drawNum(&display, 80, 22, fanrpm);
