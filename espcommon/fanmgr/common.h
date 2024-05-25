@@ -6,10 +6,11 @@
 #include <ArduinoJson.h>
 #include <DallasTemperature.h>
 
+#include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 
-#define VERSION "v2.5.0"
+#define VERSION "2.5.0"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -195,11 +196,11 @@ static void publish_pair(mqttmsg& mmsg, const char* key, int val){
 
 static void init_tach(int pin, void(*fxn)(void)){
   pinMode(pin, INPUT);
-  digitalWrite(pin, HIGH);
   attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
 }
 
 static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
+  pinMode(pin, OUTPUT);
   ledc_channel_config_t conf;
   memset(&conf, 0, sizeof(conf));
   conf.gpio_num = pin;
@@ -227,9 +228,6 @@ static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_
     Serial.println("error (timer config)!");
     return -1;
   }
-  init_tach(FANTACHPIN, rpm_fan);
-  init_tach(PUMPATACHPIN, rpm_pumpa);
-  init_tach(PUMPBTACHPIN, rpm_pumpb);
   Serial.println("success!");
   return 0;
 }
@@ -243,7 +241,7 @@ static int set_pwm(const ledc_channel_t channel, unsigned pwm){
     Serial.println("error committing red!");
     return -1;
   }
-  printf("set pwm to %u on channel %lu", pwm, channel);
+  printf("set pwm to %u on channel %lu\n", pwm, channel);
   return 0;
 }
 
@@ -260,12 +258,12 @@ nvs_setup(nvs_handle_t *nh){
     err = nvs_flash_init(); // Retry nvs_flash_init
   }
   if(err != ESP_OK){
-    printf("error initializing flash: %s", esp_err_to_name(err));
+    printf("error initializing flash: %s\n", esp_err_to_name(err));
     return -1;
   }
   err = nvs_open("storage", NVS_READWRITE, nh);
   if(err != ESP_OK){
-    printf("error opening flash: %s", esp_err_to_name(err));
+    printf("error opening flash: %s\n", esp_err_to_name(err));
     return -1;
   }
   uint32_t pwm;
@@ -273,14 +271,14 @@ nvs_setup(nvs_handle_t *nh){
     FanPwm = pwm;
     set_pwm(FANCHAN, FanPwm);
   }else{
-    printf("no valid fanpwm in persistent store");
+    printf("no valid fanpwm in persistent store\n");
   }
   if(nvs_get_u32(*nh, "pumppwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
     PumpPwm = pwm;
     set_pwm(PUMPACHAN, PumpPwm);
     set_pwm(PUMPBCHAN, PumpPwm);
   }else{
-    printf("no valid pumppwm in persistent store");
+    printf("no valid pumppwm in persistent store\n");
   }
   return 0;
 }
@@ -298,10 +296,20 @@ fanmgrSetup(int ledpin){
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
   set_pwm(PUMPBCHAN, PumpPwm);
+  init_tach(FANTACHPIN, rpm_fan);
+  init_tach(PUMPATACHPIN, rpm_pumpa);
+  init_tach(PUMPBTACHPIN, rpm_pumpb);
   pinMode(ledpin, OUTPUT);
   nvs_setup(&Nvs);
-  printf("Fan PWM initialized to %u", FanPwm);
-  printf("Pump PWM initialized to %u", PumpPwm);
+  printf("Fan PWM initialized to %u\n", FanPwm);
+  printf("Pump PWM initialized to %u\n", PumpPwm);
+  wifi_country_t country = {
+    .cc = "US",
+  };
+  // FIXME needs to come later
+  if(esp_wifi_set_country(&country) != ESP_OK){
+    printf("error setting wifi country\n");
+  }
   Serial.println("initialized!");
 }
 
@@ -309,7 +317,7 @@ static int
 commit(nvs_handle_t nh){
   esp_err_t err = nvs_commit(nh);
   if(err != ESP_OK){
-    printf("error writing flash: %s", esp_err_to_name(err));
+    printf("error writing flash: %s\n", esp_err_to_name(err));
     return -1;
   }
   return 0;
@@ -348,33 +356,42 @@ void onConnectionEstablished() {
 
 // run wifi loop, sample sensors. returns ambient temp.
 static float
-sampleSensors(int ledpin){
-  static bool onewire_connected;
+sampleSensors(void){
   float ambient_temp = NAN;
-  client.loop(); // handle any necessary wifi/mqtt
-  if(client.isConnected()){
-    digitalWrite(ledpin, HIGH);
-  }else{
-    digitalWrite(ledpin, LOW);
-  }
+  static bool onewire_connected;
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
+    }
+    uint8_t res, dev;
+    dev = 0;
+	  res = digtemp.getResolution(&dev);
+    printf("therm resolution: %u bits\n");
+    if(digtemp.setResolution(&dev, 9)){
+      printf("set resolution to 9 bits\n");
     }
   }
   if(onewire_connected){
     if(readAmbient(&ambient_temp, &digtemp)){
       onewire_connected = false;
       ambient_temp = NAN;
+    }else{
+      uint8_t addr;
+      if(digtemp.getAddress(&addr, 0)){
+        Serial.print("digtemp 0 address: ");
+        Serial.println(addr);
+      }
     }
   }
   return ambient_temp;
+
 }
 
 // we transmit approximately every 15s, sampling at that time. there are
 // several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 static void
-fanmgrLoop(float ambient){
+fanmgrLoop(int ledpin, float ambient){
+  client.loop(); // handle any necessary wifi/mqtt
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
@@ -382,6 +399,15 @@ fanmgrLoop(float ambient){
     if(diff < 15000000){
       return;
     }
+  }
+  if(client.isConnected()){
+    digitalWrite(ledpin, HIGH);
+  }else{
+    digitalWrite(ledpin, LOW);
+  }
+  if(!client.isConnected()){
+    Serial.println("no connection, won't transmit");
+    return;
   }
   Serial.println("TRANSMIT");
   mqttmsg mmsg(client);
