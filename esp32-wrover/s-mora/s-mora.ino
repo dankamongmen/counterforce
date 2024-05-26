@@ -24,13 +24,13 @@
 static const int AMBIENTPIN = 4;
 
 static const int FANPWMPIN = 32;
-static const int FANTACHPIN = 36;
+static const int FANTACHPIN = 34;
 
 static const int PUMPAPWMPIN = 27;
-static const int PUMPATACHPIN = 39;
+static const int PUMPATACHPIN = 25;
 
 static const int PUMPBPWMPIN = 14;
-static const int PUMPBTACHPIN = 34;
+static const int PUMPBTACHPIN = 13;
 
 #include "common.h"
 
