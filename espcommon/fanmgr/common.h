@@ -305,8 +305,8 @@ displaySetup(void){
   disp.clearDisplay();
   disp.setTextSize(1);
   disp.setTextColor(WHITE);
-  disp.setCursor(0,28);
-  disp.println("Hello world!");
+  disp.setCursor(0, 0);
+  disp.println("fanmgr v" VERSION);
   disp.display();
   return 0;
 }
