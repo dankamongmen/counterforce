@@ -331,13 +331,6 @@ fanmgrSetup(int ledpin){
   nvs_setup(&Nvs);
   printf("Fan PWM initialized to %u\n", FanPwm);
   printf("Pump PWM initialized to %u\n", PumpPwm);
-  wifi_country_t country = {
-    .cc = "US",
-  };
-  // FIXME needs to come later
-  if(esp_wifi_set_country(&country) != ESP_OK){
-    printf("error setting wifi country\n");
-  }
   Serial.println("initialized!");
 }
 
@@ -352,6 +345,19 @@ commit(nvs_handle_t nh){
 }
 
 void onConnectionEstablished() {
+  wifi_country_t country = {
+    .cc = "US",
+    .schan = 1,
+    .nchan = 14,
+  };
+  esp_err_t err = esp_wifi_set_country(&country);
+  if(err == ESP_OK){
+    printf("loaded US wifi regulatory policy\n");
+  }else if(err == ESP_ERR_INVALID_ARG){
+    printf("error setting wifi country--bad argument\n");
+  }else{
+    printf("error setting wifi country--not initialized\n");
+  }
   Serial.println("got an MQTT connection");
   client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
       Serial.print("received fan pwm via mqtt: ");
