@@ -21,6 +21,6 @@ void setup(){
 }
 
 void loop(void){
-  float ambient = sampleSensors(LEDPIN);
-  heltecLoop(ambient);
+  float ambient = sampleSensors();
+  heltecLoop(LEDPIN, ambient);
 }

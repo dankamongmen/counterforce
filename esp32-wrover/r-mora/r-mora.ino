@@ -21,6 +21,6 @@ void setup(void){
 }
 
 void loop(void){
-  float ambient = sampleSensors(LEDPIN);
-  fanmgrLoop(ambient);
+  float ambient = sampleSensors();
+  fanmgrLoop(LEDPIN, ambient);
 }
