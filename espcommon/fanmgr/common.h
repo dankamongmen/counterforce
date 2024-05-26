@@ -305,7 +305,7 @@ displaySetup(void){
   disp.clearDisplay();
   disp.setTextSize(1);
   disp.setTextColor(WHITE);
-  disp.setCursor(0, 0);
+  disp.setCursor(0, 10);
   disp.println("fanmgr v" VERSION);
   disp.display();
   return 0;
@@ -315,6 +315,7 @@ static void
 fanmgrSetup(int ledpin){
   Serial.begin(115200);
   Serial.println("initializing!");
+  //setCpuFrequencyMhz(80);
   client.enableDebuggingMessages();
   client.enableMQTTPersistence();
   client.enableHTTPWebUpdater();
@@ -396,27 +397,24 @@ sampleSensors(void){
   if(!onewire_connected){
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
-    }
-    /*
-    uint8_t res, dev;
-    dev = 0;
-	  res = digtemp.getResolution(&dev);
-    printf("therm resolution: %u bits\n", res);
-    if(digtemp.setResolution(&dev, 9)){
-      printf("set resolution to 9 bits\n");
-    }
-    */
-  }
-  if(onewire_connected){
-    if(readAmbient(&ambient_temp, &digtemp)){
-      onewire_connected = false;
-      ambient_temp = NAN;
-    }else{
       uint8_t addr;
       if(digtemp.getAddress(&addr, 0)){
         Serial.print("digtemp 0 address: ");
         Serial.println(addr);
       }
+      uint8_t res, dev;
+      dev = 0;
+      res = digtemp.getResolution(&dev);
+      printf("therm resolution: %u bits\n", res);
+      if(digtemp.setResolution(&dev, 9)){
+        printf("set resolution to 9 bits\n");
+      }
+    }
+  }
+  if(onewire_connected){
+    if(readAmbient(&ambient_temp, &digtemp)){
+      onewire_connected = false;
+      ambient_temp = NAN;
     }
   }
   return ambient_temp;
@@ -427,26 +425,20 @@ sampleSensors(void){
 // several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 static void
 fanmgrLoop(int ledpin, float ambient){
-  client.loop(); // handle any necessary wifi/mqtt
   unsigned long m = micros();
+  client.loop(); // handle any necessary wifi/mqtt
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
-  if(last_tx){
-    if(diff < 15000000){
-      return;
-    }
-  }
   if(client.isConnected()){
     digitalWrite(ledpin, HIGH);
   }else{
     digitalWrite(ledpin, LOW);
   }
-  if(!client.isConnected()){
-    Serial.println("no connection, won't transmit");
-    return;
+  if(last_tx){
+    if(diff < 15000000){
+      return;
+    }
   }
-  Serial.println("TRANSMIT");
-  mqttmsg mmsg(client);
   unsigned frpm, parpm, pbrpm;
   detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
   detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
@@ -459,6 +451,7 @@ fanmgrLoop(int ledpin, float ambient){
   init_tach(PUMPATACHPIN, rpm_pumpa);
   init_tach(FANTACHPIN, rpm_fan);
   last_tx = micros();
+  mqttmsg mmsg(client);
   if(frpm < RPMMAX){
     frpm = rpm(frpm, diff);
     Serial.print("FanRpm: ");
@@ -484,4 +477,6 @@ fanmgrLoop(int ledpin, float ambient){
     Serial.print("Successful xmit at ");
     Serial.println(m);
   }
+  uint32_t freq = getCpuFrequencyMhz();
+  printf("cpu freq: %lu xtal: %lu\n", freq, getXtalFrequencyMhz());
 }
