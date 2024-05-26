@@ -1,5 +1,4 @@
-//#define DEVNAME "s-mora"
-#define DEVNAME "demo"
+#define DEVNAME "s-mora"
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 
@@ -9,8 +8,10 @@
 //  D16 (RX2)
 //  D17 (TX2)
 //  D5 (must be HIGH on boot)
+//  D21 (SDA)
 //  D3 (RX0)
 //  D1 (TX0)
+//  D22 (SCL)
 
 // constraints for EN side
 //  D12 (must be LOW on boot)
@@ -22,13 +23,13 @@
 // ambient temperature (digital thermometer, Dallas 1-wire)
 static const int AMBIENTPIN = 4;
 
-static const int FANPWMPIN = 23;
+static const int FANPWMPIN = 32;
 static const int FANTACHPIN = 36;
 
-static const int PUMPAPWMPIN = 22;
+static const int PUMPAPWMPIN = 27;
 static const int PUMPATACHPIN = 39;
 
-static const int PUMPBPWMPIN = 21;
+static const int PUMPBPWMPIN = 14;
 static const int PUMPBTACHPIN = 34;
 
 #include "common.h"
@@ -37,6 +38,7 @@ static const int LEDPIN = 2;
 
 void setup(void){
   //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  displaySetup();
   fanmgrSetup(LEDPIN);
 }
 
