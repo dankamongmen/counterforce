@@ -111,8 +111,8 @@ heltecSetup(int ledpin){
 }
 
 static int
-heltecLoop(float ambient){
-  fanmgrLoop(ambient);
+heltecLoop(int ledpin, float ambient){
+  fanmgrLoop(ledpin, ambient);
   updateDisplay(ambient, FanRpm, PumpARpm, PumpBRpm, FanPwm, PumpPwm);
   return 0;
 }

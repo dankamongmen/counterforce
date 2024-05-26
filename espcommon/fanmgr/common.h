@@ -41,7 +41,7 @@ static volatile unsigned PumpBRpm;
 // Declaration for SSD1306 display connected using I2C
 #define OLED_RESET     -1 // Reset pin
 #define SCREEN_ADDRESS 0x3C
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 disp(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void ISR rpm_fan(void){
   if(FanRpm < RPMMAX){
@@ -296,18 +296,18 @@ nvs_setup(nvs_handle_t *nh){
 
 static int
 displaySetup(void){
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
+  if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
     for(;;){
       Serial.println(F("SSD1306 allocation failed"));
     }
     return -1;
   }
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0,28);
-  display.println("Hello world!");
-  display.display();
+  disp.clearDisplay();
+  disp.setTextSize(1);
+  disp.setTextColor(WHITE);
+  disp.setCursor(0,28);
+  disp.println("Hello world!");
+  disp.display();
   return 0;
 }
 
