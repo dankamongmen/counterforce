@@ -1,5 +1,4 @@
-//#define DEVNAME "s-mora"
-#define DEVNAME "demo"
+#define DEVNAME "s-mora"
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 

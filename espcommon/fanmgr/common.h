@@ -21,6 +21,7 @@
 #define ISR IRAM_ATTR //ICACHE_RAM_ATRR
 #endif
 
+static bool usingDisplay;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
@@ -118,23 +119,32 @@ maketimestr(char *str){
   }
 }
 
+#define TEXTHEIGHT 10
+
 static void
 displayDraw(float ambient){
-  disp.clearDisplay();
-  disp.setTextSize(1);
-  disp.setTextColor(WHITE);
-  disp.setCursor(0, 0);
-  disp.println("inaMORAta v" VERSION);
-  if(isnan(ambient)){
-    disp.printf("ambient: --\n");
-  }else{
-    disp.printf("ambient: %0.2f C\n", ambient);
+  if(usingDisplay){
+    disp.clearDisplay();
+    disp.setTextSize(1);
+    disp.setTextColor(WHITE);
+    disp.setCursor(0, 0);
+    disp.println("inaMORAta v" VERSION);
+    if(isnan(ambient)){
+      disp.printf("ambient: --");
+    }else{
+      disp.printf("ambient: %0.2f C", ambient);
+    }
+    disp.setCursor(0, 2 * TEXTHEIGHT + 1);
+    disp.printf("fans: %u %lu\n", FanPwm, FanRpm);
+    disp.setCursor(0, 3 * TEXTHEIGHT + 2);
+    disp.printf("pump a: %u %lu\n", PumpPwm, PumpARpm);
+    disp.printf("pump b: %u %lu\n", PumpPwm, PumpBRpm);
+    char tempstr[16];
+    maketimestr(tempstr);
+    disp.setCursor(0, SCREEN_HEIGHT - TEXTHEIGHT);
+    disp.printf("uptime: %s", tempstr);
+    disp.display();
   }
-  char tempstr[16];
-  maketimestr(tempstr);
-  disp.setCursor(0, SCREEN_HEIGHT - 10);
-  disp.printf("uptime: %s", tempstr);
-  disp.display();
 }
 
 static int readAmbient(float* t, DallasTemperature *dt){
@@ -335,11 +345,10 @@ nvs_setup(nvs_handle_t *nh){
 static int
 displaySetup(void){
   if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
-    for(;;){
-      Serial.println(F("SSD1306 allocation failed"));
-    }
+    Serial.println(F("SSD1306 allocation failed"));
     return -1;
   }
+  usingDisplay = true;
   displayDraw(NAN);
   return 0;
 }
@@ -488,29 +497,25 @@ fanmgrLoop(int ledpin, float ambient){
   mqttmsg mmsg(client);
   if(frpm < RPMMAX){
     frpm = rpm(frpm, diff);
-    Serial.print("FanRpm: ");
-    Serial.println(frpm);
+    printf("fanrpm: %u\n", frpm);
     publish_pair(mmsg, "rpm", frpm);
   }
   if(parpm < RPMMAX){
     parpm = rpm(parpm, diff);
-    Serial.print("PumpARpm: ");
-    Serial.println(parpm);
+    printf("pumparpm: %u\n", parpm);
     publish_pair(mmsg, "pumparpm", parpm);
   }
   if(pbrpm < RPMMAX){
     pbrpm = rpm(pbrpm, diff);
-    Serial.print("PumpBRpm: ");
-    Serial.println(pbrpm);
+    printf("pumpbrpm: %u\n", pbrpm);
     publish_pair(mmsg, "pumpbrpm", pbrpm);
   }
   publish_temps(mmsg, ambient);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   publish_version(mmsg);
   if(mmsg.publish()){
-    Serial.print("Successful xmit at ");
-    Serial.println(m);
+    printf("successful xmit at %lu\n", m);
   }
-  uint32_t freq = getCpuFrequencyMhz();
-  printf("cpu freq: %lu xtal: %lu\n", freq, getXtalFrequencyMhz());
+  /*uint32_t freq = getCpuFrequencyMhz();
+  printf("cpu freq: %lu xtal: %lu\n", freq, getXtalFrequencyMhz());*/
 }
