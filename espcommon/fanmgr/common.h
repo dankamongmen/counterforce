@@ -209,13 +209,17 @@ void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
 }
 
 // we shouldn't ever see 60C (140F) at the MO-RA3; filter them.
-static inline bool valid_temp(float t){
+static inline bool
+valid_temp(float t){
   return !(isnan(t) || t > 60 || t <= DEVICE_DISCONNECTED_C);
 }
 
-static inline float rpm(unsigned long pulses, unsigned long usec){
-  Serial.print(pulses);
-  Serial.println(" pulses measured");
+static inline unsigned
+rpm(unsigned long pulses, unsigned long usec){
+  printf("%lu pulses measured\n", pulses);
+  if(pulses >= RPMMAX){
+    return RPMMAX;
+  }
   return pulses * 30000000.0 / usec;
 }
 
@@ -343,7 +347,8 @@ nvs_setup(nvs_handle_t *nh){
 }
 
 static int
-displaySetup(void){
+displaySetup(int sclpin, int sdapin){
+  Wire.setPins(sclpin, sdapin);
   if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
     Serial.println(F("SSD1306 allocation failed"));
     return -1;
@@ -495,18 +500,18 @@ fanmgrLoop(int ledpin, float ambient){
   init_tach(FANTACHPIN, rpm_fan);
   last_tx = micros();
   mqttmsg mmsg(client);
+  frpm = rpm(frpm, diff);
   if(frpm < RPMMAX){
-    frpm = rpm(frpm, diff);
     printf("fanrpm: %u\n", frpm);
     publish_pair(mmsg, "rpm", frpm);
   }
+  parpm = rpm(parpm, diff);
   if(parpm < RPMMAX){
-    parpm = rpm(parpm, diff);
     printf("pumparpm: %u\n", parpm);
     publish_pair(mmsg, "pumparpm", parpm);
   }
+  pbrpm = rpm(pbrpm, diff);
   if(pbrpm < RPMMAX){
-    pbrpm = rpm(pbrpm, diff);
     printf("pumpbrpm: %u\n", pbrpm);
     publish_pair(mmsg, "pumpbrpm", pbrpm);
   }

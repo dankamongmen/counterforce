@@ -32,13 +32,15 @@ static const int PUMPATACHPIN = 35;
 static const int PUMPBPWMPIN = 27;
 static const int PUMPBTACHPIN = 32;
 
+static const int I2C_SCL = SCL;
+static const int I2C_SDA = SDA;
+
 #include "common.h"
 
 static const int LEDPIN = 2;
 
 void setup(void){
-  //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
-  displaySetup();
+  displaySetup(I2C_SCL, I2C_SDA);
   fanmgrSetup(LEDPIN);
 }
 
