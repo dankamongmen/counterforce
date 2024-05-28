@@ -13,7 +13,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-#define VERSION "2.5.0"
+#define VERSION "2.5.1"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -100,6 +100,25 @@ static int extract_pwm(const String& payload){
 }
 
 static void
+maketimestr(char *str){
+  uint64_t ticks = esp_timer_get_time();
+  ticks /= 1000000;
+  unsigned s = ticks % 60;
+  unsigned m = (ticks % 3600) / 60;
+  unsigned h = (ticks % 86400lu) / 3600;
+  unsigned d = ticks / 86400lu;
+  if(d){
+    sprintf(str, "%ud %uh %um %us", d, h, m, s);
+  }else if(h){
+    sprintf(str, "%uh %um %us", h, m, s);
+  }else if(m){
+    sprintf(str, "%um %us", m, s);
+  }else{
+    sprintf(str, "%us", s);
+  }
+}
+
+static void
 displayDraw(float ambient){
   disp.clearDisplay();
   disp.setTextSize(1);
@@ -111,6 +130,10 @@ displayDraw(float ambient){
   }else{
     disp.printf("ambient: %0.2f C\n", ambient);
   }
+  char tempstr[16];
+  maketimestr(tempstr);
+  disp.setCursor(0, SCREEN_HEIGHT - 10);
+  disp.printf("uptime: %s", tempstr);
   disp.display();
 }
 

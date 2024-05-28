@@ -49,25 +49,6 @@ normalizeRPM(int* rpm, int pwm){
   }
 }
 
-static void
-maketimestr(char *str){
-  uint64_t ticks = esp_timer_get_time();
-  ticks /= 1000000;
-  unsigned s = ticks % 60;
-  unsigned m = (ticks % 3600) / 60;
-  unsigned h = (ticks % 86400lu) / 3600;
-  unsigned d = ticks / 86400lu;
-  if(d){
-    sprintf(str, "%ud %uh %um %us", d, h, m, s);
-  }else if(h){
-    sprintf(str, "%uh %um %us", h, m, s);
-  }else if(m){
-    sprintf(str, "%um %us", m, s);
-  }else{
-    sprintf(str, "%us", s);
-  }
-}
-
 // update the display with current samples
 static void
 updateDisplay(float ambient, int fanrpm, int pumparpm, int pumpbrpm,
