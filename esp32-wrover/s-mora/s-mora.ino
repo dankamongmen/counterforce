@@ -24,14 +24,14 @@
 // ambient temperature (digital thermometer, Dallas 1-wire)
 static const int AMBIENTPIN = 4;
 
-static const int FANPWMPIN = 26;
+static const int FANPWMPIN = 23;
 static const int FANTACHPIN = 34;
 
 static const int PUMPAPWMPIN = 13;
-static const int PUMPATACHPIN = 26;
+static const int PUMPATACHPIN = 35;
 
-static const int PUMPBPWMPIN = 14;
-static const int PUMPBTACHPIN = 13;
+static const int PUMPBPWMPIN = 27;
+static const int PUMPBTACHPIN = 32;
 
 #include "common.h"
 

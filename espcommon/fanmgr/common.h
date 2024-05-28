@@ -99,6 +99,21 @@ static int extract_pwm(const String& payload){
   return hb * 16 + lb;
 }
 
+static void
+displayDraw(float ambient){
+  disp.clearDisplay();
+  disp.setTextSize(1);
+  disp.setTextColor(WHITE);
+  disp.setCursor(0, 0);
+  disp.println("inaMORAta v" VERSION);
+  if(isnan(ambient)){
+    disp.printf("ambient: --\n");
+  }else{
+    disp.printf("ambient: %0.2f C\n", ambient);
+  }
+  disp.display();
+}
+
 static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
@@ -302,12 +317,7 @@ displaySetup(void){
     }
     return -1;
   }
-  disp.clearDisplay();
-  disp.setTextSize(1);
-  disp.setTextColor(WHITE);
-  disp.setCursor(0, 10);
-  disp.println("fanmgr v" VERSION);
-  disp.display();
+  displayDraw(NAN);
   return 0;
 }
 
@@ -417,6 +427,7 @@ sampleSensors(void){
       ambient_temp = NAN;
     }
   }
+  displayDraw(ambient_temp);
   return ambient_temp;
 
 }
