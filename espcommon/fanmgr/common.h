@@ -13,7 +13,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-#define VERSION "2.5.1"
+#define VERSION "2.6.0"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -201,10 +201,7 @@ void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
   if(val < RPMMAX){ // filter out obviously incorrect values
     mmsg.add(key, val);
   }else{
-    Serial.print("not publishing ");
-    Serial.print(val);
-    Serial.print(" for ");
-    Serial.println(key);
+    printf("not publishing %u for %s\n", val, key);
   }
 }
 
