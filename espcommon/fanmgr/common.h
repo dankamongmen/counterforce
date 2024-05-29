@@ -119,32 +119,47 @@ maketimestr(char *str){
   }
 }
 
+static int
+displayCoreSetup(void){
+  if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
+    Serial.println(F("SSD1306 allocation failed"));
+    return -1;
+  }
+  usingDisplay = true;
+  return 0;
+}
+
 #define TEXTHEIGHT 10
 
-static void
+static int
 displayDraw(float ambient){
-  if(usingDisplay){
-    disp.clearDisplay();
-    disp.setTextSize(1);
-    disp.setTextColor(WHITE);
-    disp.setCursor(0, 0);
-    disp.println("inaMORAta v" VERSION);
-    if(isnan(ambient)){
-      disp.printf("ambient: --");
-    }else{
-      disp.printf("ambient: %0.2f C", ambient);
+  if(!usingDisplay){
+    if(displayCoreSetup()){
+      return -1;
     }
-    disp.setCursor(0, 2 * TEXTHEIGHT + 1);
-    disp.printf("fans: %u %lu\n", FanPwm, FanRpm);
-    disp.setCursor(0, 3 * TEXTHEIGHT + 2);
-    disp.printf("pump a: %u %lu\n", PumpPwm, PumpARpm);
-    disp.printf("pump b: %u %lu\n", PumpPwm, PumpBRpm);
-    char tempstr[16];
-    maketimestr(tempstr);
-    disp.setCursor(0, SCREEN_HEIGHT - TEXTHEIGHT);
-    disp.printf("uptime: %s", tempstr);
-    disp.display();
   }
+  disp.clearDisplay();
+  disp.setTextSize(1);
+  disp.setTextColor(WHITE);
+  disp.setCursor(0, 0);
+  disp.println("inaMORAta v" VERSION);
+  if(isnan(ambient)){
+    disp.printf("ambient: --");
+  }else{
+    disp.printf("ambient: %0.2f C", ambient);
+  }
+  disp.setCursor(0, 2 * TEXTHEIGHT + 1);
+  disp.printf("fans: %u %lu\n", FanPwm, FanRpm);
+  disp.setCursor(0, 3 * TEXTHEIGHT + 2);
+  disp.printf("pump a: %u %lu\n", PumpPwm, PumpARpm);
+  disp.printf("pump b: %u %lu\n", PumpPwm, PumpBRpm);
+  char tempstr[16];
+  maketimestr(tempstr);
+  disp.setCursor(0, SCREEN_HEIGHT - TEXTHEIGHT);
+  disp.printf("uptime: %s", tempstr);
+  // FIXME can we get an error here so we restart the display?
+  disp.display();
+  return 0;
 }
 
 static int readAmbient(float* t, DallasTemperature *dt){
@@ -345,14 +360,8 @@ nvs_setup(nvs_handle_t *nh){
 
 static int
 displaySetup(int sclpin, int sdapin){
-  Wire.setPins(sclpin, sdapin);
-  if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
-    Serial.println(F("SSD1306 allocation failed"));
-    return -1;
-  }
-  usingDisplay = true;
-  displayDraw(NAN);
-  return 0;
+  Wire.setPins(sdapin, sclpin);
+  return displayDraw(NAN);
 }
 
 static void
