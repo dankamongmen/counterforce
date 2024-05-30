@@ -122,7 +122,7 @@ maketimestr(char *str){
 static int
 displayCoreSetup(void){
   if(!disp.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
-    Serial.println(F("SSD1306 allocation failed"));
+    printf("SSD1306 allocation failed\n");
     return -1;
   }
   usingDisplay = true;
@@ -382,6 +382,7 @@ fanmgrSetup(int ledpin){
   init_tach(PUMPATACHPIN, rpm_pumpa);
   init_tach(PUMPBTACHPIN, rpm_pumpb);
   pinMode(ledpin, OUTPUT);
+  digitalWrite(ledpin, HIGH);
   nvs_setup(&Nvs);
   printf("Fan PWM initialized to %u\n", FanPwm);
   printf("Pump PWM initialized to %u\n", PumpPwm);
@@ -484,9 +485,9 @@ fanmgrLoop(int ledpin, float ambient){
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
   if(client.isConnected()){
-    digitalWrite(ledpin, HIGH);
-  }else{
     digitalWrite(ledpin, LOW);
+  }else{
+    digitalWrite(ledpin, HIGH);
   }
   if(last_tx){
     if(diff < 15000000){
@@ -524,6 +525,9 @@ fanmgrLoop(int ledpin, float ambient){
   publish_temps(mmsg, ambient);
   publish_pwm(mmsg, FanPwm, PumpPwm);
   publish_version(mmsg);
+  // go high for the duration of the transmit. we'll go low again when we
+  // reenter fanmgrLoop() at the top, assuming we're connected.
+  digitalWrite(ledpin, HIGH);
   if(mmsg.publish()){
     printf("successful xmit at %lu\n", m);
   }
