@@ -1,1 +1,0 @@
-../../espcommon/fanmgr/helteccommon.h
