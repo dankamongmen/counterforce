@@ -83,6 +83,7 @@ static byte getHex(char c){
   return c - 'a' + 10;
 }
 
+// FIXME handle base 10 numbers as well (can we use strtoul?)
 static int extract_pwm(const String& payload){
   if(payload.length() != 2){
     Serial.println("pwm wasn't 2 characters");
@@ -98,6 +99,27 @@ static int extract_pwm(const String& payload){
   byte lb = getHex(l);
   // everything was valid
   return hb * 16 + lb;
+}
+
+static void init_tach(int pin, void(*fxn)(void)){
+  pinMode(pin, INPUT);
+  attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
+}
+
+static void
+get_rpms(unsigned *frpm, unsigned *parpm, unsigned *pbrpm, bool zero){
+  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
+  detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
+  detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
+    *frpm = FanRpm;
+    *parpm = PumpARpm;
+    *pbrpm = PumpBRpm;
+    if(zero){
+      FanRpm = PumpARpm = PumpBRpm = 0;
+    }
+  init_tach(PUMPBTACHPIN, rpm_pumpb);
+  init_tach(PUMPATACHPIN, rpm_pumpa);
+  init_tach(FANTACHPIN, rpm_fan);
 }
 
 static void
@@ -148,16 +170,29 @@ displayDraw(float ambient){
   }else{
     disp.printf("ambient: %0.2f C", ambient);
   }
+  unsigned frpm, parpm, pbrpm;
+  get_rpms(&frpm, &parpm, &pbrpm, false);
   disp.setCursor(0, 2 * TEXTHEIGHT + 1);
-  disp.printf("fans: %u %lu\n", FanPwm, FanRpm);
+  if(frpm >= RPMMAX || (!frpm && FanPwm)){
+    disp.printf("fans: %u --\n", FanPwm);
+  }else{
+    disp.printf("fans: %u %lu\n", FanPwm, frpm);
+  }
   disp.setCursor(0, 3 * TEXTHEIGHT + 2);
-  disp.printf("pump a: %u %lu\n", PumpPwm, PumpARpm);
-  disp.printf("pump b: %u %lu\n", PumpPwm, PumpBRpm);
+  if(parpm >= RPMMAX || (!parpm && PumpPwm)){
+    disp.printf("pump a: %u --\n", PumpPwm);
+  }else{
+    disp.printf("pump a: %u %lu\n", PumpPwm, parpm);
+  }
+  if(pbrpm >= RPMMAX || (!pbrpm && PumpPwm)){
+    disp.printf("pump b: %u --\n", PumpPwm);
+  }else{
+    disp.printf("pump b: %u %lu\n", PumpPwm, pbrpm);
+  }
   char tempstr[16];
   maketimestr(tempstr);
   disp.setCursor(0, SCREEN_HEIGHT - TEXTHEIGHT);
-  disp.printf("uptime: %s", tempstr);
-  // FIXME can we get an error here so we restart the display?
+  disp.printf(DEVNAME " uptime: %s", tempstr);
   disp.display();
   return 0;
 }
@@ -269,11 +304,6 @@ static void publish_pair(mqttmsg& mmsg, const char* key, int val){
   mmsg.add(key, val);
 }
 
-static void init_tach(int pin, void(*fxn)(void)){
-  pinMode(pin, INPUT);
-  attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
-}
-
 static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
   pinMode(pin, OUTPUT);
   ledc_channel_config_t conf;
@@ -374,10 +404,12 @@ fanmgrSetup(int ledpin){
   client.enableHTTPWebUpdater();
   initialize_25k_pwm(FANCHAN, FANPWMPIN, LEDC_TIMER_1);
   initialize_25k_pwm(PUMPACHAN, PUMPAPWMPIN, LEDC_TIMER_2);
-  initialize_25k_pwm(PUMPBCHAN, PUMPBPWMPIN, LEDC_TIMER_3);
+  if(PUMPAPWMPIN != PUMPBPWMPIN){
+    initialize_25k_pwm(PUMPBCHAN, PUMPBPWMPIN, LEDC_TIMER_3);
+    set_pwm(PUMPBCHAN, PumpPwm);
+  }
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
-  set_pwm(PUMPBCHAN, PumpPwm);
   init_tach(FANTACHPIN, rpm_fan);
   init_tach(PUMPATACHPIN, rpm_pumpa);
   init_tach(PUMPBTACHPIN, rpm_pumpb);
@@ -495,16 +527,7 @@ fanmgrLoop(int ledpin, float ambient){
     }
   }
   unsigned frpm, parpm, pbrpm;
-  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
-  detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
-  detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
-    frpm = FanRpm;
-    parpm = PumpARpm;
-    pbrpm = PumpBRpm;
-    FanRpm = PumpARpm = PumpBRpm = 0;
-  init_tach(PUMPBTACHPIN, rpm_pumpb);
-  init_tach(PUMPATACHPIN, rpm_pumpa);
-  init_tach(FANTACHPIN, rpm_fan);
+  get_rpms(&frpm, &parpm, &pbrpm, true);
   last_tx = micros();
   mqttmsg mmsg(client);
   frpm = rpm(frpm, diff);
