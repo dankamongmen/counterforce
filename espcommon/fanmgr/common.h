@@ -166,9 +166,9 @@ displayDraw(float ambient){
   disp.setCursor(0, 0);
   disp.println("inaMORAta v" VERSION);
   if(isnan(ambient)){
-    disp.printf("ambient: --");
+    disp.printf(DEVNAME " --");
   }else{
-    disp.printf("ambient: %0.2f C", ambient);
+    disp.printf(DEVNAME " %0.2f C", ambient);
   }
   unsigned frpm, parpm, pbrpm;
   get_rpms(&frpm, &parpm, &pbrpm, false);
@@ -192,7 +192,7 @@ displayDraw(float ambient){
   char tempstr[16];
   maketimestr(tempstr);
   disp.setCursor(0, SCREEN_HEIGHT - TEXTHEIGHT);
-  disp.printf(DEVNAME " uptime: %s", tempstr);
+  disp.printf("uptime: %s", tempstr);
   disp.display();
   return 0;
 }

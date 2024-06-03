@@ -8,10 +8,11 @@ TOPIC=sensors/schwarzgerät
 
 [ -n "$MQTTUSER" ] || { echo "export MQTT username as MQTTUSER" >&2 ; exit 1 ; }
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
+[ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
 
 # swallow errors so we don't exit. optional arguments might include -r.
 mqttflush() {
-  "$MQTT" $@ --id schwarzgerät -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+  "$MQTT" -h "$MQTTHOST" --id schwarzgerät -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
     { echo "error publishing to mqtt: $POST" >&2 ; }
 }
 
@@ -44,7 +45,7 @@ procnetdevtx() {
 ITER=0
 
 mqtt kernel \"`uname -r`\"
-mqttflush -r
+#mqttflush -r
 
 while true ; do
   ITER=$((ITER + 1))
