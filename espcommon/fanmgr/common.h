@@ -13,7 +13,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-#define VERSION "2.6.0"
+#define VERSION "2.7.0"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
