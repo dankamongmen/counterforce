@@ -35,7 +35,6 @@ void setup(void){
   init_adc_chan("unspec", ADC1_CHANNEL_5);
   init_adc_chan("unspec", ADC1_CHANNEL_6);
   init_adc_chan("unspec", ADC1_CHANNEL_7);
-  delay(500);
 }
 
 void loop(void){
@@ -43,5 +42,9 @@ void loop(void){
   int ch4 = adc1_get_raw(ADC1_CHANNEL_3);
   int voc = adc1_get_raw(ADC1_CHANNEL_4);
   printf("H2S: %d CH4: %d VOC: %d\n", h2s, ch4, voc);
-  delay(500);
+  int u1 = adc1_get_raw(ADC1_CHANNEL_5);
+  int u2 = adc1_get_raw(ADC1_CHANNEL_6);
+  int u3 = adc1_get_raw(ADC1_CHANNEL_7);
+  printf("unspec: %d %d %d\n", u1, u2, u3);
+  delay(1000);
 }
