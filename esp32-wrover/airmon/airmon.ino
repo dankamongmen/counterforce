@@ -28,23 +28,20 @@ int init_adc_chan(const char *sensor, adc1_channel_t channel){
 void setup(void){
   Serial.begin(115200);
   adc1_config_width(ADC_WIDTH_BIT_12);
-  // 37 and 38 (channels 1 and 2) are unavailable on ESP32-WROOM.
-  init_adc_chan("VOC", ADC1_CHANNEL_0);
-  init_adc_chan("CH4", ADC1_CHANNEL_4);
-  init_adc_chan("H2S", ADC1_CHANNEL_5);
-  init_adc_chan("unspec", ADC1_CHANNEL_3);
-  init_adc_chan("unspec", ADC1_CHANNEL_6);
-  init_adc_chan("unspec", ADC1_CHANNEL_7);
+  // 37, 38, and 39 (channels 1, 2, and 3) are unavailable on ESP32-WROOM.
+  init_adc_chan("VOC", ADC1_CHANNEL_0);  // 36
+  init_adc_chan("CH4", ADC1_CHANNEL_4);  // 32
+  init_adc_chan("H2S", ADC1_CHANNEL_5);  // 33
+  init_adc_chan("EtOH", ADC1_CHANNEL_6); // 34
+  init_adc_chan("HCHO", ADC1_CHANNEL_7); // 35
 }
 
 void loop(void){
-  int voc = adc1_get_raw(ADC1_CHANNEL_0);
-  int ch4 = adc1_get_raw(ADC1_CHANNEL_4);
-  int h2s = adc1_get_raw(ADC1_CHANNEL_5);
-  printf("H2S: %d CH4: %d VOC: %d\n", h2s, ch4, voc);
-  int u1 = adc1_get_raw(ADC1_CHANNEL_3);
-  int u2 = adc1_get_raw(ADC1_CHANNEL_6);
-  int u3 = adc1_get_raw(ADC1_CHANNEL_7);
-  printf("H2S: %d u2: %d u3: %d\n", u1, u2, u3);
+  int voc = adc1_get_raw(ADC1_CHANNEL_0); // volatile organics
+  int ch4 = adc1_get_raw(ADC1_CHANNEL_4); // methane
+  int h2s = adc1_get_raw(ADC1_CHANNEL_5); // hydrogen sulfide
+  int eoh = adc1_get_raw(ADC1_CHANNEL_6); // ethanol
+  int hcho = adc1_get_raw(ADC1_CHANNEL_7); // formaldehyde
+  printf("H2S: %d CH4: %d VOC: %d HCHO: %d EtOH: %d\n", h2s, ch4, voc, hcho, eoh);
   delay(1000);
 }
