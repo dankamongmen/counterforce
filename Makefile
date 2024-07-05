@@ -5,7 +5,8 @@ MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, fan4pwm geiger))
 ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, s-mora r-mora))
 ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(ESP32WROVERHEX))
+UNO4HEX:=$(addprefix unor4/, $(addsuffix .ino.hex, airmon))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO4HEX) $(ESP32WROVERHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 
@@ -41,9 +42,9 @@ $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:mega -v --output-dir $(@D) mega2560/geiger
 
-$(OUT)/mega2560/fan4pwm.ino.hex: $(addprefix mega2560/fan4pwm/, fan4pwm.ino)
+$(OUT)/unor4/airmon.ino.hex: $(addprefix unor4/airmon/, airmon.ino)
 	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b arduino:avr:mega -v --output-dir $(@D) mega2560/fan4pwm
+	$(ACLI) compile $(CFLAGS) -b arduino:renesas_uno:unor4wifi -v --output-dir $(@D) unor4/airmon
 
 clean:
 	rm -rf $(OUT)
