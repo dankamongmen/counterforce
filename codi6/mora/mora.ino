@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include <avr/wdt.h>
  
 #define FANS_PER_CHAN 3
 #define LEDS_PER_FAN 12 // Arctic P14 ARGB
@@ -8,6 +9,7 @@ CRGB p14[PWM_CHANNELS * LEDS_PER_PWM];
  
 void setup() {
   Serial.begin(115200);
+  wdt_disable();
   FastLED.addLeds<NEOPIXEL, 3>(p14 + LEDS_PER_PWM * 0, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 5>(p14 + LEDS_PER_PWM * 1, 0, sizeof(CRGB) * LEDS_PER_PWM);
   FastLED.addLeds<NEOPIXEL, 6>(p14 + LEDS_PER_PWM * 2, 0, sizeof(CRGB) * LEDS_PER_PWM);
@@ -20,6 +22,8 @@ void setup() {
   }
   FastLED.show();
   Serial.println("MoRa3 CODI6 visible");
+  wdt_enable(WDTO_2S);
+  Serial.println("watchdog enabled");
 }
 
 // ripped from Effects/Hypnotoad/Hypnotoad.cpp in OpenRGBEffectsPlugin (GPL2)
@@ -80,4 +84,5 @@ void loop() {
     //}
   }
   FastLED.show();
+  wdt_reset();
 }
