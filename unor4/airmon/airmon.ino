@@ -29,9 +29,14 @@ void setup(){
   while(!Serial){
     ;
   }
-  int status;
+  if(WiFi.status() == WL_NO_MODULE){
+    while(true){
+      Serial.println("couldn't find wifi module");
+    }
+  }
   Serial.print("WiFi firmware: ");
   Serial.println(WiFi.firmwareVersion());
+  int status;
   do{
     Serial.print("Attempting to connect to WPA SSID: ");
     Serial.println(SSID);
