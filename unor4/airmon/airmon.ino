@@ -1,14 +1,17 @@
 #define DEVNAME "ARDUINOR4"
 #include <limits.h>
 #include <WiFiS3.h>
+#include <ArduinoJson.h>
 //#include <PwmOut.h>
-#include <ArduinoMqttClient.h>
+#include <MQTTClient.h>
 #include "ArduinoSecrets.h"
 #include "Arduino_LED_Matrix.h"
 
-WiFiClient wifi;
-MqttClient client(wifi);
 ArduinoLEDMatrix matrix;
+CooperativeMultitasking tasks;
+WiFiClient wifi;
+MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
+MQTTTopic topic(&client, "sensors/" DEVNAME);
 static volatile unsigned Pulses; // fan tach
 
 static const int TACH_PIN = A0;
@@ -27,6 +30,26 @@ struct sensor {
   { MQ6_PIN, "MQ-6", },
   { MQ135_PIN, "MQ-135", }
 };
+
+typedef struct mqttmsg {
+ private:
+  MQTTClient& mqtt;
+  DynamicJsonDocument doc{BUFSIZ};
+ public:
+  mqttmsg(MQTTClient& esp) :
+    mqtt(esp)
+    {}
+  template<typename T> void add(const char* key, const T value){
+    doc[key] = value;
+  }
+  bool publish(){
+    add("uptimesec", millis() / 1000); // FIXME handle overflow
+    char buf[257]; // PubSubClient limits messages to 256 bytes
+    size_t n = serializeJson(doc, buf);
+    Serial.println(buf);
+    return topic.publish(buf);
+  }
+} mqttmsg;
 
 static void tach_pulse(void){
   if(Pulses < UINT_MAX){ // saturate
@@ -73,7 +96,6 @@ void setup(){
   }
   setup_interrupt(TACH_PIN);
   setup_25kpwm(255);
-  client.setUsernamePassword(MQTTUSER, MQTTPASS);
 }
 
 void asample(const struct sensor* s){
@@ -103,7 +125,6 @@ void loop(){
   static unsigned long lastWifiAttempt;
   static unsigned long lastTachSample;
   static bool wifiup;
-  static bool mqttup;
 
   unsigned long us = micros();
   if(!lastTachSample){
@@ -125,6 +146,8 @@ void loop(){
   }
   int status = WiFi.status();
   if(status != WL_CONNECTED){
+    Serial.print("wifi status: ");
+    Serial.println(status);
     unsigned long m = millis();
     // attempt reconnection immediately if we just lost our connection,
     // or we've never attempted to connect, or if it's been at least ten
@@ -133,7 +156,6 @@ void loop(){
       if(wifiup){
         matrix.loadFrame(LEDMATRIX_EMOJI_SAD);
         wifiup = false;
-        mqttup = false;
       }
       lastWifiAttempt = m;
       Serial.print("connecting to ssid ");
@@ -143,19 +165,17 @@ void loop(){
         Serial.println("got a connection");
         wifiup = true;
         matrix.loadFrame(LEDMATRIX_CLOUD_WIFI);
+        Serial.println("connecting to mqtt...");
+        status = client.connect();
+        Serial.print("mqttconnect result: ");
+        Serial.println(status);
       }else{
         Serial.println("couldn't get wifi");
       }
     }
   }
-  if(wifiup && !mqttup){
-    status = client.connect(BROKER, 0);
-    Serial.print("mqttconnect result: ");
-    Serial.println(status);
-    if(!status){
-      mqttup = true;
-    }
-  }
+  mqttmsg m(client);
+  m.publish();
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     asample(&sensors[i]);
   }
