@@ -1,11 +1,14 @@
 #define DEVNAME "ARDUINOR4"
 #include <pwm.h>
+#include <Wire.h>
 #include <limits.h>
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
 #include <MQTTClient.h>
 #include "ArduinoSecrets.h"
 #include "Arduino_LED_Matrix.h"
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
 
 static const int TACH_PIN = A0;
 static const int MQ4_PIN = A1;
@@ -21,6 +24,12 @@ CooperativeMultitasking tasks;
 MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
 MQTTTopic topic(&client, "sensors/" DEVNAME);
 static volatile unsigned Pulses; // fan tach
+
+// pixel dimensions of SSD1306 OLED
+#define SCREEN_WIDTH 64
+#define SCREEN_HEIGHT 64
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 struct sensor {
   int pin;
