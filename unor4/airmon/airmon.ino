@@ -1,6 +1,7 @@
 #define DEVNAME "ARDUINOR4"
 #include <limits.h>
 #include <WiFiS3.h>
+//#include <PwmOut.h>
 #include <ArduinoMqttClient.h>
 #include "ArduinoSecrets.h"
 #include "Arduino_LED_Matrix.h"
@@ -15,6 +16,7 @@ static const int MQ4_PIN = A1;
 static const int MQ9_PIN = A2;
 static const int MQ6_PIN = A3;
 static const int MQ135_PIN = A4;
+static const int PWM_PIN = D9;
 
 struct sensor {
   int pin;
@@ -38,6 +40,19 @@ static void setup_interrupt(int pin){
   attachInterrupt(digitalPinToInterrupt(pin), tach_pulse, FALLING);
 }
 
+// pwm takes values on [0..255]. uses PWM_PIN (9 implies P303 / GTIOC7B).
+static void setup_25kpwm(int pwm){
+  /*
+  TCCR1A = 0;
+  TCNT1 = 0;
+  TCCR1A = _BV(COM1A1) | _BV(WGM11); // mode 10: ph. correct PWM, TOP = ICR1
+  TCCR1B = _BV(WGM13) | _BV(CS10);
+  ICR1 = 320; // TOP = 320
+  OCR1A = pwm;
+  */
+  pinMode(PWM_PIN, OUTPUT);
+}
+
 void setup(){
   Serial.begin(115200);
   matrix.begin();
@@ -57,6 +72,8 @@ void setup(){
     pinMode(sensors[i].pin, INPUT_PULLDOWN);
   }
   setup_interrupt(TACH_PIN);
+  setup_25kpwm(255);
+  client.setUsernamePassword(MQTTUSER, MQTTPASS);
 }
 
 void asample(const struct sensor* s){
