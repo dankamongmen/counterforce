@@ -82,6 +82,11 @@ void setup(){
   Serial.begin(115200);
   matrix.begin();
   matrix.loadFrame(LEDMATRIX_BOOTLOADER_ON);
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
+    System.println("couldn't initialize ssd1306");
+  }else{
+    display.display(); // adafruit splash screen
+  }
   while(!Serial){
     ;
   }
