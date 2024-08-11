@@ -1,18 +1,11 @@
 #define DEVNAME "ARDUINOR4"
+#include <pwm.h>
 #include <limits.h>
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
-//#include <PwmOut.h>
 #include <MQTTClient.h>
 #include "ArduinoSecrets.h"
 #include "Arduino_LED_Matrix.h"
-
-ArduinoLEDMatrix matrix;
-CooperativeMultitasking tasks;
-WiFiClient wifi;
-MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
-MQTTTopic topic(&client, "sensors/" DEVNAME);
-static volatile unsigned Pulses; // fan tach
 
 static const int TACH_PIN = A0;
 static const int MQ4_PIN = A1;
@@ -20,6 +13,14 @@ static const int MQ9_PIN = A2;
 static const int MQ6_PIN = A3;
 static const int MQ135_PIN = A4;
 static const int PWM_PIN = D9;
+
+WiFiClient wifi;
+PwmOut pwmd3(D3);
+ArduinoLEDMatrix matrix;
+CooperativeMultitasking tasks;
+MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
+MQTTTopic topic(&client, "sensors/" DEVNAME);
+static volatile unsigned Pulses; // fan tach
 
 struct sensor {
   int pin;
@@ -65,15 +66,7 @@ static void setup_interrupt(int pin){
 
 // pwm takes values on [0..255]. uses PWM_PIN (9 implies P303 / GTIOC7B).
 static void setup_25kpwm(int pwm){
-  /*
-  TCCR1A = 0;
-  TCNT1 = 0;
-  TCCR1A = _BV(COM1A1) | _BV(WGM11); // mode 10: ph. correct PWM, TOP = ICR1
-  TCCR1B = _BV(WGM13) | _BV(CS10);
-  ICR1 = 320; // TOP = 320
-  OCR1A = pwm;
-  */
-  pinMode(PWM_PIN, OUTPUT);
+  pwmd3.pulse_perc(pwm);
 }
 
 void setup(){
@@ -95,7 +88,8 @@ void setup(){
     pinMode(sensors[i].pin, INPUT_PULLDOWN);
   }
   setup_interrupt(TACH_PIN);
-  setup_25kpwm(255);
+  pinMode(PWM_PIN, OUTPUT);
+  pwmd3.begin(25000.0f, 0.0f);
 }
 
 void asample(const struct sensor* s){
