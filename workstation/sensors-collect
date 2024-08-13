@@ -150,6 +150,8 @@ while true ; do
   COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
     mqtt aquacool $COOLTEMP
+  else
+    HFLOW=""
   fi
   EXTTEMP=$(sensors -j | jq .\"$HFLOW\".\"External\ sensor\".temp2_input) 2> /dev/null
   if [ "$EXTTEMP" != "null" ] ; then

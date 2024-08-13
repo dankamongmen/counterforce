@@ -1,4 +1,5 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
+// much of this is also used by arduino airmon, but copied FIXME
 #include "EspMQTTClient.h"
 #include <float.h>
 #include <Wire.h>
