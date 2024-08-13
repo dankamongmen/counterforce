@@ -16,6 +16,7 @@ static const int MQ9_PIN = A2;
 static const int MQ6_PIN = A3;
 static const int MQ135_PIN = A4;
 static const int PWM_PIN = D9;
+static const int RELAY_PIN = D4;
 
 WiFiClient wifi;
 PwmOut pwmd3(D3);
@@ -26,7 +27,7 @@ MQTTTopic topic(&client, "sensors/" DEVNAME);
 static volatile unsigned Pulses; // fan tach
 
 // pixel dimensions of SSD1306 OLED
-#define SCREEN_WIDTH 64
+#define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -82,13 +83,15 @@ void setup(){
   Serial.begin(115200);
   matrix.begin();
   matrix.loadFrame(LEDMATRIX_BOOTLOADER_ON);
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
-    System.println("couldn't initialize ssd1306");
-  }else{
-    display.display(); // adafruit splash screen
-  }
   while(!Serial){
     ;
+  }
+  Serial.println("initialized serial");
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
+    Serial.println("couldn't initialize ssd1306");
+  }else{
+    Serial.println("initialized ssd1306");
+    display.display(); // adafruit splash screen
   }
   if(WiFi.status() == WL_NO_MODULE){
     while(true){
@@ -103,6 +106,7 @@ void setup(){
   }
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
   pwmd3.begin(25000.0f, 0.0f);
 }
 
