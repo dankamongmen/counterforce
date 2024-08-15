@@ -102,6 +102,7 @@ int displayDraw(float ambient){
     if(displayCoreSetup()){
       return -1;
     }
+    usingDisplay = false; // FIXME
   }
   display.clearDisplay();
   display.setTextSize(1);
@@ -198,6 +199,7 @@ void setup(){
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
   pwmd3.begin(25000.0f, 0.0f);
 }
 
@@ -314,7 +316,6 @@ void loop(){
   }
   Serial.print("wifi rssi: ");
   Serial.println(WiFi.RSSI());
-  ambient_temp = rand();
   displayDraw(ambient_temp);
   delay(1000);
 }
