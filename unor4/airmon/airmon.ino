@@ -1,34 +1,42 @@
 #define DEVNAME "ARDUINOR4"
+#define VERSION "0.0.98"
 #include <pwm.h>
 #include <Wire.h>
 #include <limits.h>
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
 #include <MQTTClient.h>
-#include "ArduinoSecrets.h"
-#include "Arduino_LED_Matrix.h"
-#include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
+#include "ArduinoSecrets.h"
+#include <Adafruit_SSD1306.h>
+#include "Arduino_LED_Matrix.h"
+#include <DallasTemperature.h>
 
-static const int TACH_PIN = A0;
 static const int MQ4_PIN = A1;
 static const int MQ9_PIN = A2;
 static const int MQ6_PIN = A3;
 static const int MQ135_PIN = A4;
-static const int PWM_PIN = D9;
-static const int RELAY_PIN = D4;
+static const int TACH_PIN = D2;
+static const int PWM_PIN = D3;
+static const int TEMP_PIN = D4;
+static const int RELAY_PIN = D5;
 
 WiFiClient wifi;
 PwmOut pwmd3(D3);
 ArduinoLEDMatrix matrix;
+static bool usingDisplay;
 CooperativeMultitasking tasks;
 MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
 MQTTTopic topic(&client, "sensors/" DEVNAME);
 static volatile unsigned Pulses; // fan tach
 
+static OneWire twire(TEMP_PIN);
+static DallasTemperature digtemp(&twire);
+
 // pixel dimensions of SSD1306 OLED
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
+#define SCREEN_ADDRESS 0x3c // i2c
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
@@ -62,6 +70,68 @@ typedef struct mqttmsg {
   }
 } mqttmsg;
 
+int displayCoreSetup(void){
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
+    printf("SSD1306 allocation failed\n");
+    return -1;
+  }
+  usingDisplay = true;
+  return 0;
+}
+
+#define TEXTHEIGHT 10
+
+int displayDraw(float ambient){
+  if(!usingDisplay){
+    if(displayCoreSetup()){
+      return -1;
+    }
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("bambooster v" VERSION);
+  if(isnan(ambient)){
+    display.print(DEVNAME " --");
+  }else{
+    //display.print(DEVNAME " %0.2f C", ambient);
+  }
+  display.display();
+  return 0;
+}
+
+static int readAmbient(float* t, DallasTemperature *dt){
+  dt->requestTemperatures();
+  float tmp = dt->getTempCByIndex(0);
+  if(tmp <= DEVICE_DISCONNECTED_C){
+    Serial.println("error reading 1-wire temp");
+    return -1;
+  }
+  *t = tmp;
+  Serial.print("ambientC: ");
+  Serial.println(*t);
+  return 0;
+}
+
+// attempt to establish a connection to the DS18B20
+static int connect_onewire(DallasTemperature* dt){
+  static unsigned long last_error_diag;
+  dt->begin();
+  int devcount = dt->getDeviceCount();
+  if(devcount){
+    Serial.print("1-Wire devices: ");
+    Serial.println(devcount);
+    return 0;
+  }
+  unsigned long m = millis();
+  if(last_error_diag + 1000 <= m){
+    Serial.println("1Wire connerr");
+    last_error_diag = m;
+  }
+  return -1;
+}
+
 static void tach_pulse(void){
   if(Pulses < UINT_MAX){ // saturate
     ++Pulses;
@@ -87,7 +157,7 @@ void setup(){
     ;
   }
   Serial.println("initialized serial");
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)){
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
     Serial.println("couldn't initialize ssd1306");
   }else{
     Serial.println("initialized ssd1306");
@@ -106,6 +176,7 @@ void setup(){
   }
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
+  pinMode(TEMP_PIN, INPUT);
   pinMode(RELAY_PIN, OUTPUT);
   pwmd3.begin(25000.0f, 0.0f);
 }
@@ -136,7 +207,9 @@ void loop(){
   // seconds following a failed attempt, as it is a blocking call.
   static unsigned long lastWifiAttempt;
   static unsigned long lastTachSample;
+  static bool onewire_connected;
   static bool wifiup;
+  float ambient_temp = NAN;
 
   unsigned long us = micros();
   if(!lastTachSample){
@@ -186,6 +259,29 @@ void loop(){
       }
     }
   }
+  if(!onewire_connected){
+    if(connect_onewire(&digtemp) == 0){
+      onewire_connected = true;
+      uint8_t addr;
+      if(digtemp.getAddress(&addr, 0)){
+        Serial.print("digtemp 0 address: ");
+        Serial.println(addr);
+      }
+      uint8_t res, dev;
+      dev = 0;
+      res = digtemp.getResolution(&dev);
+      printf("therm resolution: %u bits\n", res);
+      if(digtemp.setResolution(&dev, 9)){
+        printf("set resolution to 9 bits\n");
+      }
+    }
+  }
+  if(onewire_connected){
+    if(readAmbient(&ambient_temp, &digtemp)){
+      onewire_connected = false;
+      ambient_temp = NAN;
+    }
+  }
   mqttmsg m(client);
   m.publish();
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
@@ -193,5 +289,6 @@ void loop(){
   }
   Serial.print("wifi rssi: ");
   Serial.println(WiFi.RSSI());
+  displayDraw(ambient_temp);
   delay(1000);
 }
