@@ -5,10 +5,10 @@
 #include <limits.h>
 #include <WiFiS3.h>
 #include <ArduinoJson.h>
-#include <MQTTClient.h>
 #include <Adafruit_GFX.h>
 #include "ArduinoSecrets.h"
 #include <Adafruit_SSD1306.h>
+#include <ArduinoMqttClient.h>
 #include "Arduino_LED_Matrix.h"
 #include <DallasTemperature.h>
 
@@ -25,9 +25,7 @@ WiFiClient wifi;
 PwmOut pwmd3(D3);
 ArduinoLEDMatrix matrix;
 static bool usingDisplay;
-CooperativeMultitasking tasks;
-MQTTClient client(&tasks, &wifi, BROKER, 1883, DEVNAME, MQTTUSER, MQTTPASS);
-MQTTTopic topic(&client, "sensors/" DEVNAME);
+MqttClient client(&wifi);
 static volatile unsigned Pulses; // fan tach
 
 static OneWire twire(TEMP_PIN);
@@ -52,10 +50,10 @@ struct sensor {
 
 typedef struct mqttmsg {
  private:
-  MQTTClient& mqtt;
+  MqttClient& mqtt;
   DynamicJsonDocument doc{BUFSIZ};
  public:
-  mqttmsg(MQTTClient& esp) :
+  mqttmsg(MqttClient& esp) :
     mqtt(esp)
     {}
   template<typename T> void add(const char* key, const T value){
@@ -65,8 +63,10 @@ typedef struct mqttmsg {
     add("uptimesec", millis() / 1000); // FIXME handle overflow
     char buf[257]; // PubSubClient limits messages to 256 bytes
     size_t n = serializeJson(doc, buf);
+    mqtt.beginMessage("sensors/" DEVNAME);
     Serial.println(buf);
-    return topic.publish(buf);
+    mqtt.print(buf);
+    return mqtt.endMessage();
   }
 } mqttmsg;
 
@@ -204,6 +204,8 @@ void setup(){
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
   pwmd3.begin(25000.0f, 0.0f);
+  client.setId(DEVNAME);
+  client.setUsernamePassword(MQTTUSER, MQTTPASS);
 }
 
 void asample(const struct sensor* s){
@@ -305,7 +307,7 @@ void loop(){
     matrix.loadFrame(LEDMATRIX_CLOUD_WIFI);
     if(!client.connected()){
       Serial.println("connecting to mqtt...");
-      status = client.connect();
+      status = client.connect(BROKER, 1883);
       Serial.print("mqttconnect result: ");
       Serial.println(status);
     }
@@ -320,7 +322,6 @@ void loop(){
   if(client.connected()){
     mqttmsg m(client);
     m.publish();
-    Serial.println("published to mqtt");
   }
   displayDraw(ambient_temp, smoke);
   delay(5000);
