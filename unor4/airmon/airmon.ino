@@ -97,7 +97,7 @@ void maketimestr(char *str){
   }
 }
 
-int displayDraw(float ambient){
+int displayDraw(float ambient, int smoke){
   if(!usingDisplay){
     if(displayCoreSetup()){
       return -1;
@@ -119,6 +119,8 @@ int displayDraw(float ambient){
   maketimestr(tempstr);
   display.print("uptime: ");
   display.println(tempstr);
+  display.print("smoke: ");
+  display.println(smoke);
   display.display();
   return 0;
 }
@@ -196,6 +198,7 @@ void setup(){
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     pinMode(sensors[i].pin, INPUT_PULLDOWN);
   }
+  pinMode(A0, INPUT_PULLDOWN);
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
@@ -314,8 +317,9 @@ void loop(){
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     asample(&sensors[i]);
   }
-  Serial.print("wifi rssi: ");
-  Serial.println(WiFi.RSSI());
-  displayDraw(ambient_temp);
-  delay(1000);
+  int smoke = analogRead(A0);
+  Serial.print("smoke: ");
+  Serial.println(smoke);
+  displayDraw(ambient_temp, smoke);
+  delay(5000);
 }
