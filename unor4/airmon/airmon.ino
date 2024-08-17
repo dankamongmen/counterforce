@@ -298,28 +298,30 @@ void loop(){
       Serial.print("connecting to ssid ");
       Serial.println(SSID);
       status = WiFi.begin(SSID, WPAPASS);
-      if(status == WL_CONNECTED){
-        Serial.println("got a connection");
-        wifiup = true;
-        matrix.loadFrame(LEDMATRIX_CLOUD_WIFI);
-        Serial.println("connecting to mqtt...");
-        status = client.connect();
-        Serial.print("mqttconnect result: ");
-        Serial.println(status);
-      }else{
-        Serial.println("couldn't get wifi");
-      }
+    }
+  }
+  if(status == WL_CONNECTED){
+    wifiup = true;
+    matrix.loadFrame(LEDMATRIX_CLOUD_WIFI);
+    if(!client.connected()){
+      Serial.println("connecting to mqtt...");
+      status = client.connect();
+      Serial.print("mqttconnect result: ");
+      Serial.println(status);
     }
   }
   get_temp(&ambient_temp);
-  mqttmsg m(client);
-  m.publish();
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     asample(&sensors[i]);
   }
   int smoke = analogRead(A0);
   Serial.print("smoke: ");
   Serial.println(smoke);
+  if(client.connected()){
+    mqttmsg m(client);
+    m.publish();
+    Serial.println("published to mqtt");
+  }
   displayDraw(ambient_temp, smoke);
   delay(5000);
 }
