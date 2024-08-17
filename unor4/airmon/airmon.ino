@@ -12,10 +12,6 @@
 #include "Arduino_LED_Matrix.h"
 #include <DallasTemperature.h>
 
-static const int MQ4_PIN = A1;
-static const int MQ9_PIN = A2;
-static const int MQ6_PIN = A3;
-static const int MQ135_PIN = A4;
 static const int TACH_PIN = D2;
 static const int PWM_PIN = D3;
 static const int TEMP_PIN = D4;
@@ -41,11 +37,15 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 struct sensor {
   int pin;
   const char* hw;
+  int sample; // last sample
+  int minsamp;
+  int maxsamp;
 } sensors[] = {
-  { MQ4_PIN, "MQ-4", },
-  { MQ9_PIN, "MQ-9", },
-  { MQ6_PIN, "MQ-6", },
-  { MQ135_PIN, "MQ-135", }
+  { A0, "MQ-2", -1, INT_MAX, -1, },
+  { A1, "MQ-4", -1, INT_MAX, -1, },
+  { A2, "MQ-6", -1, INT_MAX, -1, },
+  { A3, "MQ-9", -1, INT_MAX, -1, },
+  //{ A4, "MQ-135", -1, INT_MAX, -1, }
 };
 
 typedef struct mqttmsg {
@@ -97,7 +97,7 @@ void maketimestr(char *str){
   }
 }
 
-int displayDraw(float ambient, int smoke){
+int displayDraw(float ambient){
   if(!usingDisplay){
     if(displayCoreSetup()){
       return -1;
@@ -110,17 +110,19 @@ int displayDraw(float ambient, int smoke){
   display.setCursor(0, 0);
   display.println("bambooster v" VERSION);
   if(isnan(ambient)){
-    display.println(DEVNAME " --");
+    display.println("temp: --");
   }else{
-    display.print(DEVNAME " ");
+    display.print("temp: ");
     display.println((int)ambient); // FIXME float
   }
   char tempstr[16];
   maketimestr(tempstr);
   display.print("uptime: ");
   display.println(tempstr);
-  display.print("smoke: ");
-  display.println(smoke);
+  for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
+    display.print(sensors[i].hw);
+    display.println(sensors[i].sample);
+  }
   display.display();
   return 0;
 }
@@ -198,7 +200,6 @@ void setup(){
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     pinMode(sensors[i].pin, INPUT_PULLDOWN);
   }
-  pinMode(A0, INPUT_PULLDOWN);
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
@@ -208,9 +209,15 @@ void setup(){
   client.setUsernamePassword(MQTTUSER, MQTTPASS);
 }
 
-void asample(const struct sensor* s){
-  int a = analogRead(s->pin);
-  printf("%s: %d\n", s->hw, a);
+void asample(struct sensor* s){
+  s->sample = analogRead(s->pin);
+  if(s->sample < s->minsamp){
+    s->minsamp = s->sample;
+  }
+  if(s->sample > s->maxsamp){
+    s->maxsamp = s->sample;
+  }
+  printf("%s: %d (min %d max %d win %d)\n", s->hw, s->sample, s->minsamp, s->maxsamp, s->maxsamp - s->minsamp + 1);
 }
 
 // check for a ten second interval on milliseconds respecting wraparound
@@ -316,13 +323,10 @@ void loop(){
   for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
     asample(&sensors[i]);
   }
-  int smoke = analogRead(A0);
-  Serial.print("smoke: ");
-  Serial.println(smoke);
   if(client.connected()){
     mqttmsg m(client);
     m.publish();
   }
-  displayDraw(ambient_temp, smoke);
+  displayDraw(ambient_temp);
   delay(5000);
 }
