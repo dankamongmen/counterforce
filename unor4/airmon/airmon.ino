@@ -44,8 +44,7 @@ struct sensor {
   { A0, "MQ-2", -1, INT_MAX, -1, },
   { A1, "MQ-4", -1, INT_MAX, -1, },
   { A2, "MQ-6", -1, INT_MAX, -1, },
-  { A3, "MQ-9", -1, INT_MAX, -1, },
-  //{ A4, "MQ-135", -1, INT_MAX, -1, }
+  { A3, "MQ-135", -1, INT_MAX, -1, },
 };
 
 typedef struct mqttmsg {
