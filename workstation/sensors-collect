@@ -198,16 +198,6 @@ while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
-  if [ $((ITER % 100)) = 0 ] ; then
-    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
-  fi
-  if [ -z "$HARTSFIELD" ] ; then
-    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
-  fi
-  if [ -n "$HARTSFIELD" ] ; then
-    mqtt hartsfield $HARTSFIELD
-  fi
-
   # SATA disks
   DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
   DIDX=0

@@ -141,6 +141,16 @@ while true ; do
     mqtt "$NAME" $PCENT
   done
 
+  if [ $((ITER % 100)) = 0 ] ; then
+    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
+  fi
+  if [ -z "$HARTSFIELD" ] ; then
+    HARTSFIELD=$(weather-util -m 30308 | grep Temperature: | cut -d\  -f5 || true)
+  fi
+  if [ -n "$HARTSFIELD" ] ; then
+    mqtt hartsfield $HARTSFIELD
+  fi
+
   SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
   mqtt systemdfails $SYSTEMDFAILED
 
