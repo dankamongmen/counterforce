@@ -78,7 +78,7 @@ while true ; do
 
   reportfan() {
     VAL=$(echo $1 | cut -d. -f1)
-    [ $VAL -le 0 ] || mqtt $2 $VAL
+    [ $VAL != "null" ] && [ $VAL -le 0 ] || mqtt $2 $VAL
   }
 
   XTOP0RPM=$(sensors -j | jq '."it8689-isa-0a40".fan1.fan1_input') 2> /dev/null
