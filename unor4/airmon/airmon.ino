@@ -42,9 +42,11 @@ struct sensor {
   int maxsamp;
 } sensors[] = {
   { A0, "MQ-2", -1, INT_MAX, -1, },
-  { A1, "MQ-4", -1, INT_MAX, -1, },
+  { A1, "MQ-5", -1, INT_MAX, -1, },
   { A2, "MQ-6", -1, INT_MAX, -1, },
-  { A3, "MQ-135", -1, INT_MAX, -1, },
+  { A3, "MQ-7", -1, INT_MAX, -1, },
+  { A4, "MQ-9", -1, INT_MAX, -1, },
+  { A5, "MQ-135", -1, INT_MAX, -1, },
 };
 
 typedef struct mqttmsg {
@@ -58,12 +60,18 @@ typedef struct mqttmsg {
   template<typename T> void add(const char* key, const T value){
     doc[key] = value;
   }
-  bool publish(){
+  bool publish(float ambient, const struct sensor* s, unsigned sn){
     add("uptimesec", millis() / 1000); // FIXME handle overflow
+    for(unsigned i = 0 ; i < sn ; ++i){
+      add(s[i].hw, s[i].sample);
+    }
+    if(!isnan(ambient)){
+      add("dtemp", ambient);
+    }
     char buf[257]; // PubSubClient limits messages to 256 bytes
     size_t n = serializeJson(doc, buf);
-    mqtt.beginMessage("sensors/" DEVNAME);
     Serial.println(buf);
+    mqtt.beginMessage("sensors/" DEVNAME);
     mqtt.print(buf);
     return mqtt.endMessage();
   }
@@ -324,7 +332,7 @@ void loop(){
   }
   if(client.connected()){
     mqttmsg m(client);
-    m.publish();
+    m.publish(ambient_temp, sensors, sizeof(sensors) / sizeof(*sensors));
   }
   displayDraw(ambient_temp);
   delay(5000);

@@ -516,3 +516,43 @@ metrics:
    mqtt_name: uptimesec
    help: Uptime in seconds
    type: gauge
+ - prom_name: mq2
+   mqtt_name: MQ-2
+   help: MQ-2 sensor (smoke)
+   type: gauge
+ - prom_name: mq3
+   mqtt_name: MQ-3
+   help: MQ-3 sensor (alcohol)
+   type: gauge
+ - prom_name: mq4
+   mqtt_name: MQ-4
+   help: MQ-4 sensor (methane)
+   type: gauge
+ - prom_name: mq5
+   mqtt_name: MQ-5
+   help: MQ-5 sensor (lpg)
+   type: gauge
+ - prom_name: mq5
+   mqtt_name: MQ-5
+   help: MQ-5 sensor (lpg)
+   type: gauge
+ - prom_name: mq6
+   mqtt_name: MQ-6
+   help: MQ-6 sensor (lpg)
+   type: gauge
+ - prom_name: mq7
+   mqtt_name: MQ-7
+   help: MQ-7 sensor (co)
+   type: gauge
+ - prom_name: mq8
+   mqtt_name: MQ-8
+   help: MQ-8 sensor (h)
+   type: gauge
+ - prom_name: mq9
+   mqtt_name: MQ-9
+   help: MQ-9 sensor (gas)
+   type: gauge
+ - prom_name: mq135
+   mqtt_name: MQ-135
+   help: MQ-135 sensor (ch)
+   type: gauge
