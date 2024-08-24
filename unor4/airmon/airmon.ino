@@ -61,9 +61,18 @@ typedef struct mqttmsg {
     doc[key] = value;
   }
   bool publish(float ambient, const struct sensor* s, unsigned sn){
-    add("uptimesec", millis() / 1000); // FIXME handle overflow
-    for(unsigned i = 0 ; i < sn ; ++i){
-      add(s[i].hw, s[i].sample);
+    static unsigned long lastmillis;
+    static unsigned wraps;
+    unsigned long m = millis();
+    if(m < lastmillis){
+      ++wraps;
+    }
+    add("uptimesec", wraps * (ULONG_MAX / 1000) + m / 1000);
+    // don't send sensors for the first 120 seconds
+    if(wraps || m > 1000 * 120){
+      for(unsigned i = 0 ; i < sn ; ++i){
+        add(s[i].hw, s[i].sample);
+      }
     }
     if(!isnan(ambient)){
       add("dtemp", ambient);
@@ -73,6 +82,7 @@ typedef struct mqttmsg {
     Serial.println(buf);
     mqtt.beginMessage("sensors/" DEVNAME);
     mqtt.print(buf);
+    lastmillis = m;
     return mqtt.endMessage();
   }
 } mqttmsg;
@@ -327,12 +337,13 @@ void loop(){
     }
   }
   get_temp(&ambient_temp);
-  for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
+  const unsigned scount = sizeof(sensors) / sizeof(*sensors);
+  for(unsigned i = 0 ; i < scount ; ++i){
     asample(&sensors[i]);
   }
   if(client.connected()){
     mqttmsg m(client);
-    m.publish(ambient_temp, sensors, sizeof(sensors) / sizeof(*sensors));
+    m.publish(ambient_temp, sensors, scount);
   }
   displayDraw(ambient_temp);
   delay(5000);
