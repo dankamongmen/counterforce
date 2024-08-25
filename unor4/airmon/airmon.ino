@@ -68,8 +68,8 @@ typedef struct mqttmsg {
       ++wraps;
     }
     add("uptimesec", wraps * (ULONG_MAX / 1000) + m / 1000);
-    // don't send sensors for the first 120 seconds
-    if(wraps || m > 1000 * 120){
+    // don't send sensors for the first 60 seconds
+    if(wraps || m > 1000 * 60){
       for(unsigned i = 0 ; i < sn ; ++i){
         add(s[i].hw, s[i].sample);
       }
@@ -281,6 +281,22 @@ void get_temp(float *temp){
   }
 }
 
+static int extract_temp(const String& payload){
+  return atoi(payload.c_str());
+}
+
+void onMqttMessage(int num){
+  Serial.println("got an MQTT connection");
+  /*
+      Serial.print("received heater via mqtt: ");
+      Serial.println(payload);
+      int targtemp = extract_temp(payload);
+      Serial.print("target temp: ");
+      Serial.println(targtemp);
+      // FIXME
+      */
+}
+
 void loop(){
   // last time we attempted to connect to WiFi. we hold off for ten
   // seconds following a failed attempt, as it is a blocking call.
@@ -334,6 +350,10 @@ void loop(){
       status = client.connect(BROKER, 1883);
       Serial.print("mqttconnect result: ");
       Serial.println(status);
+      if(status){
+        client.onMessage(onMqttMessage);
+        client.subscribe("control/" DEVNAME "/heater", 1);
+      }
     }
   }
   get_temp(&ambient_temp);
