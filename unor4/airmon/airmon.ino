@@ -16,6 +16,9 @@ static const int TACH_PIN = D2;
 static const int PWM_PIN = D3;
 static const int TEMP_PIN = D4;
 static const int RELAY_PIN = D5;
+static const int MUXENABLE_PIN = D6;
+static const int MUXIN_PIN = A0;
+static const int MUXSEL_PIN = D7;
 
 WiFiClient wifi;
 PwmOut pwmd3(D3);
@@ -35,18 +38,17 @@ static DallasTemperature digtemp(&twire);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 struct sensor {
-  int pin;
   const char* hw;
   int sample; // last sample
   int minsamp;
   int maxsamp;
 } sensors[] = {
-  { A0, "MQ-5", -1, INT_MAX, -1, },
-  { A1, "MQ-6", -1, INT_MAX, -1, },
-  { A2, "MQ-7", -1, INT_MAX, -1, },
-  { A3, "MQ-8", -1, INT_MAX, -1, },
-  { A4, "MQ-9", -1, INT_MAX, -1, },
-  { A5, "MQ-135", -1, INT_MAX, -1, },
+  { "MQ-5", -1, INT_MAX, -1, },
+  { "MQ-6", -1, INT_MAX, -1, },
+  { "MQ-7", -1, INT_MAX, -1, },
+  { "MQ-8", -1, INT_MAX, -1, },
+  { "MQ-9", -1, INT_MAX, -1, },
+  { "MQ-135", -1, INT_MAX, -1, },
 };
 
 typedef struct mqttmsg {
@@ -214,20 +216,24 @@ void setup(){
   Serial.print("WiFi firmware: ");
   Serial.println(WiFi.firmwareVersion());
   analogReadResolution(14);
-  for(unsigned i = 0 ; i < sizeof(sensors) / sizeof(*sensors) ; ++i){
-    pinMode(sensors[i].pin, INPUT_PULLDOWN);
-  }
+  pinMode(MUXIN_PIN, INPUT_PULLDOWN);
   setup_interrupt(TACH_PIN);
   pinMode(PWM_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  pinMode(MUXENABLE_PIN, OUTPUT);
+  digitalWrite(MUXENABLE_PIN, HIGH);
+  for(int pin = MUXSEL_PIN ; pin < MUXSEL_PIN + 4 ; ++pin){
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+  }
   pwmd3.begin(25000.0f, 0.0f);
   client.setId(DEVNAME);
   client.setUsernamePassword(MQTTUSER, MQTTPASS);
 }
 
 void asample(struct sensor* s){
-  s->sample = analogRead(s->pin);
+  s->sample = analogRead(MUXIN_PIN);
   if(s->sample < s->minsamp){
     s->minsamp = s->sample;
   }
