@@ -41,10 +41,10 @@ struct sensor {
   int minsamp;
   int maxsamp;
 } sensors[] = {
-  { A0, "MQ-2", -1, INT_MAX, -1, },
-  { A1, "MQ-5", -1, INT_MAX, -1, },
-  { A2, "MQ-6", -1, INT_MAX, -1, },
-  { A3, "MQ-7", -1, INT_MAX, -1, },
+  { A0, "MQ-5", -1, INT_MAX, -1, },
+  { A1, "MQ-6", -1, INT_MAX, -1, },
+  { A2, "MQ-7", -1, INT_MAX, -1, },
+  { A3, "MQ-8", -1, INT_MAX, -1, },
   { A4, "MQ-9", -1, INT_MAX, -1, },
   { A5, "MQ-135", -1, INT_MAX, -1, },
 };
@@ -234,7 +234,9 @@ void asample(struct sensor* s){
   if(s->sample > s->maxsamp){
     s->maxsamp = s->sample;
   }
-  printf("%s: %d (min %d max %d win %d)\n", s->hw, s->sample, s->minsamp, s->maxsamp, s->maxsamp - s->minsamp + 1);
+  int window = s->maxsamp - s->minsamp + 1;
+  printf("%s: %d (min %d max %d win %d %d%%)\n", s->hw, s->sample, s->minsamp,
+         s->maxsamp, window, (s->sample - s->minsamp) * 100lu / window);
 }
 
 // check for a ten second interval on milliseconds respecting wraparound

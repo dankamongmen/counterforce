@@ -532,10 +532,6 @@ metrics:
    mqtt_name: MQ-5
    help: MQ-5 sensor (lpg)
    type: gauge
- - prom_name: mq5
-   mqtt_name: MQ-5
-   help: MQ-5 sensor (lpg)
-   type: gauge
  - prom_name: mq6
    mqtt_name: MQ-6
    help: MQ-6 sensor (lpg)
