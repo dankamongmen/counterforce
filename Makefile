@@ -17,7 +17,7 @@ all: $(HEX) $(BIN)
 
 $(OUT)/counterforce: pi/counterforce.c
 	@mkdir -p $(@D)
-	$(CC) -o $@ $< -lnotcurses $(shell pkg-config --libs notcurses)
+	$(CC) $(shell pkg-config --cflags notcurses) -o $@ $< -lnotcurses $(shell pkg-config --libs notcurses)
 
 $(OUT)/codi6/mora.ino.hex: $(addprefix codi6/mora/, mora.ino)
 	@mkdir -p $(@D)
