@@ -198,15 +198,15 @@ while true ; do
   UPSEC=$(cut -d\  -f1 < /proc/uptime)
   mqtt uptimesec $UPSEC
 
-  # SATA disks
-  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input')
+  # SATA disks, if any are present
+  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input') 2> /dev/null
   DIDX=0
   for i in $DISKTEMPS ; do
     mqtt sata$DIDX $i
     DIDX=$((DIDX + 1))
   done
 
-  # NVMe disks
+  # NVMe disks, if any are present
   for i in /dev/nvme? ; do
     # text looks like: "temperature				: 50°C (323 Kelvin)"
     # in some error cases, a negative value is returned; elide these
