@@ -38,17 +38,18 @@ static DallasTemperature digtemp(&twire);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 struct sensor {
+  unsigned muxsel;
   const char* hw;
   int sample; // last sample
   int minsamp;
   int maxsamp;
 } sensors[] = {
-  { "MQ-5", -1, INT_MAX, -1, },
-  { "MQ-6", -1, INT_MAX, -1, },
-  { "MQ-7", -1, INT_MAX, -1, },
-  { "MQ-8", -1, INT_MAX, -1, },
-  { "MQ-9", -1, INT_MAX, -1, },
-  { "MQ-135", -1, INT_MAX, -1, },
+  { 0x2, "MQ-5", -1, INT_MAX, -1, },
+  { 0x4, "MQ-6", -1, INT_MAX, -1, },
+  { 0x0, "MQ-7", -1, INT_MAX, -1, },
+  { 0x9, "MQ-8", -1, INT_MAX, -1, },
+  { 0xd, "MQ-9", -1, INT_MAX, -1, },
+  { 0xb, "MQ-135", -1, INT_MAX, -1, },
 };
 
 typedef struct mqttmsg {
@@ -222,7 +223,7 @@ void setup(){
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
   pinMode(MUXENABLE_PIN, OUTPUT);
-  digitalWrite(MUXENABLE_PIN, HIGH);
+  digitalWrite(MUXENABLE_PIN, LOW);
   for(int pin = MUXSEL_PIN ; pin < MUXSEL_PIN + 4 ; ++pin){
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
@@ -233,6 +234,10 @@ void setup(){
 }
 
 void asample(struct sensor* s){
+  digitalWrite(MUXSEL_PIN + 3, !!(s->muxsel & 0x8));
+  digitalWrite(MUXSEL_PIN + 2, !!(s->muxsel & 0x4));
+  digitalWrite(MUXSEL_PIN + 1, !!(s->muxsel & 0x2));
+  digitalWrite(MUXSEL_PIN + 0, !!(s->muxsel & 0x1));
   s->sample = analogRead(MUXIN_PIN);
   if(s->sample < s->minsamp){
     s->minsamp = s->sample;
