@@ -399,7 +399,7 @@ static int
 mqtt_setup(ESP32MQTTClient& mqtt){
   mqtt.enableDebuggingMessages();
   mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
-  mqtt.loopStart();
+  //mqtt.loopStart(); FIXME causes linker failure
   WiFi.begin(WIFIESSID, WIFIPASS);
 }
 
