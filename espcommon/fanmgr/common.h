@@ -1,6 +1,7 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
 // much of this is also used by arduino airmon, but copied FIXME
-#include "EspMQTTClient.h"
+#include <WiFi.h>
+#include <ESP32MQTTClient.h>
 #include <float.h>
 #include <Wire.h>
 #include <OneWire.h>
@@ -9,6 +10,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <DallasTemperature.h>
+#include "EspMQTTConfig.h" // local secrets
 
 #include "esp_wifi.h"
 #include "nvs_flash.h"
@@ -67,10 +69,7 @@ void ISR rpm_pumpb(void){
 static unsigned FanPwm = 128;
 static unsigned PumpPwm = 128;
 
-EspMQTTClient client(
-  #include "EspMQTTConfig.h",
-  DEVNAME
-);
+ESP32MQTTClient client;
 
 static OneWire twire(AMBIENTPIN);
 static DallasTemperature digtemp(&twire);
@@ -231,10 +230,10 @@ static int connect_onewire(DallasTemperature* dt){
 
 typedef struct mqttmsg {
  private: 
-  EspMQTTClient& mqtt;
+  ESP32MQTTClient& mqtt;
   DynamicJsonDocument doc{BUFSIZ};
  public:
-  mqttmsg(EspMQTTClient& esp) :
+  mqttmsg(ESP32MQTTClient& esp) :
     mqtt(esp)
     {}
   template<typename T> void add(const char* key, const T value){
@@ -395,14 +394,19 @@ displaySetup(int sclpin, int sdapin){
   return displayDraw(NAN);
 }
 
+static int
+mqtt_setup(ESP32MQTTClient& mqtt){
+  mqtt.enableDebuggingMessages();
+  mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
+  mqtt.loopStart();
+  WiFi.begin(WIFIESSID, WIFIPASS);
+}
+
 static void
 fanmgrSetup(int ledpin){
   Serial.begin(115200);
   Serial.println("initializing!");
   //setCpuFrequencyMhz(80);
-  client.enableDebuggingMessages();
-  client.enableMQTTPersistence();
-  client.enableHTTPWebUpdater();
   initialize_25k_pwm(FANCHAN, FANPWMPIN, LEDC_TIMER_1);
   initialize_25k_pwm(PUMPACHAN, PUMPAPWMPIN, LEDC_TIMER_2);
   if(PUMPAPWMPIN != PUMPBPWMPIN){
@@ -417,6 +421,7 @@ fanmgrSetup(int ledpin){
   pinMode(ledpin, OUTPUT);
   digitalWrite(ledpin, HIGH);
   nvs_setup(&Nvs);
+  mqtt_setup(client);
   printf("Fan PWM initialized to %u\n", FanPwm);
   printf("Pump PWM initialized to %u\n", PumpPwm);
   Serial.println("initialized!");
@@ -514,7 +519,6 @@ sampleSensors(void){
 static void
 fanmgrLoop(int ledpin, float ambient){
   unsigned long m = micros();
-  client.loop(); // handle any necessary wifi/mqtt
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
   if(client.isConnected()){
