@@ -404,7 +404,8 @@ mqtt_setup(ESP32MQTTClient& mqtt){
 }
 
 static void
-fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin){
+fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin,
+            int fantachpin, int pumpatachpin, int pumpbtachpin){
   Serial.begin(115200);
   Serial.println("initializing!");
   //setCpuFrequencyMhz(80);
@@ -416,9 +417,9 @@ fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin){
   }
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
-  init_tach(FANTACHPIN, rpm_fan);
-  init_tach(PUMPATACHPIN, rpm_pumpa);
-  init_tach(PUMPBTACHPIN, rpm_pumpb);
+  init_tach(fantachpin, rpm_fan);
+  init_tach(pumpatachpin, rpm_pumpa);
+  init_tach(pumpbtachpin, rpm_pumpb);
   pinMode(ledpin, OUTPUT);
   digitalWrite(ledpin, HIGH);
   nvs_setup(&Nvs);
@@ -518,7 +519,7 @@ sampleSensors(int fanpin, int pumpapin, int pumpbpin){
 // we transmit approximately every 15s, sampling at that time. there are
 // several blocking calls (1-wire and MQTT) that can lengthen a given cycle.
 static void
-fanmgrLoop(int ledpin, float ambient){
+fanmgrLoop(int ledpin, float ambient, int fantachpin, int pumpatachpin, int pumpbtachpin){
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
@@ -533,7 +534,7 @@ fanmgrLoop(int ledpin, float ambient){
     }
   }
   unsigned frpm, parpm, pbrpm;
-  get_rpms(&frpm, &parpm, &pbrpm, true);
+  get_rpms(&frpm, &parpm, &pbrpm, true, fantachpin, pumpatachpin, pumpbtachpin);
   last_tx = micros();
   mqttmsg mmsg(client);
   frpm = rpm(frpm, diff);
