@@ -118,9 +118,9 @@ get_rpms(unsigned *frpm, unsigned *parpm, unsigned *pbrpm, bool zero,
     if(zero){
       FanRpm = PumpARpm = PumpBRpm = 0;
     }
-  init_tach(PUMPBTACHPIN, rpm_pumpb);
-  init_tach(PUMPATACHPIN, rpm_pumpa);
-  init_tach(FANTACHPIN, rpm_fan);
+  init_tach(pumpbpin, rpm_pumpb);
+  init_tach(pumpapin, rpm_pumpa);
+  init_tach(fanpin, rpm_fan);
 }
 
 static void
@@ -404,14 +404,14 @@ mqtt_setup(ESP32MQTTClient& mqtt){
 }
 
 static void
-fanmgrSetup(int ledpin){
+fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin){
   Serial.begin(115200);
   Serial.println("initializing!");
   //setCpuFrequencyMhz(80);
-  initialize_25k_pwm(FANCHAN, FANPWMPIN, LEDC_TIMER_1);
-  initialize_25k_pwm(PUMPACHAN, PUMPAPWMPIN, LEDC_TIMER_2);
-  if(PUMPAPWMPIN != PUMPBPWMPIN){
-    initialize_25k_pwm(PUMPBCHAN, PUMPBPWMPIN, LEDC_TIMER_3);
+  initialize_25k_pwm(FANCHAN, fanpin, LEDC_TIMER_1);
+  initialize_25k_pwm(PUMPACHAN, pumpapin, LEDC_TIMER_2);
+  if(pumpapin != pumpbpin){
+    initialize_25k_pwm(PUMPBCHAN, pumpbpin, LEDC_TIMER_3);
     set_pwm(PUMPBCHAN, PumpPwm);
   }
   set_pwm(FANCHAN, FanPwm);

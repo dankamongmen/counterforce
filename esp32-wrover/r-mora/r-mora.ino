@@ -41,7 +41,7 @@ static const int LEDPIN = 2;
 
 void setup(void){
   displaySetup(I2C_SCL, I2C_SDA, FANTACHPIN, PUMPATACHPIN, PUMPBTACHPIN);
-  fanmgrSetup(LEDPIN);
+  fanmgrSetup(LEDPIN, FANPWMPIN, PUMPAPWMPIN, PUMPBPWMPIN);
 }
 
 void loop(void){
