@@ -40,11 +40,11 @@ static const int I2C_SDA = 33;
 static const int LEDPIN = 2;
 
 void setup(void){
-  displaySetup(I2C_SCL, I2C_SDA);
+  displaySetup(I2C_SCL, I2C_SDA, FANTACHPIN, PUMPATACHPIN, PUMPBTACHPIN);
   fanmgrSetup(LEDPIN);
 }
 
 void loop(void){
-  float ambient = sampleSensors();
+  float ambient = sampleSensors(FANTACHPIN, PUMPATACHPIN, PUMPBTACHPIN);
   fanmgrLoop(LEDPIN, ambient);
 }

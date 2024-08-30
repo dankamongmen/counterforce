@@ -107,10 +107,11 @@ static void init_tach(int pin, void(*fxn)(void)){
 }
 
 static void
-get_rpms(unsigned *frpm, unsigned *parpm, unsigned *pbrpm, bool zero){
-  detachInterrupt(digitalPinToInterrupt(FANTACHPIN));
-  detachInterrupt(digitalPinToInterrupt(PUMPATACHPIN));
-  detachInterrupt(digitalPinToInterrupt(PUMPBTACHPIN));
+get_rpms(unsigned *frpm, unsigned *parpm, unsigned *pbrpm, bool zero,
+         int fanpin, int pumpapin, int pumpbpin){
+  detachInterrupt(digitalPinToInterrupt(fanpin));
+  detachInterrupt(digitalPinToInterrupt(pumpapin));
+  detachInterrupt(digitalPinToInterrupt(pumpbpin));
     *frpm = FanRpm;
     *parpm = PumpARpm;
     *pbrpm = PumpBRpm;
@@ -154,7 +155,7 @@ displayCoreSetup(void){
 #define TEXTHEIGHT 10
 
 static int
-displayDraw(float ambient){
+displayDraw(float ambient, int fanpin, int pumpapin, int pumpbpin){
   if(!usingDisplay){
     if(displayCoreSetup()){
       return -1;
@@ -171,7 +172,7 @@ displayDraw(float ambient){
     disp.printf(DEVNAME " %0.2f C", ambient);
   }
   unsigned frpm, parpm, pbrpm;
-  get_rpms(&frpm, &parpm, &pbrpm, false);
+  get_rpms(&frpm, &parpm, &pbrpm, false, fanpin, pumpapin, pumpbpin);
   disp.setCursor(0, 2 * TEXTHEIGHT + 1);
   if(frpm >= RPMMAX || (!frpm && FanPwm)){
     disp.printf("fans: %u --\n", FanPwm);
@@ -389,9 +390,9 @@ nvs_setup(nvs_handle_t *nh){
 }
 
 static int
-displaySetup(int sclpin, int sdapin){
+displaySetup(int sclpin, int sdapin, int fanpin, int pumpapin, int pumpbpin){
   Wire.setPins(sdapin, sclpin);
-  return displayDraw(NAN);
+  return displayDraw(NAN, fanpin, pumpapin, pumpbpin);
 }
 
 static int
@@ -483,7 +484,7 @@ void onConnectionEstablished() {
 
 // run wifi loop, sample sensors. returns ambient temp.
 static float
-sampleSensors(void){
+sampleSensors(int fanpin, int pumpapin, int pumpbpin){
   float ambient_temp = NAN;
   static bool onewire_connected;
   if(!onewire_connected){
@@ -509,7 +510,7 @@ sampleSensors(void){
       ambient_temp = NAN;
     }
   }
-  displayDraw(ambient_temp);
+  displayDraw(ambient_temp, fanpin, pumpapin, pumpbpin);
   return ambient_temp;
 
 }
