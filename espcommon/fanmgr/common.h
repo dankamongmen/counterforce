@@ -327,7 +327,7 @@ static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_
   ledc_timer_config_t ledc_timer;
   memset(&ledc_timer, 0, sizeof(ledc_timer));
   ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
-  ledc_timer.bit_num = FANPWM_BIT_NUM;
+  ledc_timer.duty_resolution = FANPWM_BIT_NUM;
   ledc_timer.timer_num = timer;
   ledc_timer.freq_hz = freq;
   if(ledc_timer_config(&ledc_timer) != ESP_OK){
