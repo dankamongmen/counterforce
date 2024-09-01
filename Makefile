@@ -2,12 +2,11 @@
 
 OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, geiger))
-ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, s-mora r-mora))
-ESP8266HEX:=$(add prefix esp8266/, $(addsuffix .ino.elf, bambux1c))
-ESPCOMMON:=$(addprefix espcommon/fanmgr/, common.h EspMQTTConfig.h)
+ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, s-mora r-mora bambux1c))
+ESPCOMMON:=$(addprefix espcommon/, fanmgr/common.h espcommon.h fanmgr/EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
 UNO4HEX:=$(addprefix unor4/, $(addsuffix .ino.hex, airmon))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO4HEX) $(ESP32WROVERHEX) $(ESP8266HEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO4HEX) $(ESP32WROVERHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=
 
@@ -39,9 +38,9 @@ $(OUT)/esp32-wrover/r-mora.ino.elf: $(addprefix esp32-wrover/r-mora/, r-mora.ino
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wrover/r-mora
 
-$(OUT)/esp8266/bambux1c.ino.elf: $(addprefix esp8266/bambux1c/, bambux1c.ino) $(ESPCOMMON)
+$(OUT)/esp32-wrover/bambux1c.ino.elf: $(addprefix esp32-wrover/bambux1c/, bambux1c.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b esp32:esp32:lilygo_t_display -v --output-dir $(@D) esp8266/bambux1c
+	$(ACLI) compile $(CFLAGS) -b esp32:esp32:node32s -v --output-dir $(@D) esp32-wrover/bambux1c
 
 $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
