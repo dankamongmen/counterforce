@@ -40,8 +40,10 @@ getAmbient(void){
   static bool onewire_connected;
   float ambient_temp = NAN;
   if(!onewire_connected){
+    printf("connecting on 1wire\n");
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
+      /*
       uint8_t addr;
       if(digtemp.getAddress(&addr, 0)){
         Serial.print("digtemp 0 address: ");
@@ -54,6 +56,7 @@ getAmbient(void){
       if(digtemp.setResolution(&dev, 9)){
         printf("set resolution to 9 bits\n");
       }
+      */
     }
   }
   if(onewire_connected){

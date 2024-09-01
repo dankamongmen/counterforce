@@ -21,7 +21,7 @@
 //  D36 (input only)
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
-static const int AMBIENTPIN = 15; // also fucking up D2
+static const int AMBIENTPIN = 4;
 
 static const int FANPWMPIN = 23;
 static const int FANTACHPIN = 22;
@@ -30,7 +30,7 @@ static const int PUMPAPWMPIN = 19;
 static const int PUMPATACHPIN = 18;
 
 static const int PUMPBPWMPIN = 16; // also RX2
-static const int PUMPBTACHPIN = 4;
+static const int PUMPBTACHPIN = 15;
 
 static const int I2C_SCL = 32;
 static const int I2C_SDA = 33;
