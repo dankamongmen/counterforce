@@ -42,7 +42,7 @@ void setup(void){
   digitalWrite(LEDPIN, LOW);
   Serial.begin(115200);
   printf("initializing\n");
-  //mqtt_setup(client);
+  mqtt_setup(client);
   printf("initialized!\n");
   digitalWrite(LEDPIN, HIGH);
 }

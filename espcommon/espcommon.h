@@ -76,6 +76,11 @@ static int
 mqtt_setup(ESP32MQTTClient& mqtt){
   mqtt.enableDebuggingMessages();
   mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
+  mqtt.enableLastWillMessage("", "");
+  mqtt.setKeepAlive(30);
+  printf("set uri: " MQTTHOST "\n");
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFIESSID, WIFIPASS);
   mqtt.loopStart();
+  printf("WiFi status: %d\n", WiFi.status());
 }
