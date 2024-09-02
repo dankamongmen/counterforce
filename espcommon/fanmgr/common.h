@@ -360,12 +360,61 @@ displaySetup(int sclpin, int sdapin, int fanpin, int pumpapin, int pumpbpin){
   return displayDraw(NAN, fanpin, pumpapin, pumpbpin);
 }
 
+void onMqttConnect(esp_mqtt_client_handle_t cli){
+  wifi_country_t country = {
+    .cc = "US",
+    .schan = 1,
+    .nchan = 14,
+  };
+  esp_err_t err = esp_wifi_set_country(&country);
+  if(err == ESP_OK){
+    printf("loaded US wifi regulatory policy\n");
+  }else if(err == ESP_ERR_INVALID_ARG){
+    printf("error setting wifi country--bad argument\n");
+  }else{
+    printf("error setting wifi country--not initialized\n");
+  }
+  Serial.println("got an MQTT connection");
+  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
+      Serial.print("received fan pwm via mqtt: ");
+      Serial.println(payload);
+      int fpwm = extract_pwm(payload);
+      if(valid_pwm_p(fpwm)){
+        FanPwm = fpwm;
+        set_pwm(FANCHAN, FanPwm);
+        if(nvs_set_u32(Nvs, "fanpwm", FanPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
+      }
+    }
+  );
+  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
+      Serial.print("received pump pwm via mqtt: ");
+      Serial.println(payload);
+      unsigned ppwm = extract_pwm(payload);
+      if(valid_pwm_p(ppwm)){
+        PumpPwm = ppwm;
+        set_pwm(PUMPACHAN, PumpPwm);
+        set_pwm(PUMPBCHAN, PumpPwm);
+        if(nvs_set_u32(Nvs, "pumppwm", PumpPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
+      }
+    }
+  );
+}
+
+void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
+  auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
+  client.onEventCallback(event);
+}
+
 static int
 mqtt_setup(ESP32MQTTClient& mqtt){
   mqtt.enableDebuggingMessages();
   mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
-  //mqtt.loopStart(); FIXME causes linker failure
   WiFi.begin(WIFIESSID, WIFIPASS);
+  mqtt.loopStart();
 }
 
 static void
@@ -402,50 +451,6 @@ commit(nvs_handle_t nh){
     return -1;
   }
   return 0;
-}
-
-void onConnectionEstablished() {
-  wifi_country_t country = {
-    .cc = "US",
-    .schan = 1,
-    .nchan = 14,
-  };
-  esp_err_t err = esp_wifi_set_country(&country);
-  if(err == ESP_OK){
-    printf("loaded US wifi regulatory policy\n");
-  }else if(err == ESP_ERR_INVALID_ARG){
-    printf("error setting wifi country--bad argument\n");
-  }else{
-    printf("error setting wifi country--not initialized\n");
-  }
-  Serial.println("got an MQTT connection");
-  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
-      Serial.print("received fan pwm via mqtt: ");
-      Serial.println(payload);
-      int fpwm = extract_pwm(payload);
-      if(valid_pwm_p(fpwm)){
-        FanPwm = fpwm;
-        set_pwm(FANCHAN, FanPwm);
-        if(nvs_set_u32(Nvs, "fanpwm", FanPwm) == ESP_OK){
-          commit(Nvs);
-        }
-      }
-    }
-  );
-  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
-      Serial.print("received pump pwm via mqtt: ");
-      Serial.println(payload);
-      unsigned ppwm = extract_pwm(payload);
-      if(valid_pwm_p(ppwm)){
-        PumpPwm = ppwm;
-        set_pwm(PUMPACHAN, PumpPwm);
-        set_pwm(PUMPBCHAN, PumpPwm);
-        if(nvs_set_u32(Nvs, "pumppwm", PumpPwm) == ESP_OK){
-          commit(Nvs);
-        }
-      }
-    }
-  );
 }
 
 // run wifi loop, sample sensors. returns ambient temp.
