@@ -21,6 +21,8 @@ static const int HEATFANTACHPIN = 35;
 static const int VOCFANPWMPIN = 2;
 static const int VOCFANTACHPIN = 32;
 
+static const int RELAYPIN = 14;
+
 // SCL is pin 22, SDA is pin 21
 static const int I2C_SCL = SCL;
 static const int I2C_SDA = SDA;
@@ -31,17 +33,33 @@ static const int LEDPIN = 2;
 #include "EspMQTTConfig.h"
 #include "espcommon.h"
 
+static bool RelayState;
+
 CCS811 ccs811(-1);
 
 void onMqttConnect(esp_mqtt_client_handle_t cli){
   Serial.println("got an MQTT connection");
-  // FIXME subscribe to control channels
+  client.subscribe("control/" DEVNAME "/heater", [](const String &payload){
+      printf("received heater control via mqtt: %s\n", payload);
+      if(payload == "on"){
+        RelayState = true;
+        digitalWrite(RELAYPIN, HIGH);
+      }else if(payload == "off"){
+        RelayState = false;
+        digitalWrite(RELAYPIN, LOW);
+      }else{
+        printf("unknown heater control payload\n");
+      }
+    }
+  );
 }
 
 void setup(void){
   Serial.begin(115200);
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
+  pinMode(RELAYPIN, OUTPUT);
+  digitalWrite(RELAYPIN, LOW);
   printf("initializing\n");
   mqtt_setup(client);
   printf("initialized!\n");
