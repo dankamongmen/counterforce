@@ -48,10 +48,10 @@ publish_version(mqttmsg& mmsg){
   mmsg.add("ver", VERSION);
 }
 
-// we shouldn't ever see 60C (140F) at the MO-RA3; filter them.
+// we shouldn't ever see 100C (212F) at the MO-RA3; filter them.
 static inline bool
 valid_temp(float t){
-  return !(isnan(t) || t > 60 || t <= DEVICE_DISCONNECTED_C);
+  return !(isnan(t) || t > 100 || t <= DEVICE_DISCONNECTED_C);
 }
 
 static void publish_temps(mqttmsg& mmsg, float amb){
@@ -122,6 +122,21 @@ getAmbient(void){
     }
   }
   return ambient_temp;
+}
+
+static int extract_number(const String& payload){
+  unsigned temp = 0;
+  for(int pos = 0 ; pos < payload.length() ; ++pos){
+    char h = payload.charAt(pos);
+    if(!isdigit(h)){
+      printf("unexpected non-digit character\n");
+      return -1;
+    }
+    temp *= 10;
+    temp += h - '0';
+  }
+  // everything was valid
+  return temp;
 }
 
 static bool valid_pwm_p(int pwm){

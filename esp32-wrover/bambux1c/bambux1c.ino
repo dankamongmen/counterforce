@@ -41,24 +41,35 @@ static unsigned HeatPwm = 128;
 static unsigned VOCPwm = 128;
 static unsigned HeatPulses, VOCPulses;
 
-static bool RelayState;
+#define MAXTEMP 60
+
+// when HeaterTarget is 0, the heater ought always be off. otherwise, it ought
+// be on iff the ambient temperature is less than the target temperature.
+static unsigned HeaterTarget;
+
+static float AmbientTemp;
 
 CCS811 ccs811(-1);
+
+void set_relay_state(int rpin, unsigned htarg, float ambient){
+  if(htarg == 0 || !valid_temp(ambient) || ambient > htarg){
+    digitalWrite(RELAYPIN, LOW);
+  }else{
+    digitalWrite(RELAYPIN, HIGH);
+  }
+}
 
 void onMqttConnect(esp_mqtt_client_handle_t cli){
   Serial.println("got an MQTT connection");
   client.subscribe("control/" DEVNAME "/heater", [](const String &payload){
       printf("received heater control via mqtt: %s\n", payload);
-      if(payload == "on"){
-        RelayState = true;
-        digitalWrite(RELAYPIN, HIGH);
-        // FIXME write to Nvs
-      }else if(payload == "off"){
-        RelayState = false;
-        digitalWrite(RELAYPIN, LOW);
-        // FIXME write to Nvs
+      int htarg = extract_number(payload);
+      if(htarg < 0 || htarg > MAXTEMP){
+        printf("invalid heater target: %d\n", htarg);
       }else{
-        printf("unknown heater control payload\n");
+        HeaterTarget = htarg;
+        set_relay_state(RELAYPIN, HeaterTarget, AmbientTemp);
+        // FIXME write to Nvs
       }
     }
   );
@@ -110,7 +121,9 @@ void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
   pinMode(ledpin, OUTPUT);
   digitalWrite(ledpin, LOW);
   pinMode(relaypin, OUTPUT);
-  digitalWrite(relaypin, LOW);
+  digitalWrite(relaypin, LOW); // always turn off the heater by default
+  AmbientTemp = getAmbient();
+  set_relay_state(relaypin, HeaterTarget, AmbientTemp);
   initialize_25k_pwm(HEATFANCHAN, heatfanpin, LEDC_TIMER_1);
   initialize_25k_pwm(VOCFANCHAN, vocfanpin, LEDC_TIMER_2);
   if(!nvs_setup(&Nvs)){
@@ -142,7 +155,7 @@ void get_rpms(unsigned *hrpm, unsigned *vrpm, bool zero, int hpin, int vpin){
   init_tach(vpin, vocfan_isr);
 }
 
-void bambumanager_loop(int ledpin, int htachpin, int vtachpin){
+void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
   static bool gotccs = false;
   
   if(client.isConnected()){
@@ -150,7 +163,8 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin){
   }else{
     digitalWrite(ledpin, HIGH);
   }
-  float ambient = getAmbient();
+  AmbientTemp = getAmbient();
+  set_relay_state(relaypin, HeaterTarget, AmbientTemp);
   if(!gotccs){
     if(ccs811.begin()){
       printf("initialized CCS811\n");
@@ -186,7 +200,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin){
     printf("vocfanrpm: %u\n", vpulses);
     publish_pair(mmsg, "vocrpm", vpulses);
   }
-  publish_temps(mmsg, ambient);
+  publish_temps(mmsg, AmbientTemp);
   publish_pwm(mmsg, HeatPwm, VOCPwm);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
@@ -197,5 +211,5 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin){
 }
 
 void loop(void){
-  bambumanager_loop(LEDPIN, HEATTACHPIN, VOCTACHPIN);
+  bambumanager_loop(LEDPIN, HEATTACHPIN, VOCTACHPIN, RELAYPIN);
 }
