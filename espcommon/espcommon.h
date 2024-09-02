@@ -30,6 +30,24 @@ publish_version(mqttmsg& mmsg){
   mmsg.add("ver", VERSION);
 }
 
+// we shouldn't ever see 60C (140F) at the MO-RA3; filter them.
+static inline bool
+valid_temp(float t){
+  return !(isnan(t) || t > 60 || t <= DEVICE_DISCONNECTED_C);
+}
+
+static void publish_temps(mqttmsg& mmsg, float amb){
+  // there are several error codes returned by DallasTemperature, all of
+  // them equal to or less than DEVICE_DISCONNECTED_C (there are also
+  // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
+  // DEVICE_FAULT_SHORTVDD_C).
+  if(valid_temp(amb)){
+    mmsg.add("dtemp", amb);
+  }else{
+    Serial.println("don't have a digital temp sample");
+  }
+}
+
 static void publish_pair(mqttmsg& mmsg, const char* key, int val){
   mmsg.add(key, val);
 }

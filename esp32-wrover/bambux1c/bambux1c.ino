@@ -57,7 +57,6 @@ void bambumanager_loop(int ledpin){
     digitalWrite(ledpin, HIGH);
   }
   float ambient = getAmbient();
-  /*
   if(!gotccs){
     if(ccs811.begin()){
       printf("initialized CCS811\n");
@@ -69,7 +68,6 @@ void bambumanager_loop(int ledpin){
   if(ccs811.dataAvailable()){
     printf("got ccs data!\n");
   }
-  */
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
@@ -78,8 +76,10 @@ void bambumanager_loop(int ledpin){
       return;
     }
   }
+  last_tx = micros();
   mqttmsg mmsg(client);
   publish_version(mmsg);
+  publish_temps(mmsg, ambient);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
   digitalWrite(ledpin, HIGH);
