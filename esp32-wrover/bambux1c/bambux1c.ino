@@ -28,33 +28,30 @@ static const int LEDPIN = 2;
 
 #include <SparkFunCCS811.h>
 #include "EspMQTTConfig.h"
-#include "common.h"
+#include "espcommon.h"
 
 CCS811 ccs811(-1);
 
+void onMqttConnect(esp_mqtt_client_handle_t cli){
+  Serial.println("got an MQTT connection");
+  // FIXME subscribe to control channels
+}
+
 void setup(void){
+  pinMode(LEDPIN, OUTPUT);
+  digitalWrite(LEDPIN, LOW);
   Serial.begin(115200);
   printf("initializing\n");
-  //setCpuFrequencyMhz(80);
-  initialize_25k_pwm(FANCHAN, HEATFANPWMPIN, LEDC_TIMER_1);
-  initialize_25k_pwm(PUMPACHAN, VOCFANPWMPIN, LEDC_TIMER_2);
-  set_pwm(FANCHAN, FanPwm);
-  set_pwm(PUMPACHAN, PumpPwm);
-  init_tach(HEATFANTACHPIN, rpm_fan);
-  init_tach(VOCFANTACHPIN, rpm_pumpa);
-  printf("Heater fan PWM initialized to %u\n", FanPwm);
-  printf("VOC fan PWM initialized to %u\n", PumpPwm);
-  pinMode(LEDPIN, OUTPUT);
-  digitalWrite(LEDPIN, HIGH);
-  //nvs_setup(&Nvs);
   //mqtt_setup(client);
   printf("initialized!\n");
+  digitalWrite(LEDPIN, HIGH);
 }
 
 void loop(void){
   static bool gotccs = false;
   
   float ambient = getAmbient();
+  /*
   if(!gotccs){
     if(ccs811.begin()){
       printf("initialized CCS811\n");
@@ -67,6 +64,7 @@ void loop(void){
     printf("got ccs data!\n");
   }
   //client.handle();
+  */
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;

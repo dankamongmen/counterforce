@@ -1,7 +1,5 @@
 // common routines for the ESP32 and ESP8266 implementations of fanmgr
 // much of this is also used by arduino airmon, but copied FIXME
-#include <WiFi.h>
-#include <ESP32MQTTClient.h>
 #include <float.h>
 #include <Wire.h>
 #include <driver/ledc.h>
@@ -9,9 +7,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "espcommon.h"
-#include "EspMQTTConfig.h" // local secrets
-
-#include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 
@@ -68,8 +63,6 @@ void ISR rpm_pumpb(void){
 static unsigned FanPwm = 128;
 static unsigned PumpPwm = 128;
 
-ESP32MQTTClient client;
-
 // precondition: isxdigit(c) is true
 static byte getHex(char c){
   if(isdigit(c)){
@@ -95,6 +88,67 @@ static int extract_pwm(const String& payload){
   byte lb = getHex(l);
   // everything was valid
   return hb * 16 + lb;
+}
+
+static bool valid_pwm_p(int pwm){
+  return pwm >= 0 && pwm <= 255;
+}
+
+// set up the desired PWM values
+static int set_pwm(const ledc_channel_t channel, unsigned pwm){
+  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, pwm) != ESP_OK){
+    Serial.println("error setting red!");
+    return -1;
+  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel) != ESP_OK){
+    Serial.println("error committing red!");
+    return -1;
+  }
+  printf("set pwm to %u on channel %lu\n", pwm, channel);
+  return 0;
+}
+
+void onMqttConnect(esp_mqtt_client_handle_t cli){
+  wifi_country_t country = {
+    .cc = "US",
+    .schan = 1,
+    .nchan = 14,
+  };
+  esp_err_t err = esp_wifi_set_country(&country);
+  if(err == ESP_OK){
+    printf("loaded US wifi regulatory policy\n");
+  }else if(err == ESP_ERR_INVALID_ARG){
+    printf("error setting wifi country--bad argument\n");
+  }else{
+    printf("error setting wifi country--not initialized\n");
+  }
+  Serial.println("got an MQTT connection");
+  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
+      Serial.print("received fan pwm via mqtt: ");
+      Serial.println(payload);
+      int fpwm = extract_pwm(payload);
+      if(valid_pwm_p(fpwm)){
+        FanPwm = fpwm;
+        set_pwm(FANCHAN, FanPwm);
+        if(nvs_set_u32(Nvs, "fanpwm", FanPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
+      }
+    }
+  );
+  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
+      Serial.print("received pump pwm via mqtt: ");
+      Serial.println(payload);
+      unsigned ppwm = extract_pwm(payload);
+      if(valid_pwm_p(ppwm)){
+        PumpPwm = ppwm;
+        set_pwm(PUMPACHAN, PumpPwm);
+        set_pwm(PUMPBCHAN, PumpPwm);
+        if(nvs_set_u32(Nvs, "pumppwm", PumpPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
+      }
+    }
+  );
 }
 
 static void init_tach(int pin, void(*fxn)(void)){
@@ -248,10 +302,6 @@ static void publish_temps(mqttmsg& mmsg, float amb){
   }
 }
 
-static bool valid_pwm_p(int pwm){
-  return pwm >= 0 && pwm <= 255;
-}
-
 static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
   if(valid_pwm_p(fanpwm)){
     mmsg.add("fanpwm", fanpwm);
@@ -303,19 +353,6 @@ static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_
   return 0;
 }
 
-// set up the desired PWM values
-static int set_pwm(const ledc_channel_t channel, unsigned pwm){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, pwm) != ESP_OK){
-    Serial.println("error setting red!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel) != ESP_OK){
-    Serial.println("error committing red!");
-    return -1;
-  }
-  printf("set pwm to %u on channel %lu\n", pwm, channel);
-  return 0;
-}
-
 static int initialize_25k_pwm(ledc_channel_t channel, int pin, ledc_timer_t timer){
   return initialize_pwm(channel, pin, 25000, timer);
 }
@@ -358,63 +395,6 @@ static int
 displaySetup(int sclpin, int sdapin, int fanpin, int pumpapin, int pumpbpin){
   Wire.setPins(sdapin, sclpin);
   return displayDraw(NAN, fanpin, pumpapin, pumpbpin);
-}
-
-void onMqttConnect(esp_mqtt_client_handle_t cli){
-  wifi_country_t country = {
-    .cc = "US",
-    .schan = 1,
-    .nchan = 14,
-  };
-  esp_err_t err = esp_wifi_set_country(&country);
-  if(err == ESP_OK){
-    printf("loaded US wifi regulatory policy\n");
-  }else if(err == ESP_ERR_INVALID_ARG){
-    printf("error setting wifi country--bad argument\n");
-  }else{
-    printf("error setting wifi country--not initialized\n");
-  }
-  Serial.println("got an MQTT connection");
-  client.subscribe("control/" DEVNAME "/fanpwm", [](const String &payload){
-      Serial.print("received fan pwm via mqtt: ");
-      Serial.println(payload);
-      int fpwm = extract_pwm(payload);
-      if(valid_pwm_p(fpwm)){
-        FanPwm = fpwm;
-        set_pwm(FANCHAN, FanPwm);
-        if(nvs_set_u32(Nvs, "fanpwm", FanPwm) == ESP_OK){
-          nvs_commit(Nvs);
-        }
-      }
-    }
-  );
-  client.subscribe("control/" DEVNAME "/pumppwm", [](const String &payload){
-      Serial.print("received pump pwm via mqtt: ");
-      Serial.println(payload);
-      unsigned ppwm = extract_pwm(payload);
-      if(valid_pwm_p(ppwm)){
-        PumpPwm = ppwm;
-        set_pwm(PUMPACHAN, PumpPwm);
-        set_pwm(PUMPBCHAN, PumpPwm);
-        if(nvs_set_u32(Nvs, "pumppwm", PumpPwm) == ESP_OK){
-          nvs_commit(Nvs);
-        }
-      }
-    }
-  );
-}
-
-void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
-  auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
-  client.onEventCallback(event);
-}
-
-static int
-mqtt_setup(ESP32MQTTClient& mqtt){
-  mqtt.enableDebuggingMessages();
-  mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
-  WiFi.begin(WIFIESSID, WIFIPASS);
-  mqtt.loopStart();
 }
 
 static void

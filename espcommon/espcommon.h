@@ -1,5 +1,11 @@
+#include <WiFi.h>
 #include <OneWire.h>
+#include <esp_wifi.h>
 #include <DallasTemperature.h>
+#include <ESP32MQTTClient.h>
+#include "EspMQTTConfig.h" // local secrets
+
+ESP32MQTTClient client;
 
 static OneWire twire(AMBIENTPIN);
 static DallasTemperature digtemp(&twire);
@@ -49,13 +55,6 @@ getAmbient(void){
         Serial.print("digtemp 0 address: ");
         Serial.println(addr);
       }
-      uint8_t res, dev;
-      dev = 0;
-      res = digtemp.getResolution(&dev);
-      printf("therm resolution: %u bits\n", res);
-      if(digtemp.setResolution(&dev, 9)){
-        printf("set resolution to 9 bits\n");
-      }
       */
     }
   }
@@ -66,4 +65,17 @@ getAmbient(void){
     }
   }
   return ambient_temp;
+}
+
+void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
+  auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
+  client.onEventCallback(event);
+}
+
+static int
+mqtt_setup(ESP32MQTTClient& mqtt){
+  mqtt.enableDebuggingMessages();
+  mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
+  WiFi.begin(WIFIESSID, WIFIPASS);
+  mqtt.loopStart();
 }
