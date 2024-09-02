@@ -74,12 +74,11 @@ static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
   if(tmp <= DEVICE_DISCONNECTED_C){
-    Serial.println("error reading 1-wire temp");
+    printf("error reading 1-wire temp\n");
     return -1;
   }
   *t = tmp;
-  Serial.print("ambientC: ");
-  Serial.println(*t);
+  printf("ambientC: %f\n", *t);
   return 0;
 }
 
@@ -89,13 +88,12 @@ static int connect_onewire(DallasTemperature* dt){
   dt->begin();
   int devcount = dt->getDeviceCount();
   if(devcount){
-    Serial.print("1-Wire devices: ");
-    Serial.println(devcount);
+    printf("1-Wire devices: %d", devcount);
     return 0;
   }
   unsigned long m = millis();
   if(last_error_diag + 1000 <= m){
-    Serial.println("1Wire connerr");
+    printf("1Wire connerr\n");
     last_error_diag = m;
   }
   return -1;
@@ -155,13 +153,13 @@ static byte getHex(char c){
 // FIXME handle base 10 numbers as well (can we use strtoul?)
 static int extract_pwm(const String& payload){
   if(payload.length() != 2){
-    Serial.println("pwm wasn't 2 characters");
+    printf("pwm wasn't 2 characters\n");
     return -1;
   }
   char h = payload.charAt(0);
   char l = payload.charAt(1);
   if(!isxdigit(h) || !isxdigit(l)){
-    Serial.println("invalid hex character");
+    printf("invalid hex character\n");
     return -1;
   }
   byte hb = getHex(h);
@@ -203,7 +201,7 @@ initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
   conf.channel = channel;
   printf("setting up pin %d for %dHz PWM\n", pin, freq);
   if(ledc_channel_config(&conf) != ESP_OK){
-    Serial.println("error (channel config)!");
+    printf("error (channel config)!\n");
     return -1;
   }
   ledc_timer_config_t ledc_timer;
@@ -213,10 +211,10 @@ initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
   ledc_timer.timer_num = timer;
   ledc_timer.freq_hz = freq;
   if(ledc_timer_config(&ledc_timer) != ESP_OK){
-    Serial.println("error (timer config)!");
+    printf("error (timer config)!\n");
     return -1;
   }
-  Serial.println("success!");
+  printf("success!\n");
   return 0;
 }
 

@@ -65,7 +65,7 @@ void set_relay_state(int rpin, unsigned htarg, float ambient){
 }
 
 void onMqttConnect(esp_mqtt_client_handle_t cli){
-  Serial.println("got an MQTT connection");
+  printf("got an MQTT connection\n");
   client.subscribe("control/" DEVNAME "/heater", [](const String &payload){
       printf("received heater control via mqtt: %s\n", payload);
       int htarg = extract_number(payload);
@@ -211,7 +211,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
     publish_pair(mmsg, "vocrpm", vpulses);
   }
   publish_temps(mmsg, AmbientTemp);
-  publish_htarg(mmsg, HeaterTarget);
+  publish_heattarg(mmsg, HeaterTarget);
   publish_pwm(mmsg, HeatPwm, VOCPwm);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
