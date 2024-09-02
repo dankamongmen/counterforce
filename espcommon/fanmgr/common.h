@@ -6,15 +6,11 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "espcommon.h"
-#include "nvs_flash.h"
-#include "nvs.h"
 
 static bool usingDisplay;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-
-static nvs_handle_t Nvs;
 
 static volatile unsigned FanRpm;
 static volatile unsigned PumpARpm;
@@ -49,33 +45,6 @@ void ISR rpm_pumpb(void){
 // PWMs we want to run at (initialized here, read from MQTT)
 static unsigned FanPwm = 128;
 static unsigned PumpPwm = 128;
-
-// precondition: isxdigit(c) is true
-static byte getHex(char c){
-  if(isdigit(c)){
-    return c - '0';
-  }
-  c = tolower(c);
-  return c - 'a' + 10;
-}
-
-// FIXME handle base 10 numbers as well (can we use strtoul?)
-static int extract_pwm(const String& payload){
-  if(payload.length() != 2){
-    Serial.println("pwm wasn't 2 characters");
-    return -1;
-  }
-  char h = payload.charAt(0);
-  char l = payload.charAt(1);
-  if(!isxdigit(h) || !isxdigit(l)){
-    Serial.println("invalid hex character");
-    return -1;
-  }
-  byte hb = getHex(h);
-  byte lb = getHex(l);
-  // everything was valid
-  return hb * 16 + lb;
-}
 
 void onMqttConnect(esp_mqtt_client_handle_t cli){
   wifi_country_t country = {
@@ -214,33 +183,15 @@ displayDraw(float ambient, int fanpin, int pumpapin, int pumpbpin){
 }
 
 static int
-nvs_setup(nvs_handle_t *nh){
-  esp_err_t err = nvs_flash_init();
-  if(err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND){
-    // NVS partition was truncated and needs to be erased
-    nvs_flash_erase();
-    err = nvs_flash_init(); // Retry nvs_flash_init
-  }
-  if(err != ESP_OK){
-    printf("error initializing flash: %s\n", esp_err_to_name(err));
-    return -1;
-  }
-  err = nvs_open("storage", NVS_READWRITE, nh);
-  if(err != ESP_OK){
-    printf("error opening flash: %s\n", esp_err_to_name(err));
-    return -1;
-  }
+fanmgr_nvs_setup(nvs_handle_t* nh){
   uint32_t pwm;
   if(nvs_get_u32(*nh, "fanpwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
     FanPwm = pwm;
-    set_pwm(FANCHAN, FanPwm);
   }else{
     printf("no valid fanpwm in persistent store\n");
   }
   if(nvs_get_u32(*nh, "pumppwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
     PumpPwm = pwm;
-    set_pwm(PUMPACHAN, PumpPwm);
-    set_pwm(PUMPBCHAN, PumpPwm);
   }else{
     printf("no valid pumppwm in persistent store\n");
   }
@@ -267,12 +218,14 @@ fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin,
     initialize_25k_pwm(PUMPBCHAN, pumpbpin, LEDC_TIMER_3);
     set_pwm(PUMPBCHAN, PumpPwm);
   }
+  if(!nvs_setup(&Nvs)){
+    fanmgr_nvs_setup(&Nvs);
+  }
   set_pwm(FANCHAN, FanPwm);
   set_pwm(PUMPACHAN, PumpPwm);
   init_tach(fantachpin, rpm_fan);
   init_tach(pumpatachpin, rpm_pumpa);
   init_tach(pumpbtachpin, rpm_pumpb);
-  nvs_setup(&Nvs);
   mqtt_setup(client);
   printf("Fan PWM initialized to %u\n", FanPwm);
   printf("Pump PWM initialized to %u\n", PumpPwm);

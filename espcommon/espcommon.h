@@ -6,6 +6,8 @@
 #include <DallasTemperature.h>
 #include <ESP32MQTTClient.h>
 #include "EspMQTTConfig.h" // local secrets
+#include "nvs_flash.h"
+#include "nvs.h"
 
 #ifdef ESP32
 #define ISR IRAM_ATTR
@@ -16,6 +18,11 @@
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 
 #define RPMMAX (1u << 13u)
+
+static nvs_handle_t Nvs;
+static ESP32MQTTClient client;
+static OneWire twire(AMBIENTPIN);
+static DallasTemperature digtemp(&twire);
 
 typedef struct mqttmsg {
  private: 
@@ -62,11 +69,6 @@ static void publish_temps(mqttmsg& mmsg, float amb){
 static void publish_pair(mqttmsg& mmsg, const char* key, int val){
   mmsg.add(key, val);
 }
-
-ESP32MQTTClient client;
-
-static OneWire twire(AMBIENTPIN);
-static DallasTemperature digtemp(&twire);
 
 static int readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
@@ -124,6 +126,33 @@ getAmbient(void){
 
 static bool valid_pwm_p(int pwm){
   return pwm >= 0 && pwm <= 255;
+}
+
+// precondition: isxdigit(c) is true
+static byte getHex(char c){
+  if(isdigit(c)){
+    return c - '0';
+  }
+  c = tolower(c);
+  return c - 'a' + 10;
+}
+
+// FIXME handle base 10 numbers as well (can we use strtoul?)
+static int extract_pwm(const String& payload){
+  if(payload.length() != 2){
+    Serial.println("pwm wasn't 2 characters");
+    return -1;
+  }
+  char h = payload.charAt(0);
+  char l = payload.charAt(1);
+  if(!isxdigit(h) || !isxdigit(l)){
+    Serial.println("invalid hex character");
+    return -1;
+  }
+  byte hb = getHex(h);
+  byte lb = getHex(l);
+  // everything was valid
+  return hb * 16 + lb;
 }
 
 // set the desired PWM value
@@ -215,5 +244,25 @@ mqtt_setup(ESP32MQTTClient& mqtt){
   WiFi.begin(WIFIESSID, WIFIPASS);
   printf("WiFi status: %d\n", WiFi.status());
   mqtt.loopStart();
+  return 0;
+}
+
+static int
+nvs_setup(nvs_handle_t *nh){
+  esp_err_t err = nvs_flash_init();
+  if(err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND){
+    // NVS partition was truncated and needs to be erased
+    nvs_flash_erase();
+    err = nvs_flash_init(); // Retry nvs_flash_init
+  }
+  if(err != ESP_OK){
+    printf("error initializing flash: %s\n", esp_err_to_name(err));
+    return -1;
+  }
+  err = nvs_open("storage", NVS_READWRITE, nh);
+  if(err != ESP_OK){
+    printf("error opening flash: %s\n", esp_err_to_name(err));
+    return -1;
+  }
   return 0;
 }

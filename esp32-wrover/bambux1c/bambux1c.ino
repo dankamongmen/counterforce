@@ -52,11 +52,25 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
       if(payload == "on"){
         RelayState = true;
         digitalWrite(RELAYPIN, HIGH);
+        // FIXME write to Nvs
       }else if(payload == "off"){
         RelayState = false;
         digitalWrite(RELAYPIN, LOW);
+        // FIXME write to Nvs
       }else{
         printf("unknown heater control payload\n");
+      }
+    }
+  );
+  client.subscribe("control/" DEVNAME "/heatfanpwm", [](const String &payload){
+      printf("received hfan pwm via mqtt: %s\n", payload);
+      int hpwm = extract_pwm(payload);
+      if(valid_pwm_p(hpwm)){
+        HeatPwm = hpwm;
+        set_pwm(HEATFANCHAN, HeatPwm);
+        if(nvs_set_u32(Nvs, "heatpwm", HeatPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
       }
     }
   );
@@ -74,6 +88,20 @@ void ISR vocfan_isr(void){
   }
 }
 
+int bambumanager_nvs_setup(nvs_handle_t* nh){
+  uint32_t pwm;
+  if(nvs_get_u32(*nh, "hpwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
+    HeatPwm = pwm;
+    printf("no valid hpwm in persistent store\n");
+  }
+  if(nvs_get_u32(*nh, "vpwm", &pwm) == ESP_OK && valid_pwm_p(pwm)){
+    VOCPwm = pwm;
+  }else{
+    printf("no valid vpwm in persistent store\n");
+  }
+  return 0;
+}
+
 void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
                         int relaypin, int heattachpin, int voctachpin,
                         ledc_channel_t heatchan, ledc_channel_t vocchan){
@@ -85,6 +113,9 @@ void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
   digitalWrite(relaypin, LOW);
   initialize_25k_pwm(HEATFANCHAN, heatfanpin, LEDC_TIMER_1);
   initialize_25k_pwm(VOCFANCHAN, vocfanpin, LEDC_TIMER_2);
+  if(!nvs_setup(&Nvs)){
+    bambumanager_nvs_setup(&Nvs);
+  }
   set_pwm(heatchan, HeatPwm);
   set_pwm(vocchan, VOCPwm);
   init_tach(heattachpin, heatfan_isr);
