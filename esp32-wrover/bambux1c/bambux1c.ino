@@ -39,7 +39,11 @@ static const ledc_channel_t VOCFANCHAN = LEDC_CHANNEL_1;
 // PWMs we want to run at (initialized here, read from NVS/MQTT)
 static unsigned HeatPwm = 128;
 static unsigned VOCPwm = 128;
+// when we detect too many VOCs, we turn the VOC fan on max independently of
+// any requested pwm level.
+static unsigned VOCPwmReal;
 static unsigned HeatPulses, VOCPulses;
+static unsigned CO2PPM, VOCPPM;
 
 #define MAXTEMP 60
 
@@ -78,18 +82,42 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
       }
     }
   );
-  client.subscribe("control/" DEVNAME "/heatfanpwm", [](const String &payload){
+  client.subscribe("control/" DEVNAME "/heatpwm", [](const String &payload){
       printf("received hfan pwm via mqtt: %s\n", payload);
       int hpwm = extract_pwm(payload);
       if(valid_pwm_p(hpwm)){
         HeatPwm = hpwm;
         set_pwm(HEATFANCHAN, HeatPwm);
-        if(nvs_set_u32(Nvs, "heatpwm", HeatPwm) == ESP_OK){
+        if(nvs_set_u32(Nvs, "hpwm", HeatPwm) == ESP_OK){
           nvs_commit(Nvs);
         }
       }
     }
   );
+  client.subscribe("control/" DEVNAME "/vocpwm", [](const String &payload){
+      printf("received vfan pwm via mqtt: %s\n", payload);
+      int vpwm = extract_pwm(payload);
+      if(valid_pwm_p(vpwm)){
+        VOCPwm = vpwm;
+        process_voc_fan(VOCFANCHAN);
+        if(nvs_set_u32(Nvs, "vpwm", VOCPwm) == ESP_OK){
+          nvs_commit(Nvs);
+        }
+      }
+    }
+  );
+}
+
+// if the voc/co2 level is above the threshold, turn on the voc fan at its max
+// level, regardless of any mqtt-requested pwm. if the levels are below the
+// threshold, the pwm ought be that which was requested.
+void process_voc_fan(ledc_channel_t vchan){
+  if(VOCPPM >= 1000 || CO2PPM >= 10000){ // FIXME these were chosen randomly
+    VOCPwmReal = 255;
+  }else{
+    VOCPwmReal = VOCPwm;
+  }
+  set_pwm(vchan, VOCPwmReal);
 }
 
 void ISR heatfan_isr(void){
@@ -135,7 +163,7 @@ void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
     bambumanager_nvs_setup(&Nvs);
   }
   set_pwm(heatchan, HeatPwm);
-  set_pwm(vocchan, VOCPwm);
+  process_voc_fan(vocchan);
   init_tach(heattachpin, heatfan_isr);
   init_tach(voctachpin, vocfan_isr);
   mqtt_setup(client);
@@ -164,7 +192,8 @@ void publish_heattarg(mqttmsg& mmsg, unsigned htarg){
   mmsg.add("htarg", htarg);
 }
 
-void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
+void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
+                       ledc_channel_t vchan){
   static bool gotccs = false;
   if(client.isConnected()){
     printf("mqtt is connected, drop it low\n");
@@ -189,6 +218,9 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
     printf("got ccs data!\n");
     // FIXME
   }
+  VOCPPM = voc;
+  CO2PPM = co2;
+  process_voc_fan(vchan);
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
@@ -226,5 +258,5 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
 }
 
 void loop(void){
-  bambumanager_loop(LEDPIN, HEATTACHPIN, VOCTACHPIN, RELAYPIN);
+  bambumanager_loop(LEDPIN, HEATTACHPIN, VOCTACHPIN, RELAYPIN, VOCFANCHAN);
 }
