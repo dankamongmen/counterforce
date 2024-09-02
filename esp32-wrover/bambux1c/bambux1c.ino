@@ -18,7 +18,7 @@ static const int HEATPWMPIN = 14;
 static const int HEATTACHPIN = 35;
 
 // the fan(s) in the bento box
-static const int VOCPWMPIN = 2;
+static const int VOCPWMPIN = 4;
 static const int VOCTACHPIN = 32;
 
 static const int RELAYPIN = 15;
@@ -183,6 +183,8 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
       printf("failure initializing ccs811\n");
     }
   }
+  unsigned voc = 0;
+  unsigned co2 = 0;
   if(ccs811.dataAvailable()){
     printf("got ccs data!\n");
     // FIXME
@@ -214,6 +216,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
   publish_temps(mmsg, AmbientTemp);
   publish_heattarg(mmsg, HeaterTarget);
   publish_pwm(mmsg, HeatPwm, VOCPwm);
+  publish_airqual(mmsg, voc, co2);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
   digitalWrite(ledpin, HIGH);

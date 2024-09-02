@@ -44,7 +44,7 @@ typedef struct mqttmsg {
   }
 } mqttmsg;
 
-static void
+static inline void
 publish_version(mqttmsg& mmsg){
   mmsg.add("ver", VERSION);
 }
@@ -55,7 +55,18 @@ valid_temp(float t){
   return !(isnan(t) || t > 100 || t <= DEVICE_DISCONNECTED_C);
 }
 
-static void publish_temps(mqttmsg& mmsg, float amb){
+static inline void
+publish_airqual(mqttmsg& mmsg, unsigned voc, unsigned co2){
+  if(voc){
+    mmsg.add("voc", voc);
+  }
+  if(co2){
+    mmsg.add("co2", co2);
+  }
+}
+
+static inline void
+publish_temps(mqttmsg& mmsg, float amb){
   // there are several error codes returned by DallasTemperature, all of
   // them equal to or less than DEVICE_DISCONNECTED_C (there are also
   // DEVICE_FAULT_OPEN_C, DEVICE_FAULT_SHORTGND_C, and
@@ -67,11 +78,13 @@ static void publish_temps(mqttmsg& mmsg, float amb){
   }
 }
 
-static void publish_pair(mqttmsg& mmsg, const char* key, int val){
+static inline void
+publish_pair(mqttmsg& mmsg, const char* key, int val){
   mmsg.add(key, val);
 }
 
-static int readAmbient(float* t, DallasTemperature *dt){
+static int
+readAmbient(float* t, DallasTemperature *dt){
   dt->requestTemperatures();
   float tmp = dt->getTempCByIndex(0);
   if(tmp <= DEVICE_DISCONNECTED_C){
@@ -84,7 +97,8 @@ static int readAmbient(float* t, DallasTemperature *dt){
 }
 
 // attempt to establish a connection to the DS18B20
-static int connect_onewire(DallasTemperature* dt){
+static int
+connect_onewire(DallasTemperature* dt){
   static unsigned long last_error_diag;
   dt->begin();
   int devcount = dt->getDeviceCount();
