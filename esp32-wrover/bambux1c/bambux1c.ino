@@ -14,14 +14,14 @@
 static const int AMBIENTPIN = 16;
 
 // the fan(s) for the heater
-static const int HEATFANPWMPIN = 15;
-static const int HEATFANTACHPIN = 35;
+static const int HEATPWMPIN = 14;
+static const int HEATTACHPIN = 35;
 
 // the fan(s) in the bento box
-static const int VOCFANPWMPIN = 2;
-static const int VOCFANTACHPIN = 32;
+static const int VOCPWMPIN = 2;
+static const int VOCTACHPIN = 32;
 
-static const int RELAYPIN = 14;
+static const int RELAYPIN = 15;
 
 // SCL is pin 22, SDA is pin 21
 static const int I2C_SCL = SCL;
@@ -32,6 +32,14 @@ static const int LEDPIN = 2;
 #include <SparkFunCCS811.h>
 #include "EspMQTTConfig.h"
 #include "espcommon.h"
+
+static const ledc_channel_t HEATFANCHAN = LEDC_CHANNEL_0;
+static const ledc_channel_t VOCFANCHAN = LEDC_CHANNEL_1;
+
+// PWMs we want to run at (initialized here, read from NVS/MQTT)
+static unsigned HeatPwm = 128;
+static unsigned VOCPwm = 128;
+static unsigned HeatPulses, VOCPulses;
 
 static bool RelayState;
 
@@ -54,19 +62,56 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
   );
 }
 
-void setup(void){
-  Serial.begin(115200);
-  pinMode(LEDPIN, OUTPUT);
-  digitalWrite(LEDPIN, LOW);
-  pinMode(RELAYPIN, OUTPUT);
-  digitalWrite(RELAYPIN, LOW);
-  printf("initializing\n");
-  mqtt_setup(client);
-  printf("initialized!\n");
-  digitalWrite(LEDPIN, HIGH);
+void ISR heatfan_isr(void){
+  if(HeatPulses < RPMMAX){
+    ++HeatPulses;
+  }
 }
 
-void bambumanager_loop(int ledpin){
+void ISR vocfan_isr(void){
+  if(VOCPulses < RPMMAX){
+    ++VOCPulses;
+  }
+}
+
+void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
+                        int relaypin, int heattachpin, int voctachpin,
+                        ledc_channel_t heatchan, ledc_channel_t vocchan){
+  Serial.begin(115200);
+  printf("initializing\n");
+  pinMode(ledpin, OUTPUT);
+  digitalWrite(ledpin, LOW);
+  pinMode(relaypin, OUTPUT);
+  digitalWrite(relaypin, LOW);
+  initialize_25k_pwm(HEATFANCHAN, heatfanpin, LEDC_TIMER_1);
+  initialize_25k_pwm(VOCFANCHAN, vocfanpin, LEDC_TIMER_2);
+  set_pwm(heatchan, HeatPwm);
+  set_pwm(vocchan, VOCPwm);
+  init_tach(heattachpin, heatfan_isr);
+  init_tach(voctachpin, vocfan_isr);
+  mqtt_setup(client);
+  printf("initialized!\n");
+  digitalWrite(ledpin, HIGH);
+}
+
+void setup(void){
+  bambumanager_setup(HEATPWMPIN, VOCPWMPIN, LEDPIN, RELAYPIN,
+                     HEATTACHPIN, VOCTACHPIN, HEATFANCHAN, VOCFANCHAN);
+}
+
+void get_rpms(unsigned *hrpm, unsigned *vrpm, bool zero, int hpin, int vpin){
+  detachInterrupt(digitalPinToInterrupt(hpin));
+  detachInterrupt(digitalPinToInterrupt(vpin));
+  *hrpm = HeatPulses;
+  *vrpm = VOCPulses;
+  if(zero){
+    HeatPulses = VOCPulses = 0;
+  }
+  init_tach(hpin, heatfan_isr);
+  init_tach(vpin, vocfan_isr);
+}
+
+void bambumanager_loop(int ledpin, int htachpin, int vtachpin){
   static bool gotccs = false;
   
   if(client.isConnected()){
@@ -97,7 +142,21 @@ void bambumanager_loop(int ledpin){
   last_tx = micros();
   mqttmsg mmsg(client);
   publish_version(mmsg);
+  unsigned hpulses, vpulses;
+  get_rpms(&hpulses, &vpulses, true, htachpin, vtachpin);
+  last_tx = micros();
+  hpulses = rpm(hpulses, diff);
+  if(hpulses < RPMMAX){
+    printf("heatfanrpm: %u\n", hpulses);
+    publish_pair(mmsg, "heatrpm", hpulses);
+  }
+  vpulses = rpm(vpulses, diff);
+  if(vpulses < RPMMAX){
+    printf("vocfanrpm: %u\n", vpulses);
+    publish_pair(mmsg, "vocrpm", vpulses);
+  }
   publish_temps(mmsg, ambient);
+  publish_pwm(mmsg, HeatPwm, VOCPwm);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
   digitalWrite(ledpin, HIGH);
@@ -107,5 +166,5 @@ void bambumanager_loop(int ledpin){
 }
 
 void loop(void){
-  bambumanager_loop(LEDPIN);
+  bambumanager_loop(LEDPIN, HEATTACHPIN, VOCTACHPIN);
 }

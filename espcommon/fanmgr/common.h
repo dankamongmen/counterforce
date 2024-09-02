@@ -2,7 +2,6 @@
 // much of this is also used by arduino airmon, but copied FIXME
 #include <float.h>
 #include <Wire.h>
-#include <driver/ledc.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "espcommon.h"
@@ -11,20 +10,10 @@
 
 #define VERSION "2.7.0"
 
-#ifdef ESP32
-#define ISR IRAM_ATTR
-#else
-#define ISR IRAM_ATTR //ICACHE_RAM_ATRR
-#endif
-
 static bool usingDisplay;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
-
-#define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
-
-#define RPMMAX (1u << 13u)
 
 static nvs_handle_t Nvs;
 
@@ -89,23 +78,6 @@ static int extract_pwm(const String& payload){
   return hb * 16 + lb;
 }
 
-static bool valid_pwm_p(int pwm){
-  return pwm >= 0 && pwm <= 255;
-}
-
-// set up the desired PWM values
-static int set_pwm(const ledc_channel_t channel, unsigned pwm){
-  if(ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, pwm) != ESP_OK){
-    Serial.println("error setting red!");
-    return -1;
-  }else if(ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel) != ESP_OK){
-    Serial.println("error committing red!");
-    return -1;
-  }
-  printf("set pwm to %u on channel %lu\n", pwm, channel);
-  return 0;
-}
-
 void onMqttConnect(esp_mqtt_client_handle_t cli){
   wifi_country_t country = {
     .cc = "US",
@@ -148,11 +120,6 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
       }
     }
   );
-}
-
-static void init_tach(int pin, void(*fxn)(void)){
-  pinMode(pin, INPUT);
-  attachInterrupt(digitalPinToInterrupt(pin), fxn, FALLING);
 }
 
 static void
@@ -247,69 +214,6 @@ displayDraw(float ambient, int fanpin, int pumpapin, int pumpbpin){
   return 0;
 }
 
-void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
-  if(val < RPMMAX){ // filter out obviously incorrect values
-    mmsg.add(key, val);
-  }else{
-    printf("not publishing %u for %s\n", val, key);
-  }
-}
-
-static inline unsigned
-rpm(unsigned long pulses, unsigned long usec){
-  printf("%lu pulses measured\n", pulses);
-  if(pulses >= RPMMAX){
-    return RPMMAX;
-  }
-  return pulses * 30000000.0 / usec;
-}
-
-static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
-  if(valid_pwm_p(fanpwm)){
-    mmsg.add("fanpwm", fanpwm);
-  }
-  if(valid_pwm_p(pumppwm)){
-    mmsg.add("pumppwm", pumppwm);
-  }
-}
-
-static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
-  pinMode(pin, OUTPUT);
-  ledc_channel_config_t conf;
-  memset(&conf, 0, sizeof(conf));
-  conf.gpio_num = pin;
-  conf.speed_mode = LEDC_HIGH_SPEED_MODE;
-  conf.intr_type = LEDC_INTR_DISABLE;
-  conf.timer_sel = timer;
-  conf.duty = FANPWM_BIT_NUM;
-  conf.channel = channel;
-  Serial.print("setting up pin ");
-  Serial.print(pin);
-  Serial.print(" for ");
-  Serial.print(freq);
-  Serial.print("Hz PWM...");
-  if(ledc_channel_config(&conf) != ESP_OK){
-    Serial.println("error (channel config)!");
-    return -1;
-  }
-  ledc_timer_config_t ledc_timer;
-  memset(&ledc_timer, 0, sizeof(ledc_timer));
-  ledc_timer.speed_mode = LEDC_HIGH_SPEED_MODE;
-  ledc_timer.duty_resolution = FANPWM_BIT_NUM;
-  ledc_timer.timer_num = timer;
-  ledc_timer.freq_hz = freq;
-  if(ledc_timer_config(&ledc_timer) != ESP_OK){
-    Serial.println("error (timer config)!");
-    return -1;
-  }
-  Serial.println("success!");
-  return 0;
-}
-
-static int initialize_25k_pwm(ledc_channel_t channel, int pin, ledc_timer_t timer){
-  return initialize_pwm(channel, pin, 25000, timer);
-}
-
 static int
 nvs_setup(nvs_handle_t *nh){
   esp_err_t err = nvs_flash_init();
@@ -355,6 +259,8 @@ fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin,
             int fantachpin, int pumpatachpin, int pumpbtachpin){
   Serial.begin(115200);
   Serial.println("initializing!");
+  pinMode(ledpin, OUTPUT);
+  digitalWrite(ledpin, LOW);
   //setCpuFrequencyMhz(80);
   initialize_25k_pwm(FANCHAN, fanpin, LEDC_TIMER_1);
   initialize_25k_pwm(PUMPACHAN, pumpapin, LEDC_TIMER_2);
@@ -367,12 +273,11 @@ fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin,
   init_tach(fantachpin, rpm_fan);
   init_tach(pumpatachpin, rpm_pumpa);
   init_tach(pumpbtachpin, rpm_pumpb);
-  pinMode(ledpin, OUTPUT);
-  digitalWrite(ledpin, HIGH);
   nvs_setup(&Nvs);
   mqtt_setup(client);
   printf("Fan PWM initialized to %u\n", FanPwm);
   printf("Pump PWM initialized to %u\n", PumpPwm);
+  digitalWrite(ledpin, HIGH);
   Serial.println("initialized!");
 }
 
