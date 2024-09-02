@@ -1,5 +1,6 @@
-// common routines for the ESP32 and ESP8266 implementations of fanmgr
-// much of this is also used by arduino airmon, but copied FIXME
+// common routines for fanmgr as implemented on esp32-wrover
+#define VERSION "2.7.0"
+
 #include <float.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -7,8 +8,6 @@
 #include "espcommon.h"
 #include "nvs_flash.h"
 #include "nvs.h"
-
-#define VERSION "2.7.0"
 
 static bool usingDisplay;
 static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
