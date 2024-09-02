@@ -62,7 +62,7 @@ static void publish_temps(mqttmsg& mmsg, float amb){
   if(valid_temp(amb)){
     mmsg.add("dtemp", amb);
   }else{
-    Serial.println("don't have a digital temp sample");
+    printf("no digital temp sample available\n");
   }
 }
 

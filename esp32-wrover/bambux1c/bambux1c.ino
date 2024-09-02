@@ -52,7 +52,12 @@ static float AmbientTemp;
 CCS811 ccs811(-1);
 
 void set_relay_state(int rpin, unsigned htarg, float ambient){
-  if(htarg == 0 || !valid_temp(ambient) || ambient > htarg){
+  if(htarg == 0){
+    digitalWrite(RELAYPIN, LOW);
+  }else if(!valid_temp(ambient)){
+    digitalWrite(RELAYPIN, LOW);
+    printf("ambient temp %f was invalid, forcing heater off\n", ambient);
+  }else if(ambient > htarg){
     digitalWrite(RELAYPIN, LOW);
   }else{
     digitalWrite(RELAYPIN, HIGH);
@@ -155,6 +160,10 @@ void get_rpms(unsigned *hrpm, unsigned *vrpm, bool zero, int hpin, int vpin){
   init_tach(vpin, vocfan_isr);
 }
 
+void publish_heattarg(mqttmsg& mmsg, unsigned htarg){
+  mmsg.add("htarg", htarg);
+}
+
 void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
   static bool gotccs = false;
   
@@ -175,6 +184,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
   }
   if(ccs811.dataAvailable()){
     printf("got ccs data!\n");
+    // FIXME
   }
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
@@ -201,6 +211,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
     publish_pair(mmsg, "vocrpm", vpulses);
   }
   publish_temps(mmsg, AmbientTemp);
+  publish_htarg(mmsg, HeaterTarget);
   publish_pwm(mmsg, HeatPwm, VOCPwm);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
