@@ -166,10 +166,11 @@ void publish_heattarg(mqttmsg& mmsg, unsigned htarg){
 
 void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin){
   static bool gotccs = false;
-  
   if(client.isConnected()){
+    printf("mqtt is connected, drop it low\n");
     digitalWrite(ledpin, LOW);
   }else{
+    printf("mqtt is not yet connected\n");
     digitalWrite(ledpin, HIGH);
   }
   AmbientTemp = getAmbient();

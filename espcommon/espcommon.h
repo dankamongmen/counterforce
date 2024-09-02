@@ -39,6 +39,7 @@ typedef struct mqttmsg {
     add("uptimesec", millis() / 1000); // FIXME handle overflow
     char buf[257]; // PubSubClient limits messages to 256 bytes
     size_t n = serializeJson(doc, buf);
+    printf("xmit [%s]\n", buf);
     return mqtt.publish("sensors/" DEVNAME, buf);
   }
 } mqttmsg;
