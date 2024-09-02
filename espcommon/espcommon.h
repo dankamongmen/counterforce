@@ -80,8 +80,7 @@ getAmbient(void){
       onewire_connected = true;
       uint8_t addr;
       if(digtemp.getAddress(&addr, 0)){
-        Serial.print("digtemp 0 address: ");
-        Serial.println(addr);
+        printf("digtemp 0 address: %hu\n", addr);
       }
     }
   }
