@@ -1,9 +1,38 @@
 #include <WiFi.h>
 #include <OneWire.h>
 #include <esp_wifi.h>
+#include <ArduinoJson.h>
 #include <DallasTemperature.h>
 #include <ESP32MQTTClient.h>
 #include "EspMQTTConfig.h" // local secrets
+
+typedef struct mqttmsg {
+ private: 
+  ESP32MQTTClient& mqtt;
+  DynamicJsonDocument doc{BUFSIZ};
+ public:
+  mqttmsg(ESP32MQTTClient& esp) :
+    mqtt(esp)
+    {}
+  template<typename T> void add(const char* key, const T value){
+    doc[key] = value;
+  }
+  bool publish(){
+    add("uptimesec", millis() / 1000); // FIXME handle overflow
+    char buf[257]; // PubSubClient limits messages to 256 bytes
+    size_t n = serializeJson(doc, buf);
+    return mqtt.publish("sensors/" DEVNAME, buf);
+  }
+} mqttmsg;
+
+static void
+publish_version(mqttmsg& mmsg){
+  mmsg.add("ver", VERSION);
+}
+
+static void publish_pair(mqttmsg& mmsg, const char* key, int val){
+  mmsg.add(key, val);
+}
 
 ESP32MQTTClient client;
 
@@ -49,13 +78,11 @@ getAmbient(void){
     printf("connecting on 1wire\n");
     if(connect_onewire(&digtemp) == 0){
       onewire_connected = true;
-      /*
       uint8_t addr;
       if(digtemp.getAddress(&addr, 0)){
         Serial.print("digtemp 0 address: ");
         Serial.println(addr);
       }
-      */
     }
   }
   if(onewire_connected){
@@ -77,10 +104,11 @@ mqtt_setup(ESP32MQTTClient& mqtt){
   mqtt.enableDebuggingMessages();
   mqtt.setURI(MQTTHOST, MQTTUSER, MQTTPASS);
   mqtt.enableLastWillMessage("", "");
-  mqtt.setKeepAlive(30);
+  //mqtt.setKeepAlive(30);
   printf("set uri: " MQTTHOST "\n");
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFIESSID, WIFIPASS);
-  mqtt.loopStart();
   printf("WiFi status: %d\n", WiFi.status());
+  mqtt.loopStart();
+  return 0;
 }

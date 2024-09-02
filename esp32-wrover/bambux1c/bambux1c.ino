@@ -7,6 +7,7 @@
 //  a 12V fan for the BentoBox VOC fans (tach + PWM)
 //
 // and reports stats via wireless MQTT
+#define VERSION "0.0.1"
 #define DEVNAME "bambumanager"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
@@ -38,18 +39,23 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
 }
 
 void setup(void){
+  Serial.begin(115200);
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
-  Serial.begin(115200);
   printf("initializing\n");
   mqtt_setup(client);
   printf("initialized!\n");
   digitalWrite(LEDPIN, HIGH);
 }
 
-void loop(void){
+void bambumanager_loop(int ledpin){
   static bool gotccs = false;
   
+  if(client.isConnected()){
+    digitalWrite(ledpin, LOW);
+  }else{
+    digitalWrite(ledpin, HIGH);
+  }
   float ambient = getAmbient();
   /*
   if(!gotccs){
@@ -63,7 +69,6 @@ void loop(void){
   if(ccs811.dataAvailable()){
     printf("got ccs data!\n");
   }
-  //client.handle();
   */
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
@@ -73,5 +78,16 @@ void loop(void){
       return;
     }
   }
-  // FIXME publish
+  mqttmsg mmsg(client);
+  publish_version(mmsg);
+  // go high for the duration of the transmit. we'll go low again when we
+  // reenter fanmgrLoop() at the top, assuming we're connected.
+  digitalWrite(ledpin, HIGH);
+  if(mmsg.publish()){
+    printf("successful xmit at %lu\n", m);
+  }
+}
+
+void loop(void){
+  bambumanager_loop(LEDPIN);
 }

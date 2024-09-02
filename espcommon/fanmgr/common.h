@@ -3,7 +3,6 @@
 #include <float.h>
 #include <Wire.h>
 #include <driver/ledc.h>
-#include <ArduinoJson.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "espcommon.h"
@@ -248,25 +247,6 @@ displayDraw(float ambient, int fanpin, int pumpapin, int pumpbpin){
   return 0;
 }
 
-typedef struct mqttmsg {
- private: 
-  ESP32MQTTClient& mqtt;
-  DynamicJsonDocument doc{BUFSIZ};
- public:
-  mqttmsg(ESP32MQTTClient& esp) :
-    mqtt(esp)
-    {}
-  template<typename T> void add(const char* key, const T value){
-    doc[key] = value;
-  }
-  bool publish(){
-    add("uptimesec", millis() / 1000); // FIXME handle overflow
-    char buf[257]; // PubSubClient limits messages to 256 bytes
-    size_t n = serializeJson(doc, buf);
-    return mqtt.publish("sensors/" DEVNAME, buf);
-  }
-} mqttmsg;
-
 void rpmPublish(mqttmsg& mmsg, const char* key, unsigned val){
   if(val < RPMMAX){ // filter out obviously incorrect values
     mmsg.add(key, val);
@@ -309,15 +289,6 @@ static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
   if(valid_pwm_p(pumppwm)){
     mmsg.add("pumppwm", pumppwm);
   }
-}
-
-static void
-publish_version(mqttmsg& mmsg){
-  mmsg.add("ver", VERSION);
-}
-
-static void publish_pair(mqttmsg& mmsg, const char* key, int val){
-  mmsg.add(key, val);
 }
 
 static int initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
