@@ -11,25 +11,23 @@
 #define DEVNAME "bambumanager"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
-static const int AMBIENTPIN = 16;
+static const int AMBIENTPIN = RX2;
 
 // the fan(s) for the heater
 static const int HEATPWMPIN = 14;
 static const int HEATTACHPIN = 35;
 
 // the fan(s) in the bento box
-static const int VOCPWMPIN = 4;
-static const int VOCTACHPIN = 32;
+static const int VOCPWMPIN = 27;
+static const int VOCTACHPIN = 34;
 
-static const int RELAYPIN = 15;
+static const int RELAYPIN = 4;
 
-// SCL is pin 22, SDA is pin 21
-static const int I2C_SCL = SCL;
-static const int I2C_SDA = SDA;
+//static const int CCSWAKEPIN = -1;//23;
 
 static const int LEDPIN = 2;
 
-#include <SparkFunCCS811.h>
+//#include <ccs811.h>
 #include "EspMQTTConfig.h"
 #include "espcommon.h"
 
@@ -53,7 +51,7 @@ static unsigned HeaterTarget;
 
 static float AmbientTemp;
 
-CCS811 ccs811(-1);
+//CCS811 ccs811(CCSWAKEPIN, CCS811_SLAVEADDR_1);
 
 void set_relay_state(int rpin, unsigned htarg, float ambient){
   if(htarg == 0){
@@ -112,12 +110,16 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
 // level, regardless of any mqtt-requested pwm. if the levels are below the
 // threshold, the pwm ought be that which was requested.
 void process_voc_fan(ledc_channel_t vchan){
+  unsigned v;
   if(VOCPPM >= 1000 || CO2PPM >= 10000){ // FIXME these were chosen randomly
-    VOCPwmReal = 255;
+    v = 255;
   }else{
-    VOCPwmReal = VOCPwm;
+    v = VOCPwm;
   }
-  set_pwm(vchan, VOCPwmReal);
+  if(VOCPwmReal != v){
+    VOCPwmReal = v;
+    set_pwm(vchan, VOCPwmReal);
+  }
 }
 
 void ISR heatfan_isr(void){
@@ -194,7 +196,7 @@ void publish_heattarg(mqttmsg& mmsg, unsigned htarg){
 
 void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
                        ledc_channel_t vchan){
-  static bool gotccs = false;
+  //static bool gotccs = false;
   if(client.isConnected()){
     printf("mqtt is connected, drop it low\n");
     digitalWrite(ledpin, LOW);
@@ -204,7 +206,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
   }
   AmbientTemp = getAmbient();
   set_relay_state(relaypin, HeaterTarget, AmbientTemp);
-  if(!gotccs){
+  /*if(!gotccs){
     if(ccs811.begin()){
       printf("initialized CCS811\n");
       gotccs = true;
@@ -212,20 +214,21 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
       printf("failure initializing ccs811\n");
     }
   }
-  unsigned voc = 0;
-  unsigned co2 = 0;
-  if(ccs811.dataAvailable()){
-    printf("got ccs data!\n");
-    // FIXME
+  uint16_t voc = 0;
+  uint16_t co2 = 0;
+  if(gotccs){
+    uint16_t err, raw;
+    ccs811.read(&co2, &voc, &err, &raw);
   }
   VOCPPM = voc;
   CO2PPM = co2;
-  process_voc_fan(vchan);
+  process_voc_fan(vchan);*/
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
   if(last_tx){
     if(diff < 15000000){
+      delay(1000);
       return;
     }
   }
@@ -248,7 +251,7 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
   publish_temps(mmsg, AmbientTemp);
   publish_heattarg(mmsg, HeaterTarget);
   publish_pwm(mmsg, HeatPwm, VOCPwm);
-  publish_airqual(mmsg, voc, co2);
+  //publish_airqual(mmsg, voc, co2);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
   digitalWrite(ledpin, HIGH);

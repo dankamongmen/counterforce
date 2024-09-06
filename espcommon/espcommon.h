@@ -126,6 +126,8 @@ getAmbient(void){
       if(digtemp.getAddress(&addr, 0)){
         printf("digtemp 0 address: %hu\n", addr);
       }
+    }else{
+      printf("connect failed\n");
     }
   }
   if(onewire_connected){
