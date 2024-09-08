@@ -11,7 +11,7 @@
 #define DEVNAME "bambumanager"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
-static const int AMBIENTPIN = RX2;
+static const int AMBIENTPIN = 4;
 
 // the fan(s) for the heater
 static const int HEATPWMPIN = 14;
@@ -21,7 +21,7 @@ static const int HEATTACHPIN = 35;
 static const int VOCPWMPIN = 27;
 static const int VOCTACHPIN = 34;
 
-static const int RELAYPIN = 4;
+static const int RELAYPIN = 5;
 
 //static const int CCSWAKEPIN = -1;//23;
 

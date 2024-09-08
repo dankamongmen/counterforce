@@ -52,7 +52,7 @@ publish_version(mqttmsg& mmsg){
 // we shouldn't ever see 100C (212F) at the MO-RA3; filter them.
 static inline bool
 valid_temp(float t){
-  return !(isnan(t) || t > 100 || t <= DEVICE_DISCONNECTED_C);
+  return !(isnan(t) || t > 85 || t <= DEVICE_DISCONNECTED_C);
 }
 
 static inline void
