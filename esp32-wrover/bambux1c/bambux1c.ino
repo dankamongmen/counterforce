@@ -226,8 +226,8 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
   }
   publish_temps(mmsg, AmbientTemp);
   publish_heattarg(mmsg, HeaterTarget);
-  publish_pwm(mmsg, HeatPwm, VOCPwm);
-  //publish_airqual(mmsg, voc, co2);
+  publish_pwm(mmsg, "heatpwm", HeatPwm);
+  publish_pwm(mmsg, "vocpwm", VOCPwm);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
   digitalWrite(ledpin, HIGH);

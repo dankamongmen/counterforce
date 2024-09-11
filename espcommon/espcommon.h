@@ -254,12 +254,9 @@ rpm(unsigned long pulses, unsigned long usec){
   return pulses * 30000000.0 / usec;
 }
 
-static void publish_pwm(mqttmsg& mmsg, int fanpwm, int pumppwm){
-  if(valid_pwm_p(fanpwm)){
-    mmsg.add("fanpwm", fanpwm);
-  }
-  if(valid_pwm_p(pumppwm)){
-    mmsg.add("pumppwm", pumppwm);
+static void publish_pwm(mqttmsg& mmsg, const char* str, int pwm){
+  if(valid_pwm_p(pwm)){
+    mmsg.add("fanpwm", pwm);
   }
 }
 

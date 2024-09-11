@@ -288,7 +288,8 @@ fanmgrLoop(int ledpin, float ambient, int fantachpin, int pumpatachpin, int pump
     publish_pair(mmsg, "pumpbrpm", pbrpm);
   }
   publish_temps(mmsg, ambient);
-  publish_pwm(mmsg, FanPwm, PumpPwm);
+  publish_pwm(mmsg, "fanpwm", FanPwm);
+  publish_pwm(mmsg, "pumppwm", PumpPwm);
   publish_version(mmsg);
   // go high for the duration of the transmit. we'll go low again when we
   // reenter fanmgrLoop() at the top, assuming we're connected.
