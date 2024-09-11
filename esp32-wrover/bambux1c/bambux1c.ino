@@ -3,7 +3,6 @@
 // sits in a bambux1c and controls:
 //  a ceramic heating element using a 3V relay
 //  a 12V fan for the heating element (tach + PWM)
-//  a CCS811 VOC sensor
 //  a 12V fan for the BentoBox VOC fans (tach + PWM)
 //
 // and reports stats via wireless MQTT
@@ -21,13 +20,10 @@ static const int HEATTACHPIN = 35;
 static const int VOCPWMPIN = 12;
 static const int VOCTACHPIN = 34;
 
-static const int RELAYPIN = 14;
-
-//static const int CCSWAKEPIN = -1;//23;
+static const int RELAYPIN = 17;
 
 static const int LEDPIN = 2;
 
-//#include <ccs811.h>
 #include "EspMQTTConfig.h"
 #include "espcommon.h"
 
@@ -50,8 +46,6 @@ static unsigned CO2PPM, VOCPPM;
 static unsigned HeaterTarget;
 
 static float AmbientTemp;
-
-//CCS811 ccs811(CCSWAKEPIN, CCS811_SLAVEADDR_1);
 
 void set_relay_state(int rpin, unsigned htarg, float ambient){
   if(htarg == 0){
@@ -196,7 +190,6 @@ void publish_heattarg(mqttmsg& mmsg, unsigned htarg){
 
 void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
                        ledc_channel_t vchan){
-  //static bool gotccs = false;
   if(client.isConnected()){
     printf("mqtt is connected, drop it low\n");
     digitalWrite(ledpin, LOW);
@@ -206,23 +199,6 @@ void bambumanager_loop(int ledpin, int htachpin, int vtachpin, int relaypin,
   }
   AmbientTemp = getAmbient();
   set_relay_state(relaypin, HeaterTarget, AmbientTemp);
-  /*if(!gotccs){
-    if(ccs811.begin()){
-      printf("initialized CCS811\n");
-      gotccs = true;
-    }else{
-      printf("failure initializing ccs811\n");
-    }
-  }
-  uint16_t voc = 0;
-  uint16_t co2 = 0;
-  if(gotccs){
-    uint16_t err, raw;
-    ccs811.read(&co2, &voc, &err, &raw);
-  }
-  VOCPPM = voc;
-  CO2PPM = co2;
-  process_voc_fan(vchan);*/
   unsigned long m = micros();
   static unsigned long last_tx; // micros() when we last transmitted to MQTT
   unsigned long diff = m - last_tx;
