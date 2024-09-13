@@ -27,7 +27,7 @@ static DallasTemperature digtemp(&twire);
 typedef struct mqttmsg {
  private: 
   ESP32MQTTClient& mqtt;
-  DynamicJsonDocument doc{BUFSIZ};
+  JsonDocument doc;
  public:
   mqttmsg(ESP32MQTTClient& esp) :
     mqtt(esp)
@@ -38,7 +38,11 @@ typedef struct mqttmsg {
   bool publish(){
     add("uptimesec", millis() / 1000); // FIXME handle overflow
     char buf[257]; // PubSubClient limits messages to 256 bytes
-    size_t n = serializeJson(doc, buf);
+    size_t r = serializeJson(doc, buf, sizeof(buf));
+    if(r >= sizeof(buf)){
+      printf("serialization was too large (%ub)\n", r);
+      return false;
+    }
     printf("xmit [%s]\n", buf);
     return mqtt.publish("sensors/" DEVNAME, buf);
   }
@@ -195,7 +199,7 @@ set_pwm(const ledc_channel_t channel, unsigned pwm){
     printf("error committing pwm!\n");
     return -1;
   }
-  printf("set pwm to %u on channel %lu\n", pwm, channel);
+  printf("set pwm to %u on channel %d\n", pwm, channel);
   return 0;
 }
 
