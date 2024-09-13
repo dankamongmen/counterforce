@@ -6,7 +6,7 @@
 //  a 12V fan for the BentoBox VOC fans (tach + PWM)
 //
 // and reports stats via wireless MQTT
-#define VERSION "0.0.1"
+#define VERSION "1.0.0"
 #define DEVNAME "bambumanager"
 
 // ambient temperature (digital thermometer, Dallas 1-wire)
