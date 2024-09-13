@@ -8,7 +8,7 @@ UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
 UNO4HEX:=$(addprefix unor4/, $(addsuffix .ino.hex, airmon))
 HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO4HEX) $(ESP32WROVERHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
-CFLAGS:=
+CFLAGS:=--warnings all
 
 ACLI:=arduino-cli
 
