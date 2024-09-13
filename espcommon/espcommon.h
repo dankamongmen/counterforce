@@ -17,7 +17,7 @@
 
 #define FANPWM_BIT_NUM LEDC_TIMER_8_BIT
 
-#define RPMMAX (1u << 13u)
+#define RPMMAX (1u << 14u)
 
 static nvs_handle_t Nvs;
 static ESP32MQTTClient client;
