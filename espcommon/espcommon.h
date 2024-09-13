@@ -256,7 +256,9 @@ rpm(unsigned long pulses, unsigned long usec){
 
 static void publish_pwm(mqttmsg& mmsg, const char* str, int pwm){
   if(valid_pwm_p(pwm)){
-    mmsg.add("fanpwm", pwm);
+    mmsg.add(str, pwm);
+  }else{
+    printf("invalid pwm %d for %s\n", pwm, str);
   }
 }
 

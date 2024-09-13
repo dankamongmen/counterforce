@@ -33,11 +33,7 @@ static const ledc_channel_t VOCFANCHAN = LEDC_CHANNEL_1;
 // PWMs we want to run at (initialized here, read from NVS/MQTT)
 static unsigned HeatPwm = 128;
 static unsigned VOCPwm = 128;
-// when we detect too many VOCs, we turn the VOC fan on max independently of
-// any requested pwm level.
-static unsigned VOCPwmReal;
 static unsigned HeatPulses, VOCPulses;
-static unsigned CO2PPM, VOCPPM;
 
 #define MAXTEMP 60
 
@@ -91,29 +87,13 @@ void onMqttConnect(esp_mqtt_client_handle_t cli){
       int vpwm = extract_pwm(payload);
       if(valid_pwm_p(vpwm)){
         VOCPwm = vpwm;
-        process_voc_fan(VOCFANCHAN);
+        set_pwm(VOCFANCHAN, VOCPwm);
         if(nvs_set_u32(Nvs, "vpwm", VOCPwm) == ESP_OK){
           nvs_commit(Nvs);
         }
       }
     }
   );
-}
-
-// if the voc/co2 level is above the threshold, turn on the voc fan at its max
-// level, regardless of any mqtt-requested pwm. if the levels are below the
-// threshold, the pwm ought be that which was requested.
-void process_voc_fan(ledc_channel_t vchan){
-  unsigned v;
-  if(VOCPPM >= 1000 || CO2PPM >= 10000){ // FIXME these were chosen randomly
-    v = 255;
-  }else{
-    v = VOCPwm;
-  }
-  if(VOCPwmReal != v){
-    VOCPwmReal = v;
-    set_pwm(vchan, VOCPwmReal);
-  }
 }
 
 void ISR heatfan_isr(void){
@@ -152,6 +132,8 @@ void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
   pinMode(relaypin, OUTPUT);
   digitalWrite(relaypin, LOW); // always turn off the heater by default
   AmbientTemp = getAmbient();
+  init_tach(heattachpin, heatfan_isr);
+  init_tach(voctachpin, vocfan_isr);
   set_relay_state(relaypin, HeaterTarget, AmbientTemp);
   initialize_25k_pwm(HEATFANCHAN, heatfanpin, LEDC_TIMER_1);
   initialize_25k_pwm(VOCFANCHAN, vocfanpin, LEDC_TIMER_2);
@@ -159,9 +141,7 @@ void bambumanager_setup(int heatfanpin, int vocfanpin, int ledpin,
     bambumanager_nvs_setup(&Nvs);
   }
   set_pwm(heatchan, HeatPwm);
-  process_voc_fan(vocchan);
-  init_tach(heattachpin, heatfan_isr);
-  init_tach(voctachpin, vocfan_isr);
+  set_pwm(vocchan, VOCPwm);
   mqtt_setup(client);
   printf("initialized!\n");
   digitalWrite(ledpin, HIGH);
