@@ -12,9 +12,9 @@ static const ledc_channel_t FANCHAN = LEDC_CHANNEL_0;
 static const ledc_channel_t PUMPACHAN = LEDC_CHANNEL_1;
 static const ledc_channel_t PUMPBCHAN = LEDC_CHANNEL_2;
 
-static volatile unsigned FanRpm;
-static volatile unsigned PumpARpm;
-static volatile unsigned PumpBRpm;
+static unsigned FanRpm;
+static unsigned PumpARpm;
+static unsigned PumpBRpm;
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
