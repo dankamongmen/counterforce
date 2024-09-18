@@ -239,7 +239,7 @@ initialize_pwm(ledc_channel_t channel, int pin, int freq, ledc_timer_t timer){
   return 0;
 }
 
-static int
+static inline int
 initialize_25k_pwm(ledc_channel_t channel, int pin, ledc_timer_t timer){
   return initialize_pwm(channel, pin, 25000, timer);
 }
