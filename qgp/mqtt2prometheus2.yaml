@@ -312,6 +312,22 @@ metrics:
    mqtt_name: rpm
    help: MO-RA3 fan RPMs
    type: gauge
+ - prom_name: lrpm
+   mqtt_name: lrpm
+   help: Lower chamber fan RPM
+   type: gauge
+ - prom_name: urpm
+   mqtt_name: urpm
+   help: Upper chamber fan RPM
+   type: gauge
+ - prom_name: lpwm
+   mqtt_name: lpwm
+   help: Lower chamber fan PWM
+   type: gauge
+ - prom_name: upwm
+   mqtt_name: upwm
+   help: Upper chamber fan PWM
+   type: gauge
  - prom_name: mora3fanpwm
    mqtt_name: fanpwm
    help: MO-RA3 fan PWM
