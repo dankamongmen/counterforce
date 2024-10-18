@@ -308,6 +308,14 @@ metrics:
    mqtt_name: atemp
    help: Coolant temperature at MO-RA3
    type: gauge
+ - prom_name: htemp
+   mqtt_name: dryertemp
+   help: Dryer hotbox temperature
+   type: gauge
+ - prom_name: mass
+   mqtt_name: dryermass
+   help: Dryer load mass
+   type: gauge
  - prom_name: mora3fanrpm
    mqtt_name: rpm
    help: MO-RA3 fan RPMs
