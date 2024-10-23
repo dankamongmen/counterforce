@@ -36,6 +36,10 @@ metrics:
    mqtt_name: geiger
    help: Geiger counter events
    type: gauge
+ - prom_name: micmax
+   mqtt_name: micmax
+   help: Microphone maximum
+   type: gauge
  - prom_name: nvme0temp
    mqtt_name: nvme0temp
    help: NVMe disk 0 temperature
