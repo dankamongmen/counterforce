@@ -9,23 +9,58 @@ TOPIC=sensors/schwarzgerät
 [ -n "$MQTTPASS" ] || { echo "export MQTT password as MQTTPASS" >&2 ; exit 1 ; }
 [ -n "$MQTTHOST" ] || { echo "export MQTT server as MQTTHOST" >&2 ; exit 1 ; }
 
+# swallow errors so we don't exit. optional arguments might include -r.
+mqttflush() {
+  if [ -n "$POST" ] ; then
+    "$MQTT" -h "$MQTTHOST" --id schwarzgerät -t "$TOPIC" -m "{$POST}" -u "$MQTTUSER" -P "$MQTTPASS" || \
+     { echo "error publishing to mqtt: $POST" >&2 ; }
+  fi
+}
+
+# arguments: topic (key), message.
+mqtt() {
+  if [ -z "$POST" ] ; then
+    POST="\"$1\":$2"
+  else
+    POST="$POST, \"$1\":$2"
+  fi
+}
+
 stty 115200 -F /dev/tty-geiger
 
 # we read fifteen samples of a given type before publishing (this ought be
-# 15s). we sum over the geiger counts.
+# 15s). we sum over the geiger counts, and average the mic samples.
 G=0
+M=0
+MSAMPS=0
 GSAMPS=0
+MICMAX=0 # FIXME can we get negative samples?
 exec cat < /dev/tty-geiger | while read line
 do
+  POST=""
   # all reported values are integers or floats with a mantissa of 0
   VAL=$(echo "$line" | cut -d\  -f2 | cut -d. -f1 | tr -d [:space:])
   if echo "$line" | grep '^Count: ' > /dev/null ; then
     { G=$((G + VAL)) && GSAMPS=$((GSAMPS + 1)) ; } || { echo "Invalid geiger report: $VAL" >&2 ; }
     if [ $GSAMPS -ge 15 ] ; then
-      "$MQTT" -h "$MQTTHOST" -u "$MQTTUSER" -P "$MQTTPASS" -t "$TOPIC" -m "{\"geiger\":$G}" || \
-       { echo "Error publishing geiger sample" >&2 ; }
+      mqtt geiger $G
       G=0
       GSAMPS=0
     fi
+  elif echo "$line" | grep '^Mic: ' > /dev/null ; then
+    { M=`jq -n $M+$VAL` && MSAMPS=$((MSAMPS + 1)) ; } || { echo "Invalid mic report: $VAL" >&2 ; }
+    if [ $MSAMPS -ge 15 ] ; then
+      VAL=`jq -n $M/$MSAMPS`
+      mqtt mic $VAL
+      mqtt micmax $MICMAX
+      M=0
+      MSAMPS=0
+      MICMAX=0
+    fi
+  elif echo "$line" | grep '^Micmax: ' > /dev/null ; then
+    if [ $VAL -gt $MICMAX ] ; then
+      MICMAX=$VAL
+    fi
   fi
+  mqttflush
 done
