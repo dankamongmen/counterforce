@@ -233,16 +233,6 @@ fanmgrSetup(int ledpin, int fanpin, int pumpapin, int pumpbpin,
   Serial.println("initialized!");
 }
 
-static int
-commit(nvs_handle_t nh){
-  esp_err_t err = nvs_commit(nh);
-  if(err != ESP_OK){
-    printf("error writing flash: %s\n", esp_err_to_name(err));
-    return -1;
-  }
-  return 0;
-}
-
 // run wifi loop, sample sensors. returns ambient temp.
 static float
 sampleSensors(int fanpin, int pumpapin, int pumpbpin){
