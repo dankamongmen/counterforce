@@ -127,22 +127,23 @@ while true ; do
   VAL=$(echo $LVALS | cut -d\  -f1)
   mqtt corsairtemp1 $VAL
 
-  # nvidia
+  # nvidia-smi sometimes emits garbage to stdout on failure (NVML
+  # mismatch, for instance), so check that it is a number as well.
   GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader || true)
-  if [ -n "$GPU" ] ; then
+  if [ -n "$GPU" ] && [ "$GPU" -eq "$GPU" ] 2> /dev/null ; then
     mqtt gputemp $GPU
   fi
   GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits || true)
-  if [ -n "$GPUMEM" ] ; then
+  if [ -n "$GPUMEM" ] && [ "$GPUMEM" -eq "$GPUMEM" ] 2> /dev/null ; then
     GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
     mqtt gpuactmem $GPUMEM
   fi
   GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits || true)
-  if [ -n "$GPUW" ] ; then
+  if [ -n "$GPUW" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
     mqtt gpuwatts $GPUW
   fi
   GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits || true)
-  if [ -n "$GPCENT" ] ; then
+  if [ -n "$GPCENT" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
     mqtt gpupcent $GPCENT
   fi
 
