@@ -5,8 +5,9 @@ MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, geiger))
 ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, s-mora r-mora bambux1c))
 ESPCOMMON:=$(addprefix espcommon/, fanmgr/common.h espcommon.h fanmgr/EspMQTTConfig.h)
 UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
+UNO3HEX:=$(addprefix unor3/, $(addsuffix .ino.hex, deskled))
 UNO4HEX:=$(addprefix unor4/, $(addsuffix .ino.hex, airmon))
-HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO4HEX) $(ESP32WROVERHEX))
+HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO3HEX) $(UNO4HEX) $(ESP32WROVERHEX))
 BIN:=$(addprefix $(OUT)/, counterforce)
 CFLAGS:=--warnings all
 
@@ -45,6 +46,10 @@ $(OUT)/esp32-wrover/bambux1c.ino.elf: $(addprefix esp32-wrover/bambux1c/, bambux
 $(OUT)/mega2560/geiger.ino.hex: $(addprefix mega2560/geiger/, geiger.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:mega -v --output-dir $(@D) mega2560/geiger
+
+$(OUT)/unor3/deskled.ino.hex: $(addprefix unor3/deskled/, deskled.ino)
+	@mkdir -p $(@D)
+	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) unor3/deskled
 
 $(OUT)/unor4/airmon.ino.hex: $(addprefix unor4/airmon/, airmon.ino)
 	@mkdir -p $(@D)

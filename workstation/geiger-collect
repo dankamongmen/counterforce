@@ -35,7 +35,7 @@ M=0
 MSAMPS=0
 GSAMPS=0
 MICMAX=0 # FIXME can we get negative samples?
-exec cat < /dev/tty-geiger | while read line
+cat < /dev/tty-geiger | while read line
 do
   POST=""
   # all reported values are integers or floats with a mantissa of 0
