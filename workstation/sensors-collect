@@ -119,13 +119,17 @@ while true ; do
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
-    mqtt corsair$i $VAL
+    if [ -n "$VAL" ] ; then
+      mqtt corsair$i $VAL
+    fi
   done
   # temp 1 is broken
   LVALS=$(echo $LVALS | cut -d\  -f2-)
   # use temp2
   VAL=$(echo $LVALS | cut -d\  -f1)
-  mqtt corsairtemp1 $VAL
+  if [ -n "$VAL" ] ; then
+    mqtt corsairtemp1 $VAL
+  fi
 
   # nvidia-smi sometimes emits garbage to stdout on failure (NVML
   # mismatch, for instance), so check that it is a number as well.
