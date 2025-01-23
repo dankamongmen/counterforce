@@ -18,10 +18,14 @@ mqttflush() {
 
 # arguments: topic (key), message.
 mqtt() {
-  if [ -z "$POST" ] ; then
-    POST="\"$1\":$2"
+  if [ -n "$2" ] ; then
+    if [ -z "$POST" ] ; then
+      POST="\"$1\":$2"
+    else
+      POST="$POST, \"$1\":$2"
+    fi
   else
-    POST="$POST, \"$1\":$2"
+    echo "warning: not writing $1 to json without value" >&2
   fi
 }
 
@@ -119,17 +123,13 @@ while true ; do
   for i in `seq 0 5` ; do
     VAL=$(echo $LVALS | cut -d\  -f1)
     LVALS=$(echo $LVALS | cut -d\  -f2-)
-    if [ -n "$VAL" ] ; then
-      mqtt corsair$i $VAL
-    fi
+    mqtt corsair$i $VAL
   done
   # temp 1 is broken
   LVALS=$(echo $LVALS | cut -d\  -f2-)
   # use temp2
   VAL=$(echo $LVALS | cut -d\  -f1)
-  if [ -n "$VAL" ] ; then
-    mqtt corsairtemp1 $VAL
-  fi
+  mqtt corsairtemp1 $VAL
 
   # nvidia-smi sometimes emits garbage to stdout on failure (NVML
   # mismatch, for instance), so check that it is a number as well.
