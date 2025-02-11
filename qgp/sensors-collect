@@ -45,9 +45,9 @@ fi
 while true ; do
   POST=""
 
-  if [ -z "$HFLOW" ] ; then
-    HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
-  fi
+  # it seems HFLOW can change when USB devices are added or removed,
+  # so go ahead and run the search each time =\ maybe only on failure?
+  HFLOW=$(sensors | grep ^highflownext-hid) || echo "Couldn't find Aquacomputer highflow NEXT" >&2
   COOLTEMP=$(sensors -j | jq .\"$HFLOW\".\"Coolant\ temp\".temp1_input) 2> /dev/null
   if [ "$COOLTEMP" != "null" ] ; then
     mqtt aquacool $COOLTEMP
