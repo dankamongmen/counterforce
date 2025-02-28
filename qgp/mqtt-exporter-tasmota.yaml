@@ -8,12 +8,12 @@ mqtt:
  # Optional: Used to specify ClientID. The default is <hostname>-<pid>
  #client_id: somedevice
  # The Topic path to subscribe to. Be aware that you have to specify the wildcard, if you want to follow topics for multiple sensors.
- topic_path: sensors/#
+ topic_path: tele/#
  # Optional: Regular expression to extract the device ID from the topic path. The default regular expression, assumes
  # that the last "element" of the topic_path is the device id.
  # The regular expression must contain a named capture group with the name deviceid
  # For example the expression for tasamota based sensors is "tele/(?P<deviceid>.*)/.*"
- device_id_regex: "sensors/(?P<deviceid>.*)(((/SENSOR)|(/STATE))?)"
+ device_id_regex: "tele/(?P<deviceid>.*)((/SENSOR)?)"
  # The MQTT QoS level
  qos: 0
 cache:
