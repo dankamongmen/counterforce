@@ -160,5 +160,5 @@ while true ; do
 
   mqttflush
   sleep 15
-  ITER=$$(ITER + 1))
+  ITER=$((ITER + 1))
 done
