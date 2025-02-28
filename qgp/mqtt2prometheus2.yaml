@@ -484,17 +484,25 @@ metrics:
    mqtt_name: nicrxbr8152
    help: Bytes received by r8152
    type: counter
- - prom_name: nicrxbr8169
-   mqtt_name: nicrxbr8169
-   help: Bytes received by r8169
-   type: counter
  - prom_name: nictxbr8152
    mqtt_name: nictxbr8152
    help: Bytes sent by r8152
    type: counter
+ - prom_name: nicrxbr8169
+   mqtt_name: nicrxbr8169
+   help: Bytes received by r8169
+   type: counter
  - prom_name: nictxbr8169
    mqtt_name: nictxbr8169
    help: Bytes sent by r8169
+   type: counter
+ - prom_name: nicrxbsfc9120a
+   mqtt_name: nicrxbsfc9120a
+   help: Bytes received by sfc9120a
+   type: counter
+ - prom_name: nictxbsfc9120a
+   mqtt_name: nictxbsfc9120a
+   help: Bytes sent by sfc9120a
    type: counter
  - prom_name: acvoltage
    mqtt_name: Voltage
