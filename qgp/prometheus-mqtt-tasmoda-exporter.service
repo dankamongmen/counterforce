@@ -1,0 +1,13 @@
+[Unit]
+Description=Prometheus exporter for Tasmoda metrics sent via MQTT topics
+Documentation=https://github.com/hikhvar/mqtt2prometheus
+
+[Service]
+Restart=always
+User=prometheus
+ExecStart=/usr/bin/prometheus-mqtt-exporter -listen-port 9643 -config /etc/prometheus/mqtt-exporter-tasmota.yaml
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
