@@ -42,6 +42,8 @@ if [ -z "$AMDGPU" ] ; then
   AMDGPU=$(sensors | grep ^amdgpu-pci) || echo "Couldn't find AMD GPU" >&2
 fi
 
+ITER=0
+
 while true ; do
   POST=""
 
@@ -96,17 +98,19 @@ while true ; do
   XTOP1RPM=$(sensors -j | jq '."it8689-isa-0a40".fan5.fan5_input') 2> /dev/null
   reportfan $XTOP1RPM cpu1rpm
 
-  # network
-  for i in r8169 r8152 sfc9120a sfc9120b ; do
-    if STATS=$(grep $i: /proc/net/dev) ; then
-      if [ -n "$STATS" ] ; then
-        RX=$(procnetdevrx $STATS)
-        TX=$(procnetdevtx $STATS)
-        mqtt nicrxb$i $RX
-        mqtt nictxb$i $TX
+  # network is only collected every 4 iterations
+  if [ $((ITER % 4)) -eq 0 ] ; then
+    for i in r8169 r8152 sfc9120a sfc9120b ; do
+      if STATS=$(grep $i: /proc/net/dev) ; then
+        if [ -n "$STATS" ] ; then
+          RX=$(procnetdevrx $STATS)
+          TX=$(procnetdevtx $STATS)
+          mqtt nicrxb$i $RX
+          mqtt nictxb$i $TX
+        fi
       fi
-    fi
-  done
+    done
+  fi
 
   #MLX5TEMP=$(sensors -j | jq '.[]|select(.Adapter|test("Virtual device"))|.temp1.temp1_input') 2> /dev/null
   #mqtt nictempmlx5 $MLX5TEMP
@@ -156,4 +160,5 @@ while true ; do
 
   mqttflush
   sleep 15
+  ITER=$$(ITER + 1))
 done

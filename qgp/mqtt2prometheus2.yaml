@@ -508,18 +508,6 @@ metrics:
    mqtt_name: Voltage
    help: AC voltage from mains
    type: gauge
- - prom_name: acvoltage
-   mqtt_name: ENERGY.Voltage
-   help: AC voltage from mains
-   type: gauge
- - prom_name: mora3watts
-   mqtt_name: ENERGY.ApparentPower
-   help: Power consumed by Mo-Ra3
-   type: gauge
- - prom_name: signaldbi
-   mqtt_name: Wifi.Signal
-   help: Wireless signal strength
-   type: gauge
  - prom_name: signaldbi
    mqtt_name: signaldbm
    help: Wireless signal strength
