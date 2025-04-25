@@ -283,7 +283,7 @@ while true ; do
   fi
 
   SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
-  mqtt systemdfails $SYSTEMDFAILED
+  mqtt systemdfails "$SYSTEMDFAILED"
 
   mqttflush
   sleep 10
