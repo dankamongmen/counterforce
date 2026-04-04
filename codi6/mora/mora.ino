@@ -40,14 +40,8 @@ static void GetColor(unsigned x, float cx, float cy, CRGB* leds){
   float animation_mult = 0.01 * animation_speed;
   float color_mult = 0.01 * color_rotation_speed;
 
-  /*
   Serial.print(" x: ");
   Serial.print(x);
-  Serial.print(" cx: ");
-  Serial.print(cx);
-  Serial.print(" cy: ");
-  Serial.println(cy);
-  */
   double angle    = atan2(0 - cy, x - cx) * 180 / 3.14159265359;
   double distance = sqrt(pow(cx - x, 2) + pow(cy, 2));
   float  value    = cos(animation_mult * distance / (0.1 * (float) spacing) + progress);
@@ -55,20 +49,21 @@ static void GetColor(unsigned x, float cx, float cy, CRGB* leds){
   int hue = abs((int)(angle + distance + progress * color_mult * color_rotation_speed) % 360);
   // 90--150; we only want greens
   hue = (hue % 60) + 90;
-  CHSV hsv =
-    CHSV(hue, 255, pow((value + 1) * 0.5, (11 - thickness)) * 255);
+
+  uint8_t s = pow((value + 1) * 0.5, (11 - thickness)) * 255;
+  Serial.print(" s: ");
+  Serial.println(s);
+
+  CHSV hsv = CHSV(hue, 255, s);
 
   hsv2rgb_rainbow(hsv, leds[x]);
 }
 
 static void StepEffect(CRGB* leds, unsigned ledcount){
-  float cx_shift_mult = cx_shift / 100.f;
-  float cy_shift_mult = cy_shift / 100.f;
   unsigned width = ledcount;
   unsigned int height = 1;
-
-  float cx = (width-1) * cx_shift_mult;
-  float cy = height * cy_shift_mult;
+  float cx = (width - 1) * (cx_shift / 100.f);
+  float cy = height * (cy_shift / 100.f);
 
   for(unsigned int i = 0; i < width; i++){
     GetColor(i, cx, cy, leds);

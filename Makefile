@@ -4,7 +4,7 @@ OUT:=out
 MEGAHEX:=$(addprefix mega2560/, $(addsuffix .ino.hex, geiger))
 ESP32WROVERHEX:=$(addprefix esp32-wrover/, $(addsuffix .ino.elf, s-mora r-mora bambux1c))
 ESPCOMMON:=$(addprefix espcommon/, fanmgr/common.h espcommon.h fanmgr/EspMQTTConfig.h)
-UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, external internal mora))
+UNOHEX:=$(addprefix codi6/, $(addsuffix .ino.hex, mora))
 UNO3HEX:=$(addprefix unor3/, $(addsuffix .ino.hex, deskled))
 UNO4HEX:=$(addprefix unor4/, $(addsuffix .ino.hex, airmon))
 HEX:=$(addprefix $(OUT)/, $(MEGAHEX) $(UNOHEX) $(UNO3HEX) $(UNO4HEX) $(ESP32WROVERHEX))
@@ -22,14 +22,6 @@ $(OUT)/counterforce: pi/counterforce.c
 $(OUT)/codi6/mora.ino.hex: $(addprefix codi6/mora/, mora.ino)
 	@mkdir -p $(@D)
 	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/mora
-
-$(OUT)/codi6/external.ino.hex: $(addprefix codi6/external/, external.ino)
-	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/external
-
-$(OUT)/codi6/internal.ino.hex: $(addprefix codi6/internal/, internal.ino)
-	@mkdir -p $(@D)
-	$(ACLI) compile $(CFLAGS) -b arduino:avr:uno -v --output-dir $(@D) codi6/internal
 
 $(OUT)/esp32-wrover/s-mora.ino.elf: $(addprefix esp32-wrover/s-mora/, s-mora.ino) $(ESPCOMMON)
 	@mkdir -p $(@D)
