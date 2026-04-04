@@ -133,21 +133,35 @@ while true ; do
 
   # nvidia-smi sometimes emits garbage to stdout on failure (NVML
   # mismatch, for instance), so check that it is a number as well.
-  GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader || true)
-  if [ -n "$GPU" ] && [ "$GPU" -eq "$GPU" ] 2> /dev/null ; then
-    mqtt gputemp $GPU
+  #GPU=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader || true)
+  #if [ -n "$GPU" ] && [ "$GPU" -eq "$GPU" ] 2> /dev/null ; then
+  #  mqtt gputemp $GPU
+  #fi
+#  GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits || true)
+#  if [ -n "$GPUMEM" ] && [ "$GPUMEM" -eq "$GPUMEM" ] 2> /dev/null ; then
+#    GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
+#    mqtt gpuactmem $GPUMEM
+#  fi
+#  GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits || true)
+#  if [ -n "$GPUW" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
+#    mqtt gpuwatts $GPUW
+#  fi
+#  GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits || true)
+#  if [ -n "$GPCENT" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
+#    mqtt gpupcent $GPCENT
+#  fi
+
+  # amdgpu queried via amd-ami
+  GPUTEMP=$(amd-smi metric -t | grep EDGE: | cut -d: -f2 | cut -d\  -f2 || true)
+  if [ -n "$GPUTEMP" ] && [ "$GPUTEMP" -eq "$GPUTEMP" ] 2> /dev/null ; then
+    mqtt gputemp $GPUTEMP
   fi
-  GPUMEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits || true)
-  if [ -n "$GPUMEM" ] && [ "$GPUMEM" -eq "$GPUMEM" ] 2> /dev/null ; then
-    GPUMEM=$((GPUMEM*1024*1024)) # it's in MiB
-    mqtt gpuactmem $GPUMEM
-  fi
-  GPUW=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits || true)
+  GPUW=$(amd-smi monitor -p | tail -n 1 | cut -d\  -f10 || true)
   if [ -n "$GPUW" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
-    mqtt gpuwatts $GPUW
+    mqtt gpupcent $GPUW
   fi
-  GPCENT=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits || true)
-  if [ -n "$GPCENT" ] && [ "$GPUW" -eq "$GPUW" ] 2> /dev/null ; then
+  GPCENT=$(amd-smi metric -u | grep GFX_ACTIVITY: | cut -d: -f2 | cut -d\  -f2 || true)
+  if [ -n "$GPCENT" ] && [ "$GPCENT" -eq "$GPCENT" ] 2> /dev/null ; then
     mqtt gpupcent $GPCENT
   fi
 
@@ -204,13 +218,13 @@ while true ; do
   mqtt uptimesec $UPSEC
 
   # SATA disks, if any are present
-  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input') 2> /dev/null
-  DIDX=0
-  for i in $DISKTEMPS ; do
-    mqtt sata$DIDX $i
-    DIDX=$((DIDX + 1))
-  done
-
+#  DISKTEMPS=$(sensors -j | jq '.[]|select(.Adapter|test("SCSI adapter"))|.sata.temp1_input') 2> /dev/null
+#  DIDX=0
+#  for i in $DISKTEMPS ; do
+#    mqtt sata$DIDX $i
+#    DIDX=$((DIDX + 1))
+#  done
+#
   # NVMe disks, if any are present
   for i in /dev/nvme? ; do
     # text looks like: "temperature				: 50°C (323 Kelvin)"
