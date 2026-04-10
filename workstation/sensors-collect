@@ -287,14 +287,14 @@ while true ; do
     fi
   fi
 
-  if DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]') ; then
-    if [ "$DAYLIGHT" = "true" ] ; then
-      DAYBOOL=1
-    else
-      DAYBOOL=0
-    fi
-    mqtt daylight $DAYBOOL
-  fi
+#  if DAYLIGHT=$(hueadm sensor 1 | grep daylight: | cut -d: -f2- | tr -d '[:space:]') ; then
+#    if [ "$DAYLIGHT" = "true" ] ; then
+#      DAYBOOL=1
+#    else
+#      DAYBOOL=0
+#    fi
+#    mqtt daylight $DAYBOOL
+#  fi
 
   SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
   mqtt systemdfails "$SYSTEMDFAILED"
