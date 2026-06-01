@@ -69,6 +69,8 @@ while true ; do
     mqtt "$NAME" $PCENT
   done
 
+  SYSTEMDFAILED=$(systemctl --failed --output=json | jq length -)
+  mqtt systemdfails "$SYSTEMDFAILED" # I: Double quote to prevent globbing and word splitting.
 
   mqttflush
   sleep 15
