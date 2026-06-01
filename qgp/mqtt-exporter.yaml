@@ -396,6 +396,10 @@ metrics:
    mqtt_name: nicrxbax200
    help: Bytes received by ax200
    type: counter
+ - prom_name: nicrxbeth0
+   mqtt_name: nicrxbeth0
+   help: Bytes received by eth0
+   type: counter
  - prom_name: nictxbmlx5
    mqtt_name: nictxbmlx5
    help: Bytes sent by mlx5
@@ -415,6 +419,10 @@ metrics:
  - prom_name: nictxbax200
    mqtt_name: nictxbax200
    help: Bytes sent by ax200
+   type: counter
+ - prom_name: nictxbeth0
+   mqtt_name: nictxbeth0
+   help: Bytes sent by eth0
    type: counter
  - prom_name: vcore
    mqtt_name: vcore
